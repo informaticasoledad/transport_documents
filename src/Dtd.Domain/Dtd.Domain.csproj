@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- ErrorOr se usa en el agregado para exponer las reglas de "listo para enviar" como un
+         ErrorOr<Success> (única fuente de verdad que el handler mapea a ErrorOr sin duplicar). -->
+    <PackageReference Include="ErrorOr" Version="2.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Documentos\Events\" />
+  </ItemGroup>
+
+</Project>
