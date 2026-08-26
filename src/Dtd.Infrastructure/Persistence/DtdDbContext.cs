@@ -1,11 +1,12 @@
+using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
 using Dtd.Domain.Conductores;
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
 using Dtd.Domain.Empresas;
+using Dtd.Domain.Templates;
 using Dtd.Infrastructure.Persistence.IntegrationLogs;
 using Microsoft.EntityFrameworkCore;
 
@@ -33,6 +34,7 @@ public sealed class DtdDbContext : DbContext
     public DbSet<AlmacenAgenciaBaseDefecto> AlmacenAgenciaBasesDefecto => Set<AlmacenAgenciaBaseDefecto>();
     public DbSet<Cc> Ccs => Set<Cc>();
     public DbSet<AlmacenAgenciaCc> AlmacenAgenciaCcs => Set<AlmacenAgenciaCc>();
+    public DbSet<Template> Templates => Set<Template>();
     internal DbSet<DocutenCallbackLog> DocutenCallbackLogs => Set<DocutenCallbackLog>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

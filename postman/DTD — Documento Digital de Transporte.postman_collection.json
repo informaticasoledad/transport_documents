@@ -1,0 +1,2554 @@
+{
+  "info": {
+    "_postman_id": "137accae-03f1-4655-9f22-f6409b0bb7ae",
+    "name": "DTD — Documento Digital de Transporte",
+    "description": "Colecci?n del back del DDT (.NET 10, Clean Architecture + DDD).\n\n## C?mo usarla\n\n1. Arranca el API en dev: dotnet run --project src/Dtd.Api.\n2. En Selecci?n (front), lista almacenes/agencias y conductores. Los scripts guardan almacenId, agenciaId, almacenCodigo, agenciaCodigo y conductorId cuando hay resultados.\n3. Ejecuta Flujo DDT en orden: Generar documento -> Asignar conductores -> opcionalmente Asignar CCs -> Confirmar -> Sincronizar estado -> Obtener.\n\nGenerar crea el documento en estado Nuevo y no adjunta conductores ni CCs autom?ticamente. Mientras est? Nuevo puedes a?adir o quitar conductores/CCs. Confirmar exige al menos un conductor. Las bases log?sticas de agencia se configuran por almacen+agencia y se usan para calcular el destino del env?o, no se asignan al documento.\n\nCon Auth:Enabled=true a?ade Authorization: Bearer <token>. Con Auth apagada usuario queda null.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6318901"
+  },
+  "item": [
+    {
+      "name": "Flujo DDT",
+      "item": [
+        {
+          "name": "1. Generar documento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body && body.id) {",
+                  "  pm.collectionVariables.set('documentoId', body.id);",
+                  "  console.log('documentoId =', body.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empresa\": \"{{empresa}}\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/generar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "generar"
+              ]
+            },
+            "description": "Genera el DDT tirando de las expediciones del ERP (empresa/agencia/rango) no incluidas aún en ningún documento. El origen común se toma del ERP. El flag `envio_directo` de la agencia decide cómo se agrupan las expediciones en envíos (shipments): `false` (default) → un único envío a la base del carrier (agencia base del catálogo + dirección snapshot del vínculo); `true` → trasiegos directos, 1 envío por almacén destino (agencia base/dirección del ERP). El snapshot de `envioDirecto` queda en el documento. Devuelve 201 { id }; el test script lo guarda en `documentoId`."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"empresa\": \"{{empresa}}\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/generar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "generar"
+                  ]
+                },
+                "description": "Genera el DDT tirando de las expediciones del ERP (empresa/agencia/rango) no incluidas aún en ningún documento. El origen común se toma del ERP. El flag `envio_directo` de la agencia decide cómo se agrupan las expediciones en envíos (shipments): `false` (default) → un único envío a la base del carrier (agencia base del catálogo + dirección snapshot del vínculo); `true` → trasiegos directos, 1 envío por almacén destino (agencia base/dirección del ERP). El snapshot de `envioDirecto` queda en el documento. Devuelve 201 { id }; el test script lo guarda en `documentoId`."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "2. Asignar conductor al documento creado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const documentoId = pm.collectionVariables.get('documentoId');",
+                  "const conductorId = pm.collectionVariables.get('conductorId');",
+                  "if (!documentoId) {",
+                  "  throw new Error('Falta documentoId. Ejecuta primero Flujo DDT > 1. Generar documento o pega el id creado en la variable documentoId.');",
+                  "}",
+                  "if (!conductorId || conductorId === '00000000-0000-0000-0000-000000000000') {",
+                  "  throw new Error('Falta conductorId v?lido. Ejecuta Selecci?n (front) > Listar conductores del cat?logo de la agencia o pega un id de conductor.');",
+                  "}",
+                  "console.log('Asignando conductor', conductorId, 'al documento', documentoId);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('devuelve conductores asignados', () => Array.isArray(body) && body.length >= 1);",
+                  "if (Array.isArray(body) && body.length > 0) {",
+                  "  pm.collectionVariables.set('conductorAsignadoId', body[0].id);",
+                  "  console.log('conductorAsignadoId =', body[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"conductoresId\": [\"{{conductorId}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/conductores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "conductores"
+              ]
+            },
+            "description": "Asigna uno o varios conductores al documento en estado Nuevo. Usa documentoId guardado por Generar y conductorId copiado desde Seleccion > Listar conductores del catalogo de la agencia."
+          },
+          "response": [
+            {
+              "name": "200 OK (1 asignado)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"conductoresId\": [\"{{conductorId}}\"]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/conductores",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "conductores"
+                  ]
+                },
+                "description": "Asigna uno o varios conductores al documento en estado Nuevo. Usa documentoId guardado por Generar y conductorId copiado desde Seleccion > Listar conductores del catalogo de la agencia."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"d1b2c3d4-0001-4ddd-8c0d-2b1d1d000020\",\n    \"codigo\": \"C01\",\n    \"nombre\": \"Pepe\",\n    \"taxId\": \"12345678Z\",\n    \"licensePlate\": \"1234ABC\",\n    \"channel\": \"sms\",\n    \"email\": null,\n    \"movil\": \"699000000\",\n    \"language\": \"es\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "2b. Quitar conductor (individual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/conductores/{{conductorAsignadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "conductores",
+                "{{conductorAsignadoId}}"
+              ]
+            },
+            "description": "Quita un conductor asignado por su Id (solo en estado Nuevo). El id lo guarda el test script de \"2. Asignar conductores\" en la variable conductorAsignadoId. Devuelve 204 No Content."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/conductores/{{conductorAsignadoId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "conductores",
+                    "{{conductorAsignadoId}}"
+                  ]
+                },
+                "description": "Quita un conductor asignado por su Id (solo en estado Nuevo). El id lo guarda el test script de \"2. Asignar conductores\" en la variable conductorAsignadoId. Devuelve 204 No Content."
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "2c. Asignar CCs al documento creado",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const documentoId = pm.collectionVariables.get('documentoId');",
+                  "const ccId = pm.collectionVariables.get('ccId');",
+                  "if (!documentoId) {",
+                  "  throw new Error('Falta documentoId. Ejecuta primero Flujo DDT > 1. Generar documento o pega el id creado en la variable documentoId.');",
+                  "}",
+                  "if (!ccId || ccId === '00000000-0000-0000-0000-000000000000') {",
+                  "  throw new Error('Falta ccId v?lido. Ejecuta Seleccion (front) > CCs por defecto/Listar CCs del almacen o pega un id de CC.');",
+                  "}",
+                  "console.log('Asignando CC', ccId, 'al documento', documentoId);"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('devuelve CCs asignados', () => Array.isArray(body) && body.length > 0);",
+                  "if (Array.isArray(body) && body.length > 0) {",
+                  "  pm.collectionVariables.set('ccAsignadoId', body[0].id);",
+                  "  console.log('ccAsignadoId =', body[0].id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ccsId\": [\n    \"{{ccId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/ccs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "ccs"
+              ]
+            },
+            "description": "Asigna uno o varios CCs opcionales al documento en estado Nuevo. Usa documentoId guardado por Generar y ccId copiado desde Seleccion > CCs por defecto o Listar CCs del almacen."
+          },
+          "response": [
+            {
+              "name": "200 OK (array de asignados)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"ccsId\": [\n    \"{{ccId}}\"\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/ccs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "ccs"
+                  ]
+                },
+                "description": "Asigna uno o varios CCs opcionales al documento en estado Nuevo. Usa documentoId guardado por Generar y ccId copiado desde Seleccion > CCs por defecto o Listar CCs del almacen."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"f1b2c3d4-0006-4ddd-8c0d-2b1d1d000060\",\n    \"codigo\": \"CC1\",\n    \"nombre\": \"CC Uno\",\n    \"email\": \"cc1@example.com\",\n    \"language\": \"es\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "2d. Quitar CC (individual)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('204 No Content', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/ccs/{{ccAsignadoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "ccs",
+                "{{ccAsignadoId}}"
+              ]
+            },
+            "description": "Quita un CC asignado por su Id de snapshot, solo en estado Nuevo. El id lo guarda el test script de \"2c. Asignar CCs al documento creado\" en ccAsignadoId. Devuelve 204 No Content."
+          },
+          "response": [
+            {
+              "name": "204 No Content",
+              "originalRequest": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/ccs/{{ccAsignadoId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "ccs",
+                    "{{ccAsignadoId}}"
+                  ]
+                },
+                "description": "Quita un CC asignado por su Id de snapshot, solo en estado Nuevo. El id lo guarda el test script de \"2c. Asignar CCs al documento creado\" en ccAsignadoId. Devuelve 204 No Content."
+              },
+              "status": "No Content",
+              "code": 204,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": ""
+            }
+          ]
+        },
+        {
+          "name": "3. Confirmar (enviar a Docuten)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/confirmar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "confirmar"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (Enviando)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/confirmar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "confirmar"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\",\n  \"docutenId\": \"DOC-123456\",\n  \"estado\": 0\n}"
+            }
+          ]
+        },
+        {
+          "name": "4. Sincronizar estado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/sincronizar-estado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "sincronizar-estado"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (Finalizado)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/sincronizar-estado",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "sincronizar-estado"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\",\n  \"estado\": \"Finalizado\",\n  \"docutenEstado\": 3\n}"
+            }
+          ]
+        },
+        {
+          "name": "5. Obtener documento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (Nuevo, envío único a la base)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\",\n  \"empresa\": \"001\",\n  \"almacenId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010\",\n  \"almacenCodigo\": \"21\",\n  \"almacenNombre\": \"DELEGACION MIRANDA\",\n  \"agenciaId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000012\",\n  \"agenciaCodigo\": \"AG01\",\n  \"agenciaNombre\": \"SEUR\",\n  \"origen\": {\n    \"warehouseId\": \"21\",\n    \"addressName\": \"DELEGACION MIRANDA\",\n    \"addressStreet\": \"RIBERAS DEL EBRO N41 P.I.\",\n    \"addressPhone1\": null,\n    \"zipcode\": \"09200\",\n    \"city\": \"MIRANDA DE EBRO\",\n    \"provinceName\": \"BURGOS\",\n    \"countryName\": \"ESPA?A\",\n    \"countryIsoCode\": \"ES\"\n  },\n  \"fechaDesde\": \"2026-07-12\",\n  \"fechaHasta\": \"2026-07-12\",\n  \"estado\": \"Nuevo\",\n  \"docutenId\": null,\n  \"docutenEstado\": null,\n  \"conductores\": [\n    {\n      \"id\": \"d1b2c3d4-0001-4ddd-8c0d-2b1d1d000020\",\n      \"codigo\": \"C01\",\n      \"nombre\": \"Pepe\",\n      \"taxId\": \"12345678Z\",\n      \"licensePlate\": \"1234ABC\",\n      \"channel\": \"sms\",\n      \"email\": null,\n      \"movil\": \"699000000\",\n      \"language\": \"es\"\n    }\n  ],\n  \"ccs\": [],\n  \"usuario\": null,\n  \"fechaGeneracion\": \"2026-07-12T10:00:00+00:00\",\n  \"actualizadoEn\": \"2026-07-12T10:00:00+00:00\",\n  \"envioDirecto\": false,\n  \"totalExpediciones\": 2,\n  \"expediciones\": [],\n  \"envios\": [\n    {\n      \"id\": \"b1b2c3d4-1000-4ddd-8c0d-2b1d1d000100\",\n      \"orden\": 1,\n      \"shipmentReference\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000#1\",\n      \"bultos\": 1,\n      \"esDirecto\": false,\n      \"destino\": {\n        \"codigo\": \"BASE-SEUR-21\",\n        \"nombre\": \"Base SEUR Miranda\",\n        \"direccion\": \"RIBERAS DEL EBRO N41 P.I.\",\n        \"codigoPostal\": \"09200\",\n        \"ciudad\": \"MIRANDA DE EBRO\",\n        \"codigoPais\": \"ES\",\n        \"telefono\": \"600111222\"\n      },\n      \"expediciones\": []\n    }\n  ]\n}"
+            }
+          ]
+        },
+        {
+          "name": "6. Listar eventos (log)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/eventos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "eventos"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (log de eventos)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/eventos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "eventos"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"c1b2c3d4-0001-4ddd-8c0d-2b1d1d000010\",\n    \"momento\": \"2026-07-12T10:00:00+00:00\",\n    \"tipo\": \"Generado\",\n    \"estadoHttp\": null,\n    \"mensaje\": null\n  },\n  {\n    \"id\": \"c1b2c3d4-0001-4ddd-8c0d-2b1d1d000011\",\n    \"momento\": \"2026-07-12T10:00:03+00:00\",\n    \"tipo\": \"ConductorAsignado\",\n    \"estadoHttp\": null,\n    \"mensaje\": \"C01\"\n  },\n  {\n    \"id\": \"c1b2c3d4-0001-4ddd-8c0d-2b1d1d000012\",\n    \"momento\": \"2026-07-12T10:00:05+00:00\",\n    \"tipo\": \"EnvioADocuten\",\n    \"estadoHttp\": null,\n    \"mensaje\": \"LOT-123456\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "7. Anular documento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"motivo\": \"Cancelado a petición del cliente\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/anular",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "{{documentoId}}",
+                "anular"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (Anulado)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"motivo\": \"Cancelado a petición del cliente\"\n}"
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/{{documentoId}}/anular",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "{{documentoId}}",
+                    "anular"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"documentoId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\",\n  \"estado\": \"Anulado\",\n  \"docutenEstado\": null\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Pipeline completo de un documento: generar -> asignar conductores -> asignar CCs opcional -> confirmar (enviar a Docuten) -> sincronizar estado -> obtener. El back no auto-adjunta conductores ni CCs al generar. Confirmar valida que el documento tenga al menos un conductor."
+    },
+    {
+      "name": "Listados",
+      "item": [
+        {
+          "name": "Listar documentos (filtros)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos?empresa={{empresa}}&almacenCodigo={{almacenCodigo}}&agenciaCodigo={{agenciaCodigo}}&fechaDesde={{fechaDesde}}&fechaHasta={{fechaHasta}}&estado=Nuevo",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos"
+              ],
+              "query": [
+                {
+                  "key": "empresa",
+                  "value": "{{empresa}}"
+                },
+                {
+                  "key": "almacenCodigo",
+                  "value": "{{almacenCodigo}}",
+                  "description": "opcional"
+                },
+                {
+                  "key": "agenciaCodigo",
+                  "value": "{{agenciaCodigo}}"
+                },
+                {
+                  "key": "fechaDesde",
+                  "value": "{{fechaDesde}}"
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": "{{fechaHasta}}"
+                },
+                {
+                  "key": "estado",
+                  "value": "Nuevo",
+                  "description": "Nuevo|Enviando|EnProgreso|Finalizado|Anulado|Cancelado|Error (opcional)"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (array)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos?empresa={{empresa}}&almacenCodigo={{almacenCodigo}}&agenciaCodigo={{agenciaCodigo}}&fechaDesde={{fechaDesde}}&fechaHasta={{fechaHasta}}&estado=Nuevo",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos"
+                  ],
+                  "query": [
+                    {
+                      "key": "empresa",
+                      "value": "{{empresa}}"
+                    },
+                    {
+                      "key": "almacenCodigo",
+                      "value": "{{almacenCodigo}}",
+                      "description": "opcional"
+                    },
+                    {
+                      "key": "agenciaCodigo",
+                      "value": "{{agenciaCodigo}}"
+                    },
+                    {
+                      "key": "fechaDesde",
+                      "value": "{{fechaDesde}}"
+                    },
+                    {
+                      "key": "fechaHasta",
+                      "value": "{{fechaHasta}}"
+                    },
+                    {
+                      "key": "estado",
+                      "value": "Nuevo",
+                      "description": "Nuevo|Enviando|EnProgreso|Finalizado|Anulado|Cancelado|Error (opcional)"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000000\",\n    \"empresa\": \"001\",\n    \"almacenId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010\",\n    \"almacenCodigo\": \"21\",\n    \"almacenNombre\": \"DELEGACION MIRANDA\",\n    \"agenciaId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000012\",\n    \"agenciaCodigo\": \"AG01\",\n    \"agenciaNombre\": \"Agencia 01\",\n    \"estado\": \"Nuevo\",\n    \"totalExpediciones\": 2,\n    \"envioDirecto\": false\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Listar expediciones disponibles (ERP)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/expediciones/disponibles?empresa={{empresa}}&almacenId={{almacenId}}&agenciaId={{agenciaId}}&fechaDesde={{fechaDesde}}&fechaHasta={{fechaHasta}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "expediciones",
+                "disponibles"
+              ],
+              "query": [
+                {
+                  "key": "empresa",
+                  "value": "{{empresa}}",
+                  "description": "requerido (3 dígitos)"
+                },
+                {
+                  "key": "almacenId",
+                  "value": "{{almacenId}}",
+                  "description": "requerido — Guid del almacén de origen (cópialo de GET .../almacenes, campo `id`)"
+                },
+                {
+                  "key": "agenciaId",
+                  "value": "{{agenciaId}}",
+                  "description": "requerido — Guid de la agencia/carrier (cópialo de GET .../almacenes/{almacenCodigo}/agencias, campo `id`)"
+                },
+                {
+                  "key": "fechaDesde",
+                  "value": "{{fechaDesde}}"
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": "{{fechaHasta}}"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (array)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/expediciones/disponibles?empresa={{empresa}}&almacenId={{almacenId}}&agenciaId={{agenciaId}}&fechaDesde={{fechaDesde}}&fechaHasta={{fechaHasta}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "expediciones",
+                    "disponibles"
+                  ],
+                  "query": [
+                    {
+                      "key": "empresa",
+                      "value": "{{empresa}}",
+                      "description": "requerido (3 dígitos)"
+                    },
+                    {
+                      "key": "almacenId",
+                      "value": "{{almacenId}}",
+                      "description": "requerido — Guid del almacén de origen (cópialo de GET .../almacenes, campo `id`)"
+                    },
+                    {
+                      "key": "agenciaId",
+                      "value": "{{agenciaId}}",
+                      "description": "requerido — Guid de la agencia/carrier (cópialo de GET .../almacenes/{almacenCodigo}/agencias, campo `id`)"
+                    },
+                    {
+                      "key": "fechaDesde",
+                      "value": "{{fechaDesde}}"
+                    },
+                    {
+                      "key": "fechaHasta",
+                      "value": "{{fechaHasta}}"
+                    }
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"00000000-0000-0000-0000-000000000000\",\n    \"erpId\": \"0025776338|26\",\n    \"documentNumber\": \"2028140094\",\n    \"expeditionCode\": \"11650750\",\n    \"expeditionType\": 1,\n    \"empresa\": \"001\",\n    \"almacenId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010\",\n    \"agenciaId\": \"a1b2c3d4-0001-4ddd-8c0d-2b1d1d000012\",\n    \"fecha\": \"2026-07-12\",\n    \"cliente\": \"40625\",\n    \"bultos\": 1\n  }\n]"
+            }
+          ]
+        }
+      ],
+      "description": "Consultas de listado (filtros por query)."
+    },
+    {
+      "name": "Selección (front)",
+      "item": [
+        {
+          "name": "Listar almacenes de la empresa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('almacenId', body[0].id);",
+                  "  pm.collectionVariables.set('almacenCodigo', body[0].codigo);",
+                  "  console.log('almacenId=body[0].id, almacenCodigo=body[0].codigo');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar agencias disponibles para un almacén",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('agenciaId', body[0].id);",
+                  "  pm.collectionVariables.set('agenciaCodigo', body[0].codigo);",
+                  "  console.log('agenciaId=body[0].id, agenciaCodigo=body[0].codigo');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Conductores por defecto de la tupla (almacén, agencia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/conductores-default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "conductores-default"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (array, puede ser vacío)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/conductores-default",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "almacenes",
+                    "{{almacenCodigo}}",
+                    "agencias",
+                    "{{agenciaCodigo}}",
+                    "conductores-default"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"e1b2c3d4-0001-4ddd-8c0d-2b1d1d000030\",\n    \"codigo\": \"C01\",\n    \"nombre\": \"Pepe\",\n    \"taxId\": \"12345678Z\",\n    \"licensePlate\": \"1234ABC\",\n    \"channel\": \"sms\",\n    \"email\": null,\n    \"movil\": \"699000000\",\n    \"language\": \"es\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Listar conductores del catálogo de la agencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('conductorId', body[0].id);",
+                  "  console.log('conductorId=body[0].id');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencias/{{agenciaCodigo}}/conductores",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "conductores"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agencia bases por defecto de la tupla (almacen, agencia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('agenciaBaseId', body[0].id);",
+                  "  console.log('agenciaBaseId=body[0].id');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/agencia-bases-default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "agencia-bases-default"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (array, puede ser vacío)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/agencia-bases-default",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "almacenes",
+                    "{{almacenCodigo}}",
+                    "agencias",
+                    "{{agenciaCodigo}}",
+                    "agencia-bases-default"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"e1b2c3d4-0001-4ddd-8c0d-2b1d1d000050\",\n    \"codigo\": \"CS01\",\n    \"nombre\": \"Destinatario Test\",\n    \"taxId\": \"B87654321\",\n    \"channel\": \"email\",\n    \"email\": \"dest@example.com\",\n    \"movil\": null,\n    \"language\": \"es\",\n    \"activo\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Establecer agencia bases por defecto de la tupla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('devuelve los defaults activos de la relacion', () => Array.isArray(body));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agenciaBaseIds\": [\n    \"{{agenciaBaseId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/agencia-bases-default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "agencia-bases-default"
+              ]
+            },
+            "description": "Sustituye las agencia bases sugeridas por defecto para la tupla almacen+agencia. Es ayuda para el front; el back no las auto-adjunta al generar."
+          },
+          "response": []
+        },
+        {
+          "name": "Establecer agencia base de env?o para la tupla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"agenciaBaseId\": \"{{agenciaBaseId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/agencia-base",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "agencia-base"
+              ]
+            },
+            "description": "Configura la agencia base que usar? el back como destino cuando el envio sea unico por agencia para este almacen+agencia."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar agencia-bases del catálogo de la agencia",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencias/{{agenciaCodigo}}/agencia-bases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "agencia-bases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar agencia-bases del catálogo del almacén",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencia-bases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencia-bases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "CCs por defecto de la tupla (almacén, agencia)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "if (Array.isArray(body) && body.length) {",
+                  "  pm.collectionVariables.set('ccId', body[0].id);",
+                  "  console.log('ccId=body[0].id');",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/ccs-default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "ccs-default"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK (array, puede ser vacío)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/ccs-default",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "almacenes",
+                    "{{almacenCodigo}}",
+                    "agencias",
+                    "{{agenciaCodigo}}",
+                    "ccs-default"
+                  ]
+                }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"e1b2c3d4-0007-4ddd-8c0d-2b1d1d000070\",\n    \"codigo\": \"CC1\",\n    \"nombre\": \"CC Uno\",\n    \"email\": \"cc1@example.com\",\n    \"language\": \"es\",\n    \"activo\": true\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Establecer CCs por defecto de la tupla",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('devuelve los defaults activos de la relacion', () => Array.isArray(body));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ccIds\": [\n    \"{{ccId}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/agencias/{{agenciaCodigo}}/ccs-default",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "agencias",
+                "{{agenciaCodigo}}",
+                "ccs-default"
+              ]
+            },
+            "description": "Marca como por defecto los CCs indicados dentro de la relacion almacen-agencia. Todos los ccIds deben estar disponibles para esa relacion; si no, 404 Cc.NoVinculado (all-or-nothing, sin mutar). El front usa estos valores como sugerencia. Lista vacia de ccIds limpia los defaults."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar CCs del catálogo del almacén",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/almacenes/{{almacenCodigo}}/ccs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "almacenes",
+                "{{almacenCodigo}}",
+                "ccs"
+              ]
+            }
+          },
+          "response": []
+        }
+      ],
+      "description": "Dropdowns del front: empresa -> almacenes -> agencias -> conductores / agencia bases / CCs. Los defaults de conductores y CCs son sugerencias para el front; el back no los auto-adjunta al generar."
+    },
+    {
+      "name": "Agencia bases (catalogo)",
+      "item": [
+        {
+          "name": "Crear agencia base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body && body.id) { pm.collectionVariables.set('agenciaBaseId', body.id); console.log('agenciaBaseId =', body.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"BASE-SEUR-21\",\n  \"nombre\": \"Base SEUR Miranda\",\n  \"canal\": \"sms\",\n  \"movil\": \"600111222\",\n  \"email\": null,\n  \"taxId\": \"B87654321\",\n  \"direccion\": \"RIBERAS DEL EBRO N41 P.I.\",\n  \"codigoPostal\": \"09200\",\n  \"municipio\": \"MIRANDA DE EBRO\",\n  \"codigoPaisIso\": \"ES\",\n  \"language\": \"es\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencia-bases"
+              ]
+            },
+            "description": "Crea una agencia base del catalogo de la empresa. La relacion almacen+agencia se configura despues con el endpoint de Seleccion."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"codigo\": \"BASE-SEUR-21\",\n  \"nombre\": \"Base SEUR Miranda\",\n  \"canal\": \"sms\",\n  \"movil\": \"600111222\",\n  \"email\": null,\n  \"taxId\": \"B87654321\",\n  \"direccion\": \"RIBERAS DEL EBRO N41 P.I.\",\n  \"codigoPostal\": \"09200\",\n  \"municipio\": \"MIRANDA DE EBRO\",\n  \"codigoPaisIso\": \"ES\",\n  \"language\": \"es\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "agencia-bases"
+                  ]
+                },
+                "description": "Crea una agencia base del catalogo de la empresa. La relacion almacen+agencia se configura despues con el endpoint de Seleccion."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"e1b2c3d4-0001-4ddd-8c0d-2b1d1d000050\",\n  \"codigo\": \"CS01\",\n  \"nombre\": \"Destinatario Test\",\n  \"taxId\": \"B87654321\",\n  \"channel\": \"email\",\n  \"email\": \"dest@example.com\",\n  \"movil\": null,\n  \"language\": \"es\",\n  \"activo\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar agencia base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Base SEUR Miranda Actualizada\",\n  \"taxId\": \"B87654321\",\n  \"direccion\": \"RIBERAS DEL EBRO N41 P.I.\",\n  \"codigoPostal\": \"09200\",\n  \"municipio\": \"MIRANDA DE EBRO\",\n  \"codigoPaisIso\": \"ES\",\n  \"canal\": \"sms\",\n  \"movil\": \"600111222\",\n  \"email\": null,\n  \"language\": \"es\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases/{{agenciaBaseId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencia-bases",
+                "{{agenciaBaseId}}"
+              ]
+            },
+            "description": "Actualiza los campos mutables de la agencia base. Codigo y Empresa son inmutables."
+          },
+          "response": []
+        },
+        {
+          "name": "Activar agencia base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases/{{agenciaBaseId}}/activar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencia-bases",
+                "{{agenciaBaseId}}",
+                "activar"
+              ]
+            },
+            "description": "Marca el agencia base como activo (los inactivos no aparecen en los dropdowns de selección ni se pueden usar como base del envio). Devuelve 200 con el agencia base (activo=true)."
+          },
+          "response": []
+        },
+        {
+          "name": "Desactivar agencia base",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases/{{agenciaBaseId}}/desactivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencia-bases",
+                "{{agenciaBaseId}}",
+                "desactivar"
+              ]
+            },
+            "description": "Marca el agencia base como inactivo (soft delete: permanece en la BD para auditoría y no se puede asignar a nuevos envios, pero los ya asignados mantienen su snapshot). Devuelve 200 con el agencia base (activo=false)."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar todas las agencia bases (gestion)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "agencia-bases"
+              ]
+            },
+            "description": "Lista todas las agencia bases de la empresa, activas e inactivas."
+          },
+          "response": [
+            {
+              "name": "200 OK (array, activos e inactivos)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/agencia-bases",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "agencia-bases"
+                  ]
+                },
+                "description": "Lista todas las agencia bases de la empresa, activas e inactivas."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"e1b2c3d4-0001-4ddd-8c0d-2b1d1d000050\",\n    \"codigo\": \"CS01\",\n    \"nombre\": \"Destinatario Test\",\n    \"taxId\": \"B87654321\",\n    \"channel\": \"email\",\n    \"email\": \"dest@example.com\",\n    \"movil\": null,\n    \"language\": \"es\",\n    \"activo\": true\n  },\n  {\n    \"id\": \"e1b2c3d4-0001-4ddd-8c0d-2b1d1d000051\",\n    \"codigo\": \"CS02\",\n    \"nombre\": \"Destinatario Inactivo\",\n    \"taxId\": null,\n    \"channel\": \"sms\",\n    \"email\": null,\n    \"movil\": \"600111223\",\n    \"language\": \"es\",\n    \"activo\": false\n  }\n]"
+            }
+          ]
+        }
+      ],
+      "description": "Gestion del catalogo de bases logisticas de agencia por empresa: crear, actualizar, activar/desactivar y listar. La direccion vive en la propia agencia base; la relacion almacen+agencia decide cual usar como base del envio."
+    },
+    {
+      "name": "Ccs (catálogo)",
+      "item": [
+        {
+          "name": "Crear cc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "if (body && body.id) { pm.collectionVariables.set('ccId', body.id); console.log('ccId =', body.id); }"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"codigo\": \"CC1\",\n  \"nombre\": \"CC Uno\",\n  \"email\": \"cc1@example.com\",\n  \"language\": \"es\",\n  \"vinculos\": [\n    {\n      \"almacenId\": \"{{almacenId}}\",\n      \"agenciaId\": \"{{agenciaId}}\",\n      \"porDefecto\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "ccs"
+              ]
+            },
+            "description": "Crea un CC (destinatario en copia) y lo vincula a relaciones almacén-agencia concretas. Email-only: el único contacto es `email` (obligatorio); en Docuten siempre va como signing_role=\"cc\" + channel=\"email\". 201 con el CC creado; el test script guarda su id en la variable ccId."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"codigo\": \"CC1\",\n  \"nombre\": \"CC Uno\",\n  \"email\": \"cc1@example.com\",\n  \"language\": \"es\",\n  \"vinculos\": [\n    {\n      \"almacenId\": \"{{almacenId}}\",\n      \"agenciaId\": \"{{agenciaId}}\",\n      \"porDefecto\": true\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "ccs"
+                  ]
+                },
+                "description": "Crea un CC (destinatario en copia) y lo vincula a relaciones almacén-agencia concretas. Email-only: el único contacto es `email` (obligatorio); en Docuten siempre va como signing_role=\"cc\" + channel=\"email\". 201 con el CC creado; el test script guarda su id en la variable ccId."
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"id\": \"e1b2c3d4-0007-4ddd-8c0d-2b1d1d000070\",\n  \"codigo\": \"CC1\",\n  \"nombre\": \"CC Uno\",\n  \"email\": \"cc1@example.com\",\n  \"language\": \"es\",\n  \"activo\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar cc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"CC Uno Actualizado\",\n  \"email\": \"cc1@example.com\",\n  \"language\": \"es\",\n  \"vinculos\": [\n    {\n      \"almacenId\": \"{{almacenId}}\",\n      \"agenciaId\": \"{{agenciaId}}\",\n      \"porDefecto\": true\n    }\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs/{{ccId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "ccs",
+                "{{ccId}}"
+              ]
+            },
+            "description": "Actualiza campos mutables (Nombre/Email/Language) y reemplaza los vínculos (lista vacía = desvincular todo). Codigo y Empresa son inmutables. Email-only (sin canal/móvil/tax_id)."
+          },
+          "response": []
+        },
+        {
+          "name": "Activar cc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs/{{ccId}}/activar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "ccs",
+                "{{ccId}}",
+                "activar"
+              ]
+            },
+            "description": "Marca el CC como activo (los inactivos no aparecen en los dropdowns de selección ni se pueden usar como base del envio). Devuelve 200 con el CC (activo=true)."
+          },
+          "response": []
+        },
+        {
+          "name": "Desactivar cc",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs/{{ccId}}/desactivar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "ccs",
+                "{{ccId}}",
+                "desactivar"
+              ]
+            },
+            "description": "Marca el CC como inactivo (soft delete: permanece en la BD para auditoría y no se puede asignar a nuevos documentos, pero los ya asignados mantienen su snapshot). Devuelve 200 con el CC (activo=false)."
+          },
+          "response": []
+        },
+        {
+          "name": "Listar todos los ccs (gestión)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "empresas",
+                "{{empresa}}",
+                "ccs"
+              ]
+            },
+            "description": "Lista TODOS los CCs de la empresa, activos e inactivos (vista de gestión). Los endpoints de Selección sólo devuelven activos."
+          },
+          "response": [
+            {
+              "name": "200 OK (array, activos e inactivos)",
+              "originalRequest": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/empresas/{{empresa}}/ccs",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "empresas",
+                    "{{empresa}}",
+                    "ccs"
+                  ]
+                },
+                "description": "Lista TODOS los CCs de la empresa, activos e inactivos (vista de gestión). Los endpoints de Selección sólo devuelven activos."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "[\n  {\n    \"id\": \"e1b2c3d4-0007-4ddd-8c0d-2b1d1d000070\",\n    \"codigo\": \"CC1\",\n    \"nombre\": \"CC Uno\",\n    \"email\": \"cc1@example.com\",\n    \"language\": \"es\",\n    \"activo\": true\n  }\n]"
+            }
+          ]
+        }
+      ],
+      "description": "Gestion del catalogo de CCs (destinatarios en copia) por empresa. Email-only (sin canal/movil/tax_id): en Docuten siempre van como signing_role=\"cc\" + channel=\"email\" dentro del array consignees, y reciben una copia por email (no firman). Los vinculos se definen por relacion almacen-agencia mediante vinculos; porDefecto solo sirve como sugerencia para el front. La asignacion al documento se hace desde Flujo DDT."
+    },
+    {
+      "name": "Casos de error (authZ)",
+      "item": [
+        {
+          "name": "Generar — 403 empresa no autorizada",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('code Empresa.NoAutorizada', () => {",
+                  "  const errs = body && body.errors ? body.errors : [];",
+                  "  pm.expect(errs.some(e => e.code === 'Empresa.NoAutorizada')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}",
+                "description": "token cuyo claim 'empresas' NO incluye '001' (p.ej. solo ['002'])"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empresa\": \"001\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/generar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "generar"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "403 Forbidden",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{token}}",
+                    "description": "token cuyo claim 'empresas' NO incluye '001' (p.ej. solo ['002'])"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"empresa\": \"001\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/generar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "generar"
+                  ]
+                }
+              },
+              "status": "Forbidden",
+              "code": 403,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Prohibido\",\n  \"status\": 403,\n  \"detail\": \"El usuario no tiene acceso a la empresa '001'.\",\n  \"errors\": [\n    { \"code\": \"Empresa.NoAutorizada\", \"description\": \"El usuario no tiene acceso a la empresa '001'.\" }\n  ],\n  \"traceId\": \"00-abc...\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Generar — 401 sin token (Auth activada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empresa\": \"{{empresa}}\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/generar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "generar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Generar — 400 almacén no existe para la empresa (Validation)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('400 Almacen.NoConfigurado', () => pm.response.to.have.status(400));",
+                  "const body = pm.response.json();",
+                  "pm.test('code Almacen.NoConfigurado', () => {",
+                  "  const errs = body && body.errors ? body.errors : [];",
+                  "  pm.expect(errs.some(e => e.code === 'Almacen.NoConfigurado')).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"empresa\": \"999\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/documentos/generar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "documentos",
+                "generar"
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "400 Bad Request",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"empresa\": \"999\",\n  \"almacenId\": \"{{almacenId}}\",\n  \"agenciaId\": \"{{agenciaId}}\",\n  \"fechaDesde\": \"{{fechaDesde}}\",\n  \"fechaHasta\": \"{{fechaHasta}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/documentos/generar",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "documentos",
+                    "generar"
+                  ]
+                }
+              },
+              "status": "Bad Request",
+              "code": 400,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"type\": \"about:blank\",\n  \"title\": \"Solicitud no válida\",\n  \"status\": 400,\n  \"detail\": \"El almacén 'a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010' no existe para la empresa '999'.\",\n  \"errors\": [\n    { \"code\": \"Almacen.NoConfigurado\", \"description\": \"El almacén 'a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010' no existe para la empresa '999'.\" }\n  ],\n  \"traceId\": \"00-abc...\"\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Para probar con Auth:Enabled=true y un token de Keycloak. Requieren cabecera Authorization: Bearer."
+    },
+    {
+      "name": "Docuten",
+      "item": [
+        {
+          "name": "Callback (webhook simulado)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.test('received=true', () => { const b=pm.response.json(); pm.expect(b.received).to.be.true; });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"lot_id\": \"LOT-123456\",\n  \"status\": \"completed\",\n  \"shipments\": [\n    {\n      \"shipment_id\": \"SHP-1\",\n      \"shipment_status\": \"completed\",\n      \"shipment_signature_status\": \"signed\",\n      \"proof_of_delivery\": \"https://docuten.example/pod/SHP-1.pdf\"\n    },\n    {\n      \"shipment_id\": \"SHP-2\",\n      \"shipment_status\": \"pending_delivery\",\n      \"shipment_signature_status\": \"unsigned\"\n    }\n  ],\n  \"event\": \"lot.status_changed\",\n  \"occurred_at\": \"2026-07-20T12:34:56Z\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/docuten/callback",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "docuten",
+                "callback"
+              ]
+            },
+            "description": "Simula la notificación de Docuten al callback. Devuelve 200 {\"received\":true}. Verifica en la consola del API que se loguea el payload completo (method/path/query/headers/body)."
+          },
+          "response": [
+            {
+              "name": "200 OK (capturado)",
+              "originalRequest": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"lot_id\": \"LOT-123456\",\n  \"status\": \"completed\",\n  \"shipments\": [\n    {\n      \"shipment_id\": \"SHP-1\",\n      \"shipment_status\": \"completed\",\n      \"shipment_signature_status\": \"signed\",\n      \"proof_of_delivery\": \"https://docuten.example/pod/SHP-1.pdf\"\n    },\n    {\n      \"shipment_id\": \"SHP-2\",\n      \"shipment_status\": \"pending_delivery\",\n      \"shipment_signature_status\": \"unsigned\"\n    }\n  ],\n  \"event\": \"lot.status_changed\",\n  \"occurred_at\": \"2026-07-20T12:34:56Z\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{baseUrl}}/api/docuten/callback",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "docuten",
+                    "callback"
+                  ]
+                },
+                "description": "Simula la notificación de Docuten al callback. Devuelve 200 {\"received\":true}. Verifica en la consola del API que se loguea el payload completo (method/path/query/headers/body)."
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "Text",
+              "header": [],
+              "cookie": [],
+              "body": "{\n  \"received\": true\n}"
+            }
+          ]
+        }
+      ],
+      "description": "Webhook de callback de Docuten: Docuten POSTea aqui los cambios de estado del lote/shipments cuando se le pasa un callback_url al crear el lote (POST /api/v1/lots). El endpoint del back es anonimo (lo invoca Docuten desde fuera) y, en esta fase, solo captura y loguea el payload crudo (Serilog a consola) para inspeccionar que envia Docuten realmente - aun no mapea al estado del documento.\n\n**Esta request simula la notificacion** para verificar reachability del endpoint ANTES de cablear el callback_url en el flujo de envio. Lanzala con el API arrancado y mira la consola: veras un log \"Docuten callback recibido: POST /api/docuten/callback | Headers: ... | Body: {...}\" con el payload completo. El body es un ejemplo (basado en el shape del GET /api/v1/lots/{id}); el real lo confirmaremos cuando Docuten llame de verdad (UseMock=false + TokenId + URL publica via frp)."
+    },
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health (live)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Health (ready)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health/ready",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health",
+                "ready"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5062",
+      "description": "Dev local (dotnet run --launch-profile http). Contenedor/Docker: http://localhost:8080"
+    },
+    {
+      "key": "empresa",
+      "value": "001"
+    },
+    {
+      "key": "almacenCodigo",
+      "value": "21",
+      "description": "Código del almacén de origen (warehouseId del ERP). Lo usan los endpoints de Selección y el filtro del listado (por código); Generar y Disponibles van por `almacenId`."
+    },
+    {
+      "key": "agenciaCodigo",
+      "value": "AG01",
+      "description": "Código de la agencia/carrier (carrierId del ERP). Lo usan los endpoints de Selección y el filtro del listado (por código); Generar y Disponibles van por `agenciaId`."
+    },
+    {
+      "key": "almacenId",
+      "value": "a1b2c3d4-0001-4ddd-8c0d-2b1d1d000010",
+      "description": "Id (Guid) del almacén de origen para Generar y Disponibles. Cópialo del campo `id` de GET .../almacenes (el dropdown del front)."
+    },
+    {
+      "key": "agenciaId",
+      "value": "a1b2c3d4-0001-4ddd-8c0d-2b1d1d000012",
+      "description": "Id (Guid) de la agencia/carrier para Generar y Disponibles. Cópialo del campo `id` de GET .../almacenes/{almacenCodigo}/agencias."
+    },
+    {
+      "key": "conductorId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "description": "Id (Guid) de un conductor del catalogo vinculado a la agencia. Lista los disponibles con GET .../agencias/{agenciaCodigo}/conductores y copia su id."
+    },
+    {
+      "key": "fechaDesde",
+      "value": "2026-07-12"
+    },
+    {
+      "key": "fechaHasta",
+      "value": "2026-07-12"
+    },
+    {
+      "key": "documentoId",
+      "value": ""
+    },
+    {
+      "key": "token",
+      "value": "",
+      "description": "Bearer JWT de Keycloak (solo cuando Auth:Enabled=true)"
+    },
+    {
+      "key": "conductorAsignadoId",
+      "value": ""
+    },
+    {
+      "key": "agenciaBaseId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "description": "Id (Guid) de una agencia base del catalogo. Lista las disponibles con GET .../agencia-bases y copia su id."
+    },
+    {
+      "key": "ccId",
+      "value": "00000000-0000-0000-0000-000000000000",
+      "description": "Id (Guid) de un CC del catalogo vinculado a la tupla almacen+agencia. Lista los disponibles con Seleccion (front) > CCs por defecto o Listar CCs del almacen."
+    },
+    {
+      "key": "ccAsignadoId",
+      "value": "",
+      "description": "Id (Guid) del snapshot CC asignado al documento. Lo guarda el test script de \"2c. Asignar CCs al documento creado\"."
+    }
+  ]
+}
