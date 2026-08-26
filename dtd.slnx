@@ -1,0 +1,8 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Dtd.Api/Dtd.Api.csproj" />
+    <Project Path="src/Dtd.Application/Dtd.Application.csproj" />
+    <Project Path="src/Dtd.Domain/Dtd.Domain.csproj" />
+    <Project Path="src/Dtd.Infrastructure/Dtd.Infrastructure.csproj" />
+  </Folder>
+</Solution>
