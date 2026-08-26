@@ -1,0 +1,132 @@
+{
+  "info": {
+    "_postman_id": "d95d657c-4307-4e07-88aa-dc5f2027c473",
+    "name": "[adhoc] API- eCMR Copy",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "6318901"
+  },
+  "item": [
+    {
+      "name": "Create Shipment - Standard template",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const body = pm.response.json();",
+              "    pm.test('shipment_id is defined', () => pm.expect(body.shipment_id).to.be.a('string'));",
+              "    pm.test('shipment_status is created', () => pm.expect(body.shipment_status).to.eql('created'));",
+              "    pm.collectionVariables.set('shipmentId', body.shipment_id);",
+              "    console.log('shipmentId set to:', body.shipment_id);",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-API-KEY",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"shipment_reference\": \"SHP-{{$timestamp}}-{{$randomInt}}\",\n    \"shipment_name\": \"Porte {{$randomProductName}} {{$randomInt}}\",\n    \"callback_url\": \"\",\n    \"parties\": {\n        \"consignors\": [\n            {\n                \"name\": \"{{$randomCompanyName}}\",\n                \"tax_id\": \"99999972C\",\n                \"order\": 1,\n                \"signing_role\": \"signer\",\n                \"signature_type\": \"automated\",\n                \"channel\": \"email\",\n                \"email\": \"{{emailConsignor}}\"\n            }\n        ],\n        \"drivers\": [\n            {\n                \"name\": \"{{$randomFullName}}\",\n                \"order\": 2,\n                \"signing_role\": \"signer\",\n                \"signature_type\": \"biometric\",\n                \"channel\": \"SMS\",\n                \"mobile\": 666666666\n            }\n        ],\n        \"consignees\": [\n            {\n                \"name\": \"{{$randomCompanyName}}\",\n                \"order\": 3,\n                \"signing_role\": \"signer\",\n                \"signature_type\": \"biometric\",\n                \"channel\": \"SMS\",\n                \"mobile\": 666666666\n            }\n        ]\n    },\n    \"documents\": [\n        {\n            \"document_type\": \"ecmr\",\n            \"document_name\": \"eCMR-{{$timestamp}}.pdf\",\n            \"signable\": true,\n            \"template\": {\n                \"code\": \"eCMR\",\n                \"values\": {\n                    \"PV\": \"CMR 2026/004512\",\n                    \"Remitente\": \"DISTRIBUCIONES GARCÍA E HIJOS, S.L.\\nNIF B12345678\\nPolígono Industrial Can Roca, Nave 12\\n08150 Parets del Vallès (Barcelona)\\nESPAÑA\",\n                    \"Destinatario\": \"COMPTOIR DES CONSERVES SARL\\nTVA FR40483304800\\n12 Avenue de Fronton, 31200 Toulouse, FRANCIA\",\n                    \"Lugar de entrega\": \"12 Avenue de Fronton\\n31200 Toulouse\\nFRANCIA\",\n                    \"Lugar de carga\": \"Parets del Vallès (Barcelona), ESPAÑA\\n27/07/2026\",\n                    \"Porteador\": \"TRANSPORTES LOGÍSTICOS DEL NORTE, S.A.\\nNIF A28765432\\nC/ Ribera 45, 48003 Bilbao, ESPAÑA\",\n                    \"Porteadores sucesivos\": \"TRANSPORTS OCCITANIE SARL\\n8 Rue du Fret, 31200 Toulouse, FRANCIA\\n(tramo Irún - Toulouse)\",\n                    \"Reservas y observaciones porteador\": \"Palé nº 14 con film exterior rasgado.\\nSe recuentan 30 bultos en carga.\\nSin más reservas.\",\n                    \"Marcas y numeros\": \"PAL 1-6\",\n                    \"Numero bultos\": \"6 palés\",\n                    \"Embalaje\": \"Palé EUR\",\n                    \"Mercancia\": \"Conservas vegetales\",\n                    \"Stats\": \"2005.99\",\n                    \"Peso bruto\": \"4.150\",\n                    \"Volumen\": \"7,20\",\n                    \"Marcas y numeros2\": \"PAL 7-12\",\n                    \"Numero bultos2\": \"6 palés\",\n                    \"Embalaje2\": \"Palé EUR\",\n                    \"Mercancia2\": \"Tomate frito 400g\",\n                    \"Stats2\": \"2002.10\",\n                    \"Peso bruto2\": \"4.100\",\n                    \"Volumen2\": \"7,20\",\n                    \"Marcas y numeros3\": \"PAL 13-18\",\n                    \"Numero bultos3\": \"6 palés\",\n                    \"Embalaje3\": \"Palé EUR\",\n                    \"Mercancia3\": \"Melocotón almíbar\",\n                    \"Stats3\": \"2008.70\",\n                    \"Peso bruto3\": \"4.200\",\n                    \"Volumen3\": \"7,20\",\n                    \"Marcas y numeros4\": \"PAL 19\",\n                    \"Numero bultos4\": \"1 palé\",\n                    \"Embalaje4\": \"Palé EUR\",\n                    \"Mercancia4\": \"Espárrago blanco\",\n                    \"Stats4\": \"2005.60\",\n                    \"Peso bruto4\": \"620\",\n                    \"Volumen4\": \"1,20\",\n                    \"Marcas y numeros5\": \"CAJ 1-10\",\n                    \"Numero bultos5\": \"10 cajas\",\n                    \"Embalaje5\": \"Caja cartón\",\n                    \"Mercancia5\": \"Muestras comerciales\",\n                    \"Stats5\": \"2005.99\",\n                    \"Peso bruto5\": \"85\",\n                    \"Volumen5\": \"0,35\",\n                    \"Marcas y numeros6\": \"S/N\",\n                    \"Numero bultos6\": \"1 sobre\",\n                    \"Embalaje6\": \"Sobre\",\n                    \"Mercancia6\": \"Documentación\",\n                    \"Stats6\": \"-\",\n                    \"Peso bruto6\": \"1\",\n                    \"Volumen6\": \"0,01\",\n                    \"Instrucciones remitente\": \"Transporte a temperatura ambiente.\\nNo apilar más de dos palés en altura.\\nEntrega concertada: 29/07/2026, 08:00-10:00 h.\\nAvisar 24 h antes al +34 600 123 456.\\nMercancía no peligrosa (no ADR).\\nTotal: 30 bultos, 13.156 kg,23,16 m3.\",\n                    \"Total 1\": \"1.250,00 EUR\",\n                    \"Total 2\": \"0,00 EUR\",\n                    \"Formalizado en\": \"Parets del Vallès, a 27/07/2026\"\n                }\n            },\n            \"signers\": [\n                {\n                    \"order\": 1\n                },\n                {\n                    \"order\": 2\n                },\n                {\n                    \"order\": 3\n                }\n            ]\n        },\n        {\n            \"document_type\": \"delivery_note\",\n            \"document_name\": \"eCMR-{{$timestamp}}.pdf\",\n            \"signable\": false,\n            \"content\": \"\",\n            \"signers\": [\n                {\n                    \"order\": 1\n                },\n                {\n                    \"order\": 2\n                },\n                {\n                    \"order\": 3\n                }\n            ]\n        }\n    ],\n    \"language\": \"es\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/shipments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "shipments"
+          ]
+        },
+        "description": "Crea un porte de forma **síncrona**.\n\nLa API llama a Docuten internamente y solo responde cuando el porte está en estado `created`. Devuelve el `shipment_id` y el estado del porte.\n\n> **Diferencia con /lots**: Este endpoint espera la respuesta de Docuten antes de devolver el 201. Usar `/lots` para flujos asíncronos o cuando se creen múltiples portes a la vez."
+      },
+      "response": []
+    },
+    {
+      "name": "Create Shipment - DeCA template",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status is 201 Created', () => pm.response.to.have.status(201));",
+              "",
+              "if (pm.response.code === 201) {",
+              "    const body = pm.response.json();",
+              "    pm.test('shipment_id is defined', () => pm.expect(body.shipment_id).to.be.a('string'));",
+              "    pm.test('shipment_status is created', () => pm.expect(body.shipment_status).to.eql('created'));",
+              "    pm.collectionVariables.set('shipmentId', body.shipment_id);",
+              "    console.log('shipmentId set to:', body.shipment_id);",
+              "}"
+            ],
+            "type": "text/javascript",
+            "packages": {},
+            "requests": {}
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "X-API-KEY",
+            "value": "{{apiKey}}",
+            "type": "text"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"shipment_reference\": \"SHP-{{$timestamp}}-{{$randomInt}}\",\n    \"shipment_name\": \"Porte {{$randomProductName}} {{$randomInt}}\",\n    \"parties\": {\n        \"consignors\": [\n            {\n                \"name\": \"{{$randomCompanyName}}\",\n                \"tax_id\": \"99999972C\",\n                \"order\": 1,\n                \"signing_role\": \"signer\",\n                \"signature_type\": \"automated\",\n                \"channel\": \"email\",\n                \"email\": \"{{emailConsignor}}\"\n            }\n        ],\n        \"drivers\": [\n            {\n                \"name\": \"{{$randomFullName}}\",\n                \"order\": 2,\n                \"signing_role\": \"cc\",\n                \"channel\": \"SMS\",\n                \"mobile\": 666666666\n            }\n        ]\n    },\n    \"documents\": [\n        {\n            \"document_type\": \"transport_control_document\",\n            \"document_name\": \"DeCA-{{$timestamp}}.pdf\",\n            \"signable\": true,\n            \"template\": {\n                \"code\": \"DeCA\",\n                \"values\": {\n                    \"Nombre_NIF_Domicilio_CargadorContractual\": \"DISTRIBUCIONES GARCÍA E HIJOS, S.L.\\nB12345678\\nPolígono Industrial Can Roca, Nave 12, 08150 Parets del Vallès (Barcelona)\",\n                    \"Observaciones_cargador\": \"Mercancía paletizada y retractilada. Carga por cuenta del cargador.\\nSe requiere transpaleta eléctrica en la entrega.\",\n                    \"Nombre_NIF_Domicilio_TransportistaEfectivo\": \"TRANSPORTES LOGÍSTICOS DEL NORTE, S.A. - NIF A28765432 - C/ Ribera 45, 48003 Bilbao\",\n                    \"AutorizaciónCirculacion\": \"Autorización de transporte MDP-1234567. Conductor: J. Martínez Ruiz.\",\n                    \"LugarOrigen\": \"Polígono Industrial Can Roca, Nave 12\\n08150 Parets del Vallès (Barcelona)\\nEspaña\",\n                    \"LugarDestino\": \"Centro Logístico Mercabilbao, Muelle 7\\n48970 Basauri (Bizkaia)\\nEspaña\",\n                    \"NaturalezaMercancia\": \"18 palés europeos de conservas vegetales en caja de cartón.\\nMercancía no peligrosa (no ADR).\",\n                    \"PesoMercancía\": \"12.450 kg brutos\",\n                    \"FechaTransporte\": \"27/07/2026\",\n                    \"MatriculaTractora\": \"1234 KLM\",\n                    \"MatriculaRemolque\": \"R-7890-BCD\",\n                    \"Observaciones\": \"Ref. pedido 4500123987. Entrega concertada 28/07 de 8:00 a 10:00.\"\n                }\n            },\n            \"signers\": [\n                {\n                    \"order\": 1\n                },\n                {\n                    \"order\": 2\n                }\n            ]\n        }\n    ],\n    \"language\": \"es\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/shipments",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "shipments"
+          ]
+        },
+        "description": "Crea un porte de forma **síncrona**.\n\nLa API llama a Docuten internamente y solo responde cuando el porte está en estado `created`. Devuelve el `shipment_id` y el estado del porte.\n\n> **Diferencia con /lots**: Este endpoint espera la respuesta de Docuten antes de devolver el 201. Usar `/lots` para flujos asíncronos o cuando se creen múltiples portes a la vez."
+      },
+      "response": []
+    }
+  ]
+}

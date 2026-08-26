@@ -90,19 +90,45 @@ public sealed record DocutenGoodsDto
 
 public sealed record DocutenDocumentoDto
 {
-    [JsonPropertyName("document_type")] public required string DocumentType { get; init; }
-    [JsonPropertyName("document_name")] public required string DocumentName { get; init; }
-    [JsonPropertyName("external_id")] public required string ExternalId { get; init; }
-    /// <summary>PDF en Base64. Null en Fase 1 (PDF diferido); cuando se cablee el origen del PDF se rellena.</summary>
-    [JsonPropertyName("content")] public string? Content { get; init; }
-    [JsonPropertyName("signable")] public required bool Signable { get; init; }
-    [JsonPropertyName("signers")] public IReadOnlyList<DocutenSignerDto>? Signers { get; init; }
+    [JsonPropertyName("document_type")]
+    public required string DocumentType { get; init; }
+
+    [JsonPropertyName("document_name")]
+    public required string DocumentName { get; init; }
+
+    [JsonPropertyName("external_id")]
+    public required string ExternalId { get; init; }
+
+    /// <summary>
+    /// PDF en Base64. Null cuando el documento se genera a partir de una plantilla de Docuten.
+    /// </summary>
+    [JsonPropertyName("content")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public string? Content { get; init; }
+
+    /// <summary>
+    /// Plantilla de Docuten utilizada para generar el documento.
+    /// Null cuando se envía el contenido directamente en Base64.
+    /// </summary>
+    [JsonPropertyName("template")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DocutenTemplateDto? Template { get; init; }
+
+    [JsonPropertyName("signable")]
+    public required bool Signable { get; init; }
+
+    [JsonPropertyName("signers")]
+    public IReadOnlyList<DocutenSignerDto>? Signers { get; init; }
 }
 
 public sealed record DocutenSignerDto
 {
-    [JsonPropertyName("order")] public required int Order { get; init; }
-    [JsonPropertyName("coordinate")] public required DocutenSignerCoordinateDto Coordinate { get; init; }
+    [JsonPropertyName("order")]
+    public required int Order { get; init; }
+
+    [JsonPropertyName("coordinate")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public DocutenSignerCoordinateDto? Coordinate { get; init; }
 }
 
 public sealed record DocutenSignerCoordinateDto
@@ -148,4 +174,11 @@ public sealed record DocutenShipmentEstadoDto
     public required string ShipmentStatus { get; init; }
     public string? SignatureStatus { get; init; }
     public string? ProofOfDelivery { get; init; }
+}
+
+ public sealed class DocutenTemplateDto
+{
+    public string Code { get; init; } = string.Empty;
+
+    public Dictionary<string, string> Values { get; init; } = [];
 }

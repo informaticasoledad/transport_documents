@@ -1,3 +1,5 @@
+using Dtd.Domain.Templates;
+
 namespace Dtd.Domain.Almacenes;
 
 public sealed class AlmacenAgencia
@@ -5,8 +7,8 @@ public sealed class AlmacenAgencia
     public Guid AlmacenId { get; private set; }
     public Guid AgenciaId { get; private set; }
     public Guid? AgenciaBaseId { get; private set; }
-    public Guid? TemplateId { get; private set; }
-
+    public Guid TemplateId { get; private set; }
+    public Template Template { get; private set; } = null!;
 
     private AlmacenAgencia()
     {
@@ -39,8 +41,8 @@ public sealed class AlmacenAgencia
         AgenciaBaseId = agenciaBaseId == Guid.Empty ? null : agenciaBaseId;
     }
 
-    public void AsignarTemplate(Guid? templateId)
+    public void AsignarTemplate(Guid templateId)
     {
-        TemplateId = templateId == Guid.Empty ? null : templateId;
+        TemplateId = templateId;
     }
 }

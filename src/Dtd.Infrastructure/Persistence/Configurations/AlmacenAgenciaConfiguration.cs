@@ -32,12 +32,11 @@ internal sealed class AlmacenAgenciaConfiguration : IEntityTypeConfiguration<Alm
             .HasConstraintName("fk_almacen_agencias_agencia_bases")
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.HasOne<Template>()
+        builder.HasOne(x => x.Template)
             .WithMany()
             .HasForeignKey(x => x.TemplateId)
             .HasConstraintName("fk_almacen_agencias_templates")
-            .OnDelete(DeleteBehavior.SetNull);
-
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasIndex(x => x.AgenciaId);
         builder.HasIndex(x => x.AgenciaBaseId);

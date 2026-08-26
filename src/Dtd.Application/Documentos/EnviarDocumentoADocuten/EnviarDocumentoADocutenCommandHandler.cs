@@ -19,6 +19,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler : IRequestHandler<En
     private readonly IEmpresaResolver _empresaResolver;
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
+
     private readonly DocutenMappingOptions _docutenMappingOptions;
     private readonly IDocutenDocumentoProvider _docutenDocumentoProvider;
     private readonly IUnitOfWork _unitOfWork;
@@ -104,10 +105,36 @@ internal sealed class EnviarDocumentoADocutenCommandHandler : IRequestHandler<En
                 "Sin ella no se puede construir el carrier del lote de Docuten.");
         }
 
+        var almacenAgencia = await _almacenRepository.GetRelacionAgenciaAsync(documento.AlmacenId, documento.AgenciaId, cancellationToken);
+
+        if (almacenAgencia is null)
+        {
+            return Error.Failure(
+                "AlmacenAgencia.NoConfigurado",
+                $"No existe configuración para el almacén '{documento.AlmacenId}' " +
+                $"y la agencia '{documento.AgenciaId}'.");
+        }
+
+        if (almacenAgencia.Template is null)
+        {
+            return Error.Failure(
+                "Template.NoConfigurado",
+                $"No hay ninguna plantilla configurada para el almacén '{documento.AlmacenId}' " +
+                $"y la agencia '{documento.AgenciaId}'.");
+        }
+
+        if (!almacenAgencia.Template.Active)
+        {
+            return Error.Failure(
+                "Template.NoActivo",
+                $"La plantilla '{almacenAgencia.Template.Code}' no está activa.");
+        }
+
         var lote = await documento.ToDocutenLoteDto(
             empresaConfig,
             almacen,
             agencia,
+            almacenAgencia.Template,
             _docutenMappingOptions,
             _docutenDocumentoProvider,
             cancellationToken);

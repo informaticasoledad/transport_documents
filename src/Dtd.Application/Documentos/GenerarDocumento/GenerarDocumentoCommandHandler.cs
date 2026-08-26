@@ -1,12 +1,14 @@
+using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
 using Dtd.Application.Mapping;
 using Dtd.Application.Security;
+using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
+using Dtd.Domain.Empresas;
 using ErrorOr;
 using MediatR;
 
@@ -20,6 +22,8 @@ internal sealed class GenerarDocumentoCommandHandler
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IAgenciaBaseRepository _agenciaBaseRepository;
+
+    private readonly IDocumentReferenceGenerator _documentReferenceGenerator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUsuarioContexto _usuarioContexto;
 
@@ -29,6 +33,7 @@ internal sealed class GenerarDocumentoCommandHandler
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         IAgenciaBaseRepository agenciaBaseRepository,
+        IDocumentReferenceGenerator documentReferenceGenerator,
         IUnitOfWork unitOfWork,
         IUsuarioContexto usuarioContexto)
     {
@@ -37,6 +42,7 @@ internal sealed class GenerarDocumentoCommandHandler
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
         _agenciaBaseRepository = agenciaBaseRepository;
+        _documentReferenceGenerator = documentReferenceGenerator;
         _unitOfWork = unitOfWork;
         _usuarioContexto = usuarioContexto;
     }
@@ -159,9 +165,17 @@ internal sealed class GenerarDocumentoCommandHandler
         // De momento mantenemos el origen proporcionado por el ERP.
         var origen = nuevas[0].ToOrigen();
 
+        // Obtener referencia documento
+        var referencia = await _documentReferenceGenerator.GenerateAsync(
+                request.Empresa,
+                almacen.Codigo,
+                DateTime.Now,
+                cancellationToken);
+
         var resultadoDocumento =
             DocumentoDigitalTransporte.Generar(
                 empresa: request.Empresa,
+                referencia,
                 almacenId: almacen.Id,
                 agenciaId: agencia.Id,
                 origen: origen,

@@ -39,7 +39,13 @@ public sealed class DtdDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(DtdDbContext).Assembly);
+        modelBuilder.HasSequence<long>("ddt_reference_seq")
+            .StartsAt(1)
+            .IncrementsBy(1);
+
+        modelBuilder.ApplyConfigurationsFromAssembly(
+            typeof(DtdDbContext).Assembly);
+
         base.OnModelCreating(modelBuilder);
     }
 }

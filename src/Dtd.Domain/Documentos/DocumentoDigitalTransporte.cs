@@ -31,6 +31,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     public IReadOnlyCollection<ConductorAsignado> Conductores => _conductores;
     public IReadOnlyCollection<CcAsignado> Ccs => _ccs;
 
+    public string Referencia { get; private set; } = string.Empty;
+
     private DocumentoDigitalTransporte()
     {
         Empresa = string.Empty;
@@ -40,6 +42,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     private DocumentoDigitalTransporte(
         string empresa,
+        string referencia,
         Guid almacenId,
         Guid agenciaId,
         OrigenDocumento origen,
@@ -53,6 +56,13 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             throw new ArgumentException(
                 "La empresa es obligatoria.",
                 nameof(empresa));
+        }
+
+        if (string.IsNullOrWhiteSpace(referencia))
+        {
+            throw new ArgumentException(
+                "La referencia del documento es obligatoria.",
+                nameof(referencia));
         }
 
         if (almacenId == Guid.Empty)
@@ -72,6 +82,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         Id = Guid.NewGuid();
 
         Empresa = empresa.Trim();
+        Referencia = referencia.Trim();
         AlmacenId = almacenId;
         AgenciaId = agenciaId;
 
@@ -91,6 +102,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public static ErrorOr<DocumentoDigitalTransporte> Generar(
     string empresa,
+    string referencia,
     Guid almacenId,
     Guid agenciaId,
     OrigenDocumento origen,
@@ -104,6 +116,13 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     {
         ArgumentNullException.ThrowIfNull(expediciones);
         ArgumentNullException.ThrowIfNull(destinosAlmacen);
+
+        if (string.IsNullOrWhiteSpace(referencia))
+        {
+            throw new ArgumentException(
+                "La referencia del documento es obligatoria.",
+                nameof(referencia));
+        }
 
         if (expediciones.Count == 0)
         {
@@ -130,6 +149,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         var documento = new DocumentoDigitalTransporte(
             empresa,
+            referencia,
             almacenId,
             agenciaId,
             origen,

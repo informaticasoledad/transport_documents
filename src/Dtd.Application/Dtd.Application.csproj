@@ -24,4 +24,8 @@
     <InternalsVisibleTo Include="Dtd.Infrastructure" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="NewFolder\" />
+  </ItemGroup>
+
 </Project>

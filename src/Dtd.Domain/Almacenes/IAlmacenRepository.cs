@@ -42,4 +42,6 @@ public interface IAlmacenRepository
     string empresa,
     IReadOnlyCollection<string> codigos,
     CancellationToken cancellationToken);
+
+
 }

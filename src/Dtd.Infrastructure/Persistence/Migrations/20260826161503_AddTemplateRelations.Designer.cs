@@ -3,6 +3,7 @@ using System;
 using Dtd.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Dtd.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DtdDbContext))]
-    partial class DtdDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260826161503_AddTemplateRelations")]
+    partial class AddTemplateRelations
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,8 +24,6 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.HasSequence("ddt_reference_seq");
 
             modelBuilder.Entity("Dtd.Domain.AgenciaBases.AgenciaBase", b =>
                 {
@@ -584,12 +585,6 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("plataforma_id");
 
-                    b.Property<string>("Referencia")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)")
-                        .HasColumnName("referencia");
-
                     b.Property<string>("TipoAgrupacion")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -609,10 +604,6 @@ namespace Dtd.Infrastructure.Persistence.Migrations
 
                     b.HasIndex("AlmacenId")
                         .HasDatabaseName("ix_documentos_almacen_id");
-
-                    b.HasIndex("Referencia")
-                        .IsUnique()
-                        .HasDatabaseName("ix_documentos_referencia");
 
                     b.HasIndex("Empresa", "AlmacenId", "AgenciaId")
                         .HasDatabaseName("ix_documentos_empresa_almacen_id_agencia_id");

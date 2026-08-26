@@ -3,6 +3,7 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
+using Dtd.Domain.Templates;
 
 namespace Dtd.Application.Mapping;
 
@@ -13,27 +14,54 @@ public static class DocumentoToDocutenMapper
         EmpresaConfig empresa,
         Almacen almacen,
         Agencia agencia,
+        Template template,
         DocutenMappingOptions options,
         IDocutenDocumentoProvider documentoProvider,
         CancellationToken cancellationToken = default)
     {
-        var language = string.IsNullOrWhiteSpace(options.DefaultLanguage)
-            ? "es"
-            : options.DefaultLanguage;
+        var language = string.IsNullOrWhiteSpace(template.Language)
+            ? string.IsNullOrWhiteSpace(options.DefaultLanguage)
+                ? "es"
+                : options.DefaultLanguage
+            : template.Language;
 
         var callbackUrl = string.IsNullOrWhiteSpace(options.CallbackUrl)
             ? null
             : options.CallbackUrl.Trim();
 
-        var consignor = BuildConsignor(documento, empresa, almacen, language);
+        var consignor = BuildConsignor(
+            documento,
+            empresa,
+            almacen,
+            language);
+
         var drivers = BuildDrivers(documento);
 
         var shipments = new List<DocutenShipmentDto>();
+
         foreach (var envio in documento.Envios.OrderBy(e => e.Orden))
         {
+            var consignees = BuildConsignees(
+                envio,
+                documento.Ccs,
+                drivers.Count,
+                language);
+
+            var participantOrders = new[] { consignor.Order }
+                .Concat(drivers.Select(x => x.Order))
+                .Concat(consignees.Select(x => x.Order))
+                .Distinct()
+                .OrderBy(x => x)
+                .ToArray();
+
             var documentoDto = await documentoProvider.ObtenerDocumentoAsync(
                 documento,
                 envio,
+                empresa,
+                almacen,
+                agencia,
+                template,
+                participantOrders,
                 cancellationToken);
 
             shipments.Add(new DocutenShipmentDto
@@ -42,37 +70,69 @@ public static class DocumentoToDocutenMapper
                 ShipmentName = envio.Referencia,
                 CallbackUrl = callbackUrl,
                 Language = language,
+
                 Origin = new DocutenOrigenDto
                 {
-                    Address = JoinAddress(documento.Origen.AddressStreet, documento.Origen.AddressName),
+                    Address = JoinAddress(
+                        documento.Origen.AddressStreet,
+                        documento.Origen.AddressName),
                     PostCode = documento.Origen.Zipcode,
                     City = documento.Origen.City,
                     CountryCode = documento.Origen.CountryIsoCode
                 },
+
                 Destination = BuildDestination(envio),
+
                 Parties = new DocutenPartiesDto
                 {
                     Consignors = [consignor],
                     Drivers = drivers,
-                    Consignees = BuildConsignees(envio, documento.Ccs, drivers.Count, language)
+                    Consignees = consignees
                 },
+
                 Goods =
                 [
                     new DocutenGoodsDto
                     {
                         Description = $"{envio.Bultos} bultos",
                         CargoType = "paletizado",
-                        GrossMass = $"{envio.Bultos} kg",
+
+                        // TODO: pendiente incorporar el peso real de las expediciones.
+                        GrossMass = "0 kg",
+
                         DangerousGoods = false
                     }
                 ],
+
                 Documents = [documentoDto],
+
                 Metadata =
                 [
-                    new DocutenMetadataDto { Name = "empresa", Value = documento.Empresa },
-                    new DocutenMetadataDto { Name = "almacen", Value = almacen.Codigo },
-                    new DocutenMetadataDto { Name = "agencia", Value = agencia.Codigo },
-                    new DocutenMetadataDto { Name = "envio", Value = envio.Orden.ToString() }
+                    new DocutenMetadataDto
+                    {
+                        Name = "empresa",
+                        Value = documento.Empresa
+                    },
+                    new DocutenMetadataDto
+                    {
+                        Name = "almacen",
+                        Value = almacen.Codigo
+                    },
+                    new DocutenMetadataDto
+                    {
+                        Name = "agencia",
+                        Value = agencia.Codigo
+                    },
+                    new DocutenMetadataDto
+                    {
+                        Name = "envio",
+                        Value = envio.Orden.ToString()
+                    },
+                    new DocutenMetadataDto
+                    {
+                        Name = "template",
+                        Value = template.Code
+                    }
                 ]
             });
         }
@@ -103,14 +163,19 @@ public static class DocumentoToDocutenMapper
             Order = 1,
             SigningRole = "signer",
             SignatureType = almacen.TipoFirmaConsignor,
-            Channel = almacen.Email is not null ? "email" : almacen.Telefono is not null ? "sms" : null,
+            Channel = almacen.Email is not null
+                ? "email"
+                : almacen.Telefono is not null
+                    ? "sms"
+                    : null,
             Email = almacen.Email?.Valor,
             Mobile = FormatE164(almacen.Telefono),
             Language = language
         };
     }
 
-    private static List<DocutenPartyDto> BuildDrivers(DocumentoDigitalTransporte documento)
+    private static List<DocutenPartyDto> BuildDrivers(
+        DocumentoDigitalTransporte documento)
     {
         return documento.Conductores
             .Select((c, i) => new DocutenPartyDto
@@ -129,7 +194,8 @@ public static class DocumentoToDocutenMapper
             .ToList();
     }
 
-    private static DocutenDestinoDto BuildDestination(Envio envio)
+    private static DocutenDestinoDto BuildDestination(
+        Envio envio)
     {
         var destino = GetDestino(envio);
 
@@ -154,9 +220,15 @@ public static class DocumentoToDocutenMapper
         {
             Name = destino.Nombre,
             Order = 2 + driversCount,
-            SigningRole = string.IsNullOrWhiteSpace(destino.Telefono) ? null : "signer",
-            SignatureType = string.IsNullOrWhiteSpace(destino.Telefono) ? null : "biometric",
-            Channel = string.IsNullOrWhiteSpace(destino.Telefono) ? null : "sms",
+            SigningRole = string.IsNullOrWhiteSpace(destino.Telefono)
+                ? null
+                : "signer",
+            SignatureType = string.IsNullOrWhiteSpace(destino.Telefono)
+                ? null
+                : "biometric",
+            Channel = string.IsNullOrWhiteSpace(destino.Telefono)
+                ? null
+                : "sms",
             Mobile = FormatE164(destino.Telefono),
             Language = language,
             Address = destino.Direccion,
@@ -179,31 +251,42 @@ public static class DocumentoToDocutenMapper
         return [entrega, .. copias];
     }
 
-    private static DestinoEnvio GetDestino(Envio envio)
+    private static DestinoEnvio GetDestino(
+        Envio envio)
     {
         return envio.Destino
             ?? throw new InvalidOperationException(
                 $"El envio '{envio.Referencia}' no tiene destino.");
     }
 
-    private static string? FormatE164(string? raw)
+    private static string? FormatE164(
+        string? raw)
     {
         if (string.IsNullOrWhiteSpace(raw))
         {
             return null;
         }
 
-        var digits = new string(raw.Where(char.IsDigit).ToArray());
-        return digits.Length == 0 ? null : "+" + digits;
+        var digits = new string(
+            raw.Where(char.IsDigit).ToArray());
+
+        return digits.Length == 0
+            ? null
+            : "+" + digits;
     }
 
-    private static string JoinAddress(string? street, string? name)
+    private static string JoinAddress(
+        string? street,
+        string? name)
     {
         var parts = new[] { street, name }
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .Select(p => p!.Trim());
 
         var joined = string.Join(", ", parts);
-        return string.IsNullOrWhiteSpace(joined) ? "-" : joined;
+
+        return string.IsNullOrWhiteSpace(joined)
+            ? "-"
+            : joined;
     }
 }

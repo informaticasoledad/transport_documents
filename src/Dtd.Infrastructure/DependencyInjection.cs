@@ -1,21 +1,21 @@
+using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
+using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
 using Dtd.Domain.Common;
 using Dtd.Domain.Conductores;
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Documentos;
 using Dtd.Infrastructure.Configuration;
 using Dtd.Infrastructure.Gateways;
 using Dtd.Infrastructure.Persistence;
+using Dtd.Infrastructure.Persistence.Generators;
 using Dtd.Infrastructure.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Http.Resilience;
 using Microsoft.Extensions.Options;
 
 namespace Dtd.Infrastructure;
@@ -66,10 +66,7 @@ public static class DependencyInjection
             .Bind(configuration.GetSection("Docuten"));
         services.AddSingleton(sp => sp.GetRequiredService<IOptions<DocutenMappingOptions>>().Value);
 
-        // Origen del PDF de cada shipment de Docuten (documents[] es obligatorio en la API). Fase 1:
-        // placeholder con un eCMR de prueba; Fase 2: origen real (ERP/generación) por definir. Se registra
-        // siempre (no depende de Docuten:UseMock): construye el payload tanto si el gateway es mock como real.
-        services.AddSingleton<IDocutenDocumentoProvider, PlaceholderDocutenDocumentoProvider>();
+        services.AddScoped<IDocutenDocumentoProvider, DocutenDocumentoProvider>();
 
         // Keycloak OIDC: solo se usa cuando Auth:Enabled=true (decisión en Program.cs). Sin
         // [Required] en sus props para que ValidateOnStart no aborte en dev con Auth apagada.
@@ -95,6 +92,8 @@ public static class DependencyInjection
         services.AddScoped<ICcRepository, CcRepository>();
         services.AddScoped<IAlmacenRepository, AlmacenRepository>();
         services.AddScoped<IDocutenCallbackLogRepository, DocutenCallbackLogRepository>();
+
+        services.AddScoped<IDocumentReferenceGenerator,DocumentReferenceGenerator>();
 
         // --- Integration gateways (real vs mock selected by configuration) ---
         // Per-company ERP endpoint config is resolved at runtime (cached) from `empresas`.

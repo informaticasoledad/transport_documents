@@ -20,6 +20,15 @@ internal sealed class DocumentoDigitalTransporteConfiguration
             .HasMaxLength(50)
             .IsRequired();
 
+
+        builder.Property(x => x.Referencia)
+            .HasColumnName("referencia")
+            .HasMaxLength(50)
+            .IsRequired();
+
+        builder.HasIndex(x => x.Referencia)
+            .IsUnique();
+
         builder.Property(x => x.UsuarioGeneracionId)
             .HasMaxLength(100);
 

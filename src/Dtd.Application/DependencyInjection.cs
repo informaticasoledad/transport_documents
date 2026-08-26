@@ -1,10 +1,11 @@
+using Dtd.Application.Behaviors;
+using Dtd.Application.Mapping;
+using Dtd.Application.Templates;
 using FluentValidation;
 using Mapster;
 using MapsterMapper;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
-using Dtd.Application.Behaviors;
-using Dtd.Application.Mapping;
 
 namespace Dtd.Application;
 
@@ -30,6 +31,13 @@ public static class DependencyInjection
         MappingRegister.Register(TypeAdapterConfig.GlobalSettings);
         services.AddSingleton(TypeAdapterConfig.GlobalSettings);
         services.AddScoped<IMapper, ServiceMapper>();
+
+        services.AddScoped<IDocumentTemplateValuesBuilder, EcmrTemplateValuesBuilder>();
+        services.AddScoped<IDocumentTemplateValuesBuilder, DecaTemplateValuesBuilder>();
+
+        services.AddScoped<
+            IDocumentTemplateValuesBuilderResolver,
+            DocumentTemplateValuesBuilderResolver>();
 
         return services;
     }

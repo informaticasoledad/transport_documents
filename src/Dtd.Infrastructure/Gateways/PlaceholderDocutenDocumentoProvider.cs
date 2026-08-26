@@ -1,55 +1,80 @@
 using Dtd.Application.GatewayContracts;
+using Dtd.Application.Templates;
+using Dtd.Domain.Agencias;
+using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
+using Dtd.Domain.Empresas;
+using Dtd.Domain.Templates;
 
-namespace Dtd.Infrastructure.Gateways;
-
-internal sealed class PlaceholderDocutenDocumentoProvider
-    : IDocutenDocumentoProvider
+namespace Dtd.Infrastructure.Gateways
 {
-    private const string EcmrPlaceholderBase64 =
-        "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA1OTUgODQyXSAvUmVzb3VyY2VzIDw8IC9Gb250IDw8IC9GMSA1IDAgUiA+PiA+PiAvQ29udGVudHMgNCAwIFIgPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCA0NCA+PgpzdHJlYW0KQlQgL0YxIDEyIFRmIDUwIDc5MCBUZCAoZUNNUiBEVEQgdGVzdCkgVGogRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZiA2CjAwMDAwMDAwMDAgNjU1MzUgZiAKMDAwMDAwMDAwOSAwMDAwMCBuIAowMDAwMDAwMDU4IDAwMDAwIG4gCjAwMDAwMDAxMTUgMDAwMDAgbiAKMDAwMDAwMDI0MSAwMDAwMCBuIAowMDAwMDAwMzM1IDAwMDAwIG4gCnRyYWlsZXIKPDwgL1NpemUgNiAvUm9vdCAxIDAgUiA+PgpzdGFydHhyZWYKNDA1CiUlRU9G";
 
-    public Task<DocutenDocumentoDto> ObtenerDocumentoAsync(
-        DocumentoDigitalTransporte documento,
-        Envio envio,
-        CancellationToken cancellationToken = default)
+    internal sealed class DocutenDocumentoProvider
+        : IDocutenDocumentoProvider
     {
-        var driversCount = documento.Conductores.Count;
+        private readonly IDocumentTemplateValuesBuilderResolver _builderResolver;
 
-        // De momento:
-        // consignor + conductores + consignee
-        var signersCount = 1 + driversCount + 1;
-
-        var signers = new DocutenSignerDto[signersCount];
-
-        for (var i = 0; i < signersCount; i++)
+        public DocutenDocumentoProvider(
+            IDocumentTemplateValuesBuilderResolver builderResolver)
         {
-            var order = i + 1;
-
-            signers[i] = new DocutenSignerDto
-            {
-                Order = order,
-                Coordinate = new DocutenSignerCoordinateDto
-                {
-                    SigPage = 0,
-                    TopLeftCornerX = 120,
-                    TopLeftCornerY = 650 - (order - 1) * 90,
-                    Width = 180,
-                    Height = 60
-                }
-            };
+            _builderResolver = builderResolver;
         }
 
-        var dto = new DocutenDocumentoDto
+        public Task<DocutenDocumentoDto> ObtenerDocumentoAsync(
+    DocumentoDigitalTransporte documento,
+    Envio envio,
+    EmpresaConfig empresa,
+    Almacen almacen,
+    Agencia agencia,
+    Template template,
+    IReadOnlyCollection<int> participantOrders,
+    CancellationToken cancellationToken = default)
         {
-            DocumentType = "ecmr",
-            DocumentName = $"eCMR-{envio.Referencia}.pdf",
-            ExternalId = $"EXT-ECMR-{envio.Referencia}",
-            Content = EcmrPlaceholderBase64,
-            Signable = true,
-            Signers = signers
-        };
+            var builder = _builderResolver.Resolve(template.DocumentType);
 
-        return Task.FromResult(dto);
+            var values = builder.Build(
+                documento,
+                envio,
+                empresa,
+                almacen,
+                agencia);
+
+            var signers = BuildSigners(participantOrders);
+
+            var dto = new DocutenDocumentoDto
+            {
+                DocumentType = template.DocumentType,
+                DocumentName = BuildDocumentName(template, envio),
+                ExternalId = $"EXT-{template.Code}-{envio.Referencia}",
+                Signable = true,
+                Template = new DocutenTemplateDto
+                {
+                    Code = template.Code,
+                    Values = values
+                },
+                Signers = signers
+            };
+
+            return Task.FromResult(dto);
+        }
+
+        private static IReadOnlyList<DocutenSignerDto> BuildSigners(IReadOnlyCollection<int> participantOrders)
+        {
+            return participantOrders
+                .OrderBy(x => x)
+                .Select(order => new DocutenSignerDto
+                {
+                    Order = order
+                })
+                .ToArray();
+        }
+
+        private static string BuildDocumentName(
+    Template template,
+    Envio envio)
+        {
+            return $"{template.Code}-{envio.Referencia}.pdf";
+        }
     }
+
 }

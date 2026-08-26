@@ -74,9 +74,12 @@ internal sealed class AlmacenRepository : IAlmacenRepository
         Guid agenciaId,
         CancellationToken cancellationToken = default)
     {
-        return _dbContext.AlmacenAgencias.AsNoTracking()
+        return _dbContext.AlmacenAgencias
+            .AsNoTracking()
+            .Include(x => x.Template)
             .FirstOrDefaultAsync(
-                x => x.AlmacenId == almacenId && x.AgenciaId == agenciaId,
+                x => x.AlmacenId == almacenId &&
+                     x.AgenciaId == agenciaId,
                 cancellationToken);
     }
 
