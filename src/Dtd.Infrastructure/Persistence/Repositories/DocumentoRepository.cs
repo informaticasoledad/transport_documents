@@ -46,10 +46,12 @@ internal sealed class DocumentoRepository : IDocumentoRepository
     }
 
     public async Task<IReadOnlyList<DocumentoDigitalTransporte>> ListarAsync(
-        DocumentoFiltro filtro,
-        CancellationToken cancellationToken = default)
+    DocumentoFiltro filtro,
+    CancellationToken cancellationToken = default)
     {
-        var query = _dbContext.Documentos.Include(d => d.Expediciones).AsNoTracking();
+        var query = _dbContext.Documentos
+            .Include(d => d.Expediciones)
+            .AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(filtro.Empresa))
         {
@@ -58,29 +60,17 @@ internal sealed class DocumentoRepository : IDocumentoRepository
 
         if (filtro.Empresas is { Count: > 0 } empresas)
         {
-            // Restriccion por las empresas autorizadas del usuario.
             query = query.Where(d => empresas.Contains(d.Empresa));
         }
 
-        // El filtro del listado sigue siendo por CÓDIGO (decisión de diseño): el documento sólo guarda
-        // los Ids, así que se resuelve el código vía join contra los maestros locales. Como el join es
-        // por el FK Id (Guid único global), no hay ambigüedad cross-empresa del código.
-        if (!string.IsNullOrWhiteSpace(filtro.AlmacenCodigo))
+        if (filtro.AlmacenId is { } almacenId)
         {
-            var codigo = filtro.AlmacenCodigo;
-            query = from d in query
-                    join a in _dbContext.Almacenes on d.AlmacenId equals a.Id
-                    where a.Codigo == codigo
-                    select d;
+            query = query.Where(d => d.AlmacenId == almacenId);
         }
 
-        if (!string.IsNullOrWhiteSpace(filtro.AgenciaCodigo))
+        if (filtro.AgenciaId is { } agenciaId)
         {
-            var codigo = filtro.AgenciaCodigo;
-            query = from d in query
-                    join a in _dbContext.Agencias on d.AgenciaId equals a.Id
-                    where a.Codigo == codigo
-                    select d;
+            query = query.Where(d => d.AgenciaId == agenciaId);
         }
 
         if (filtro.FechaDesde is { } desde)
@@ -98,6 +88,13 @@ internal sealed class DocumentoRepository : IDocumentoRepository
             query = query.Where(d => d.Estado == estado);
         }
 
-        return await query.OrderByDescending(d => d.FechaGeneracion).ToListAsync(cancellationToken);
+        if (filtro.Finalizado is { } finalizado)
+        {
+            query = query.Where(d => d.Finalizado == finalizado);
+        }
+
+        return await query
+            .OrderByDescending(d => d.FechaGeneracion)
+            .ToListAsync(cancellationToken);
     }
 }

@@ -1,5 +1,7 @@
+using Dtd.Application.Almacenes;
 using Dtd.Application.Behaviors;
 using Dtd.Application.Mapping;
+using Dtd.Application.Security;
 using Dtd.Application.Templates;
 using FluentValidation;
 using Mapster;
@@ -38,6 +40,11 @@ public static class DependencyInjection
         services.AddScoped<
             IDocumentTemplateValuesBuilderResolver,
             DocumentTemplateValuesBuilderResolver>();
+
+        services.AddMemoryCache();
+
+        services.AddScoped<IContextoAccesoService, ContextoAccesoService>();
+        services.AddScoped<IAccesoAlmacenService, AccesoAlmacenService>();
 
         return services;
     }

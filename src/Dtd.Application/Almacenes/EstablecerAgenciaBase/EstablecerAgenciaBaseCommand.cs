@@ -1,5 +1,4 @@
 using Dtd.Application.AgenciaBases;
-using Dtd.Application.Security;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
@@ -13,29 +12,32 @@ public sealed record EstablecerAgenciaBaseCommand(
     string Empresa,
     string AlmacenCodigo,
     string AgenciaCodigo,
-    Guid AgenciaBaseId) : IRequest<ErrorOr<AgenciaBaseCatalogoDto>>;
+    Guid AgenciaBaseId)
+    : IRequest<ErrorOr<AgenciaBaseCatalogoDto>>;
 
 internal sealed class EstablecerAgenciaBaseCommandHandler
-    : IRequestHandler<EstablecerAgenciaBaseCommand, ErrorOr<AgenciaBaseCatalogoDto>>
+    : IRequestHandler<
+        EstablecerAgenciaBaseCommand,
+        ErrorOr<AgenciaBaseCatalogoDto>>
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IAgenciaBaseRepository _agenciaBaseRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public EstablecerAgenciaBaseCommandHandler(
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         IAgenciaBaseRepository agenciaBaseRepository,
         IUnitOfWork unitOfWork,
-        IUsuarioContexto usuarioContexto)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
         _agenciaBaseRepository = agenciaBaseRepository;
         _unitOfWork = unitOfWork;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
     public async Task<ErrorOr<AgenciaBaseCatalogoDto>> Handle(
@@ -44,14 +46,6 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
     {
         var empresa = request.Empresa.Trim();
 
-        if (_usuarioContexto.Current is { } usuario &&
-            !usuario.Empresas.Contains(empresa))
-        {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{empresa}'.");
-        }
-
         if (request.AgenciaBaseId == Guid.Empty)
         {
             return Error.Validation(
@@ -59,65 +53,80 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
                 "El agencia base es obligatorio.");
         }
 
-        var almacen = await _almacenRepository.GetByEmpresaYCodigoAsync(
-            empresa,
-            request.AlmacenCodigo,
-            cancellationToken);
+        var almacen =
+            await _almacenRepository.GetByEmpresaYCodigoAsync(
+                empresa,
+                request.AlmacenCodigo,
+                cancellationToken);
 
         if (almacen is null)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe para la empresa '{empresa}'.");
+                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"para la empresa '{empresa}'.");
         }
 
-        var agencia = await _agenciaRepository.GetByEmpresaYCodigoAsync(
-            empresa,
-            request.AgenciaCodigo,
-            cancellationToken);
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                empresa,
+                almacen.Id,
+                cancellationToken);
+
+        if (accesoAlmacen.IsError)
+        {
+            return accesoAlmacen.Errors;
+        }
+
+        var agencia =
+            await _agenciaRepository.GetByEmpresaYCodigoAsync(
+                empresa,
+                request.AgenciaCodigo,
+                cancellationToken);
 
         if (agencia is null)
         {
             return Error.NotFound(
                 "Agencia.NoConfigurada",
-                $"La agencia '{request.AgenciaCodigo}' no existe para la empresa '{empresa}'.");
+                $"La agencia '{request.AgenciaCodigo}' no existe " +
+                $"para la empresa '{empresa}'.");
         }
 
         if (agencia.EnvioDirecto)
         {
             return Error.Validation(
                 "AlmacenAgencia.AgenciaBaseNoPermitido",
-                $"La agencia '{agencia.Codigo}' agrupa por almacén destino y no admite agencia base.");
+                $"La agencia '{agencia.Codigo}' agrupa por almacén destino " +
+                "y no admite agencia base.");
         }
 
-        var relacion = await _almacenRepository.GetRelacionAgenciaParaActualizarAsync(
-            almacen.Id,
-            agencia.Id,
-            cancellationToken);
+        var relacion =
+            await _almacenRepository.GetRelacionAgenciaParaActualizarAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
 
         if (relacion is null)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible para el almacén '{request.AlmacenCodigo}' (empresa '{empresa}').");
+                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
+                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"(empresa '{empresa}').");
         }
 
-        var agenciaBase = await _agenciaBaseRepository.GetByIdAsync(
-            request.AgenciaBaseId,
-            cancellationToken);
+        var agenciaBase =
+            await _agenciaBaseRepository.GetByIdAsync(
+                request.AgenciaBaseId,
+                cancellationToken);
 
-        if (agenciaBase is null)
+        if (agenciaBase is null ||
+            agenciaBase.Empresa != empresa)
         {
             return Error.NotFound(
                 "AgenciaBase.NoEncontrado",
-                $"No existe el agenciaBase '{request.AgenciaBaseId}'.");
-        }
-
-        if (agenciaBase.Empresa != empresa)
-        {
-            return Error.Forbidden(
-                "AgenciaBase.OtraEmpresa",
-                $"El agenciaBase '{request.AgenciaBaseId}' no pertenece a la empresa '{empresa}'.");
+                $"No existe el agenciaBase '{request.AgenciaBaseId}' " +
+                $"para la empresa '{empresa}'.");
         }
 
         if (!agenciaBase.Activo)
@@ -131,13 +140,17 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
         {
             return Error.Validation(
                 "AgenciaBase.SinDireccionBase",
-                $"El agenciaBase '{agenciaBase.Codigo}' no tiene dirección completa para usarlo como base.");
+                $"El agenciaBase '{agenciaBase.Codigo}' no tiene dirección completa " +
+                "para usarlo como base.");
         }
 
-        relacion.ConfigurarAgenciaBase(agenciaBase.Id);
+        relacion.ConfigurarAgenciaBase(
+            agenciaBase.Id);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(
+            cancellationToken);
 
-        return CrearAgenciaBaseCommandHandler.ToDto(agenciaBase);
+        return CrearAgenciaBaseCommandHandler.ToDto(
+            agenciaBase);
     }
 }

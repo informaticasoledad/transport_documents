@@ -1,4 +1,4 @@
-using Dtd.Application.Security;
+using Dtd.Application.Almacenes;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Common;
 using Dtd.Domain.Conductores;
@@ -17,8 +17,13 @@ namespace Dtd.Application.Documentos.ConductoresDocumento;
 /// repetidos en la lista, o ya asignados, no duplican). <b>All-or-nothing</b>: si algún Id no existe,
 /// no está vinculado a la agencia o está inactivo, no se asigna ninguno.
 /// </summary>
-/// <returns>La lista de <see cref="ConductorDto"/> asignados (con su <c>Id</c> en el documento).</returns>
-public sealed record AsignarConductoresDocumentoCommand(Guid DocumentoId, IReadOnlyList<Guid> ConductoresId)
+/// <returns>
+/// La lista de <see cref="ConductorDto"/> asignados
+/// (con su <c>Id</c> en el documento).
+/// </returns>
+public sealed record AsignarConductoresDocumentoCommand(
+    Guid DocumentoId,
+    IReadOnlyList<Guid> ConductoresId)
     : IRequest<ErrorOr<IReadOnlyList<ConductorDto>>>;
 
 internal sealed class AsignarConductoresDocumentoCommandValidator
@@ -28,71 +33,94 @@ internal sealed class AsignarConductoresDocumentoCommandValidator
 
     public AsignarConductoresDocumentoCommandValidator()
     {
-        RuleFor(x => x.DocumentoId).NotEmpty();
+        RuleFor(x => x.DocumentoId)
+            .NotEmpty();
+
         RuleFor(x => x.ConductoresId)
-            .NotEmpty().WithMessage("Debe indicar al menos un conductor.")
+            .NotEmpty()
+            .WithMessage("Debe indicar al menos un conductor.")
             .Must(ids => ids.Count <= MaxConductores)
-            .WithMessage(_ => $"No se pueden asignar más de {MaxConductores} conductores en una sola llamada.");
+            .WithMessage(_ =>
+                $"No se pueden asignar más de {MaxConductores} conductores en una sola llamada.");
+
         RuleForEach(x => x.ConductoresId)
             .NotEmpty();
     }
 }
 
 internal sealed class AsignarConductoresDocumentoCommandHandler
-    : IRequestHandler<AsignarConductoresDocumentoCommand, ErrorOr<IReadOnlyList<ConductorDto>>>
+    : IRequestHandler<
+        AsignarConductoresDocumentoCommand,
+        ErrorOr<IReadOnlyList<ConductorDto>>>
 {
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IConductorRepository _conductorRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public AsignarConductoresDocumentoCommandHandler(
         IDocumentoRepository documentoRepository,
         IAgenciaRepository agenciaRepository,
         IConductorRepository conductorRepository,
         IUnitOfWork unitOfWork,
-        IUsuarioContexto usuarioContexto)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _documentoRepository = documentoRepository;
         _agenciaRepository = agenciaRepository;
         _conductorRepository = conductorRepository;
         _unitOfWork = unitOfWork;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
     public async Task<ErrorOr<IReadOnlyList<ConductorDto>>> Handle(
-        AsignarConductoresDocumentoCommand request, CancellationToken cancellationToken)
+        AsignarConductoresDocumentoCommand request,
+        CancellationToken cancellationToken)
     {
-        var documento = await _documentoRepository.GetByIdAsync(request.DocumentoId, cancellationToken);
+        var documento = await _documentoRepository.GetByIdAsync(
+            request.DocumentoId,
+            cancellationToken);
+
         if (documento is null)
         {
-            return Error.NotFound("Documento.NoEncontrado", $"No existe el documento '{request.DocumentoId}'.");
+            return Error.NotFound(
+                "Documento.NoEncontrado",
+                $"No existe el documento '{request.DocumentoId}'.");
         }
 
-        if (_usuarioContexto.Current is { } usuario && !usuario.Empresas.Contains(documento.Empresa))
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                documento.Empresa,
+                documento.AlmacenId,
+                cancellationToken);
+
+        if (accesoAlmacen.IsError)
         {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{documento.Empresa}'.");
+            return accesoAlmacen.Errors;
         }
 
-        // La agencia del documento se resuelve por Id (FK) para buscar los conductores en su catálogo.
-        var agencia = await _agenciaRepository.GetByIdAsync(documento.AgenciaId, cancellationToken);
-        if (agencia is null)
+        // La agencia del documento se resuelve por Id (FK) para buscar
+        // los conductores en su catálogo.
+        var agencia = await _agenciaRepository.GetByIdAsync(
+            documento.AgenciaId,
+            cancellationToken);
+
+        if (agencia is null ||
+            agencia.Empresa != documento.Empresa)
         {
             return Error.NotFound(
                 "Agencia.NoEncontrada",
-                $"La agencia '{documento.AgenciaId}' de la empresa '{documento.Empresa}' no existe en el catálogo.");
+                $"La agencia '{documento.AgenciaId}' de la empresa " +
+                $"'{documento.Empresa}' no existe en el catálogo.");
         }
 
-        // All-or-nothing: resuelve y valida TODOS los conductores antes de mutar el agregado, así
-        // un Id inexistente, no vinculado a la agencia o inactivo no deja el documento parcialmente mutado.
+        // All-or-nothing: se resuelven y validan TODOS los conductores
+        // antes de mutar el agregado.
         if (request.ConductoresId.Any(id => id == Guid.Empty))
         {
             return Error.Validation(
                 "Conductor.IdRequerido",
-                "Debe indicar un conductor valido.");
+                "Debe indicar un conductor válido.");
         }
 
         var idsUnicos = request.ConductoresId
@@ -100,21 +128,29 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
             .ToList();
 
         var resueltos = new List<Conductor>(idsUnicos.Count);
+
         foreach (var id in idsUnicos)
         {
-            var conductor = await _conductorRepository.GetByAgenciaYIdAsync(agencia.Id, id, cancellationToken);
+            var conductor =
+                await _conductorRepository.GetByAgenciaYIdAsync(
+                    agencia.Id,
+                    id,
+                    cancellationToken);
+
             if (conductor is null)
             {
                 return Error.NotFound(
                     "Conductor.NoEncontrado",
-                    $"No existe el conductor '{id}' vinculado a la agencia '{agencia.Codigo}'.");
+                    $"No existe el conductor '{id}' vinculado a la agencia " +
+                    $"'{agencia.Codigo}'.");
             }
 
             if (!conductor.Activo)
             {
                 return Error.Validation(
                     "Conductor.Inactivo",
-                    $"El conductor '{conductor.Codigo}' está inactivo y no se puede asignar.");
+                    $"El conductor '{conductor.Codigo}' está inactivo " +
+                    "y no se puede asignar.");
             }
 
             resueltos.Add(conductor);
@@ -124,22 +160,25 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
         {
             foreach (var conductor in resueltos)
             {
-                documento.AsignarConductor(ConductorAsignado.CrearDesdeCatalogo(conductor));
+                documento.AsignarConductor(
+                    ConductorAsignado.CrearDesdeCatalogo(conductor));
             }
         }
         catch (InvalidOperationException ex)
         {
-            // El documento ya no está en Nuevo (no se pueden añadir conductores).
-            return Error.Conflict("Documento.YaConfirmado", ex.Message);
+            return Error.Conflict(
+                "Documento.YaConfirmado",
+                ex.Message);
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(
+            cancellationToken);
 
-        // Devuelve los conductores asignados que correspondan a los Ids pedidos (idempotente:
-        // AsignarConductor descarta duplicados por ConductorCatalogId, así no se devuelven extras).
         var pedidosIds = idsUnicos.ToHashSet();
+
         return documento.Conductores
-            .Where(c => pedidosIds.Contains(c.ConductorCatalogId))
+            .Where(c =>
+                pedidosIds.Contains(c.ConductorCatalogId))
             .Select(c => new ConductorDto
             {
                 Id = c.Id,

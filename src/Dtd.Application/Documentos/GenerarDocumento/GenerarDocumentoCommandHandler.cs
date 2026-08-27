@@ -1,3 +1,4 @@
+using Dtd.Application.Almacenes;
 using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
 using Dtd.Application.Mapping;
@@ -8,7 +9,6 @@ using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
-using Dtd.Domain.Empresas;
 using ErrorOr;
 using MediatR;
 
@@ -24,6 +24,8 @@ internal sealed class GenerarDocumentoCommandHandler
     private readonly IAgenciaBaseRepository _agenciaBaseRepository;
 
     private readonly IDocumentReferenceGenerator _documentReferenceGenerator;
+
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUsuarioContexto _usuarioContexto;
 
@@ -34,6 +36,7 @@ internal sealed class GenerarDocumentoCommandHandler
         IAgenciaRepository agenciaRepository,
         IAgenciaBaseRepository agenciaBaseRepository,
         IDocumentReferenceGenerator documentReferenceGenerator,
+        IAccesoAlmacenService accesoAlmacenService,
         IUnitOfWork unitOfWork,
         IUsuarioContexto usuarioContexto)
     {
@@ -43,6 +46,7 @@ internal sealed class GenerarDocumentoCommandHandler
         _agenciaRepository = agenciaRepository;
         _agenciaBaseRepository = agenciaBaseRepository;
         _documentReferenceGenerator = documentReferenceGenerator;
+        _accesoAlmacenService = accesoAlmacenService;
         _unitOfWork = unitOfWork;
         _usuarioContexto = usuarioContexto;
     }
@@ -51,11 +55,14 @@ internal sealed class GenerarDocumentoCommandHandler
         GenerarDocumentoCommand request,
         CancellationToken cancellationToken)
     {
-        var autorizacion = ValidarEmpresa(request.Empresa);
+        var accesoAlmacen = await _accesoAlmacenService.ValidarAccesoAsync(
+            request.Empresa,
+            request.AlmacenId,
+            cancellationToken);
 
-        if (autorizacion.IsError)
+        if (accesoAlmacen.IsError)
         {
-            return autorizacion.Errors;
+            return accesoAlmacen.Errors;
         }
 
         var rango = RangoFechas.Create(
@@ -184,7 +191,7 @@ internal sealed class GenerarDocumentoCommandHandler
                 tipoAgrupacion: tipoAgrupacion,
                 destinoAgencia: destinoAgencia,
                 destinosAlmacen: destinosAlmacen,
-                usuarioGeneracionId: _usuarioContexto.Current?.Sub,
+                usuarioGeneracionId: _usuarioContexto.Current?.Id,
                 fechaGeneracion: DateTimeOffset.UtcNow);
 
         if (resultadoDocumento.IsError)
@@ -204,20 +211,7 @@ internal sealed class GenerarDocumentoCommandHandler
         return documento.Id;
     }
 
-    private ErrorOr<Success> ValidarEmpresa(
-        string empresa)
-    {
-        if (_usuarioContexto.Current is { } usuario &&
-            !usuario.Empresas.Contains(empresa))
-        {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{empresa}'.");
-        }
-
-        return Result.Success;
-    }
-
+    
     private async Task<ErrorOr<(Almacen Almacen, Agencia Agencia)>>ObtenerConfiguracionAsync(GenerarDocumentoCommand request,CancellationToken cancellationToken)
     {
         var almacen = await _almacenRepository.GetByIdAsync(

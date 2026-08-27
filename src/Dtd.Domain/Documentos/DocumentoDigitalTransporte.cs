@@ -33,6 +33,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public string Referencia { get; private set; } = string.Empty;
 
+    public bool Finalizado { get; private set; }
+
     private DocumentoDigitalTransporte()
     {
         Empresa = string.Empty;
@@ -97,7 +99,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         UsuarioGeneracionId = usuarioGeneracionId;
         FechaGeneracion = fechaGeneracion;
 
-        Estado = EstadoDocumento.Nuevo;
+        CambiarEstado(EstadoDocumento.Nuevo);
     }
 
     public static ErrorOr<DocumentoDigitalTransporte> Generar(
@@ -413,10 +415,10 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         PlataformaId = NormalizarOpcional(lotId);
         PlataformaEstado = NormalizarOpcional(estadoDocuten);
-        Estado = EstadoDocumento.Enviando;
+        CambiarEstado(EstadoDocumento.Enviando);
     }
 
-    public bool RegistrarCallbackDocumentoDocuten(string? lotId, string? estadoDocuten)
+    public bool RegistrarCallbackDocumentoPlataforma(string? lotId, string? estadoDocuten)
     {
         if (!string.IsNullOrWhiteSpace(lotId))
         {
@@ -598,4 +600,14 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     private static string? NormalizarOpcional(string? valor) =>
         string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+
+    private void CambiarEstado(EstadoDocumento nuevoEstado)
+    {
+        Estado = nuevoEstado;
+
+        Finalizado = nuevoEstado is
+            EstadoDocumento.Finalizado or
+            EstadoDocumento.Anulado or
+            EstadoDocumento.Cancelado;
+    }
 }

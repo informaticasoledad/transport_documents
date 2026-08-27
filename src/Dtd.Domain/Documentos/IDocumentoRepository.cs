@@ -36,8 +36,9 @@ public interface IDocumentoRepository
 public sealed record DocumentoFiltro(
     string? Empresa = null,
     IReadOnlyCollection<string>? Empresas = null,
-    string? AlmacenCodigo = null,
-    string? AgenciaCodigo = null,
+    Guid? AlmacenId = null,
+    Guid? AgenciaId = null,
     DateOnly? FechaDesde = null,
     DateOnly? FechaHasta = null,
-    EstadoDocumento? Estado = null);
+    EstadoDocumento? Estado = null,
+    bool? Finalizado = null);

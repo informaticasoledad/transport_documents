@@ -1,5 +1,5 @@
-using Dtd.Application.Documentos.ProcesarCallbackDocuten;
-using Dtd.Application.Documentos.ListarCallbacksDocuten;
+using Dtd.Application.Documentos.ProcesarCallbackPlataforma;
+using Dtd.Application.Documentos.ListarCallbacksPlataforma;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.Common;
 using MediatR;
@@ -135,7 +135,7 @@ public static class DocutenModule
             {
                 using var doc = JsonDocument.Parse(body);
                 var result = await mediator.Send(
-                    new ProcesarCallbackDocutenCommand(doc.RootElement.Clone(), body, headers),
+                    new ProcesarCallbackPlataformaCommand(doc.RootElement.Clone(), body, headers),
                     CancellationToken.None);
 
                 if (result.IsError)
@@ -169,7 +169,7 @@ public static class DocutenModule
             CancellationToken ct) =>
         {
             var result = await mediator.Send(
-                new ListarCallbacksDocutenQuery(documentoId, limit ?? 50),
+                new ListarCallbacksPlataformaQuery(documentoId, limit ?? 50),
                 ct);
 
             return result.ToHttpResult(callbacks => Results.Ok(callbacks));

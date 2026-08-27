@@ -114,22 +114,24 @@ public static class DocumentosModule
         });
 
         documentos.MapGet("/", async (
-            string? empresa,
-            string? almacenCodigo,
-            string? agenciaCodigo,
+            string empresa,
+            Guid? almacenId,
+            Guid? agenciaId,
             DateOnly? fechaDesde,
             DateOnly? fechaHasta,
+            bool? finalizado,
             string? estado,
             IMediator mediator,
             CancellationToken ct) =>
         {
             var query = new ListarDocumentosQuery(
                 empresa,
-                almacenCodigo,
-                agenciaCodigo,
+                almacenId,
+                agenciaId,
                 fechaDesde,
                 fechaHasta,
-                estado);
+                estado,
+                finalizado);
 
             var result = await mediator.Send(query, ct);
             return result.ToHttpResult(list => Results.Ok(list));

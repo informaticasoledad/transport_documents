@@ -27,31 +27,26 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<IUsuarioContexto, HttpUsuarioContexto>();
 
-// Autenticación OIDC contra Keycloak. Toggle Auth:Enabled: cuando está apagado (dev por defecto),
-// el API queda anónimo y IUsuarioContexto.Current es null (los handlers omiten el chequeo de
-// empresa, así el smoke test UseMock=true sin token sigue funcionando). Cuando está encendido,
-// JwtBearer valida el token (401 si falta/inválido) y la FallbackPolicy exige usuario autenticado
-// en todos los endpoints salvo los marcados AllowAnonymous (health/openapi).
-var authEnabled = builder.Configuration.GetValue("Auth:Enabled", defaultValue: false);
-if (authEnabled)
-{
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(options =>
-        {
-            options.Authority = builder.Configuration["Keycloak:Authority"];
-            options.Audience = builder.Configuration["Keycloak:Audience"];
-            options.RequireHttpsMetadata = builder.Configuration.GetValue("Keycloak:RequireHttpsMetadata", defaultValue: true);
-            options.TokenValidationParameters.NameClaimType =
-                builder.Configuration["Keycloak:NameClaimType"] ?? "preferred_username";
-        });
-
-    builder.Services.AddAuthorization(options =>
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
     {
-        options.FallbackPolicy = new AuthorizationPolicyBuilder()
-            .RequireAuthenticatedUser()
-            .Build();
+        options.Authority = builder.Configuration["Keycloak:Authority"];
+        options.Audience = builder.Configuration["Keycloak:Audience"];
+        options.RequireHttpsMetadata = builder.Configuration.GetValue("Keycloak:RequireHttpsMetadata", defaultValue: true);
+
+        options.MapInboundClaims = false;
+
+        options.TokenValidationParameters.NameClaimType =
+            builder.Configuration["Keycloak:NameClaimType"] ?? "preferred_username";
     });
-}
+
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+});
+
 
 // API concerns.
 builder.Services.AddProblemDetails(opts =>
@@ -87,11 +82,9 @@ if (builder.Configuration.GetValue("Database:AutoApplyMigrations", defaultValue:
 
 // Middleware order.
 app.UseExceptionHandler();
-if (authEnabled)
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseSerilogRequestLogging();
 
 if (app.Environment.IsDevelopment())

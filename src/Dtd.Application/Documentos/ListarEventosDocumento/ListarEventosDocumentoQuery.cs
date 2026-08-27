@@ -1,43 +1,59 @@
+using Dtd.Application.Almacenes;
 using Dtd.Application.Documentos;
-using Dtd.Application.Security;
-using Dtd.Domain.Common;
 using Dtd.Domain.Documentos;
 using ErrorOr;
-using Mapster;
 using MediatR;
 
 namespace Dtd.Application.Documentos.ListarEventosDocumento;
 
-public sealed record ListarEventosDocumentoQuery(Guid DocumentoId) : IRequest<ErrorOr<IReadOnlyList<EventoDocumentoDto>>>;
+public sealed record ListarEventosDocumentoQuery(
+    Guid DocumentoId)
+    : IRequest<ErrorOr<IReadOnlyList<EventoDocumentoDto>>>;
 
-internal sealed class ListarEventosDocumentoQueryHandler : IRequestHandler<ListarEventosDocumentoQuery, ErrorOr<IReadOnlyList<EventoDocumentoDto>>>
+internal sealed class ListarEventosDocumentoQueryHandler
+    : IRequestHandler<
+        ListarEventosDocumentoQuery,
+        ErrorOr<IReadOnlyList<EventoDocumentoDto>>>
 {
     private readonly IDocumentoRepository _documentoRepository;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
-    public ListarEventosDocumentoQueryHandler(IDocumentoRepository documentoRepository, IUsuarioContexto usuarioContexto)
+    public ListarEventosDocumentoQueryHandler(
+        IDocumentoRepository documentoRepository,
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _documentoRepository = documentoRepository;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<EventoDocumentoDto>>> Handle(ListarEventosDocumentoQuery request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<IReadOnlyList<EventoDocumentoDto>>> Handle(
+        ListarEventosDocumentoQuery request,
+        CancellationToken cancellationToken)
     {
-        var documento = await _documentoRepository.GetByIdAsync(request.DocumentoId, cancellationToken);
+        var documento =
+            await _documentoRepository.GetByIdAsync(
+                request.DocumentoId,
+                cancellationToken);
+
         if (documento is null)
         {
-            return Error.NotFound("Documento.NoEncontrado", $"No existe el documento '{request.DocumentoId}'.");
+            return Error.NotFound(
+                "Documento.NoEncontrado",
+                $"No existe el documento '{request.DocumentoId}'.");
         }
 
-        // Autorización por empresa: el usuario debe tener acceso a la empresa del documento.
-        if (_usuarioContexto.Current is { } usuario && !usuario.Empresas.Contains(documento.Empresa))
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                documento.Empresa,
+                documento.AlmacenId,
+                cancellationToken);
+
+        if (accesoAlmacen.IsError)
         {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{documento.Empresa}'.");
+            return accesoAlmacen.Errors;
         }
 
-        //ojo revisar 
+        // TODO: revisar implementación real de eventos.
         return new List<EventoDocumentoDto>();
     }
 }

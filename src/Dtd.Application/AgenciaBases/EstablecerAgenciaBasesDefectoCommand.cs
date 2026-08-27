@@ -1,8 +1,8 @@
-using Dtd.Application.Security;
+using Dtd.Application.Almacenes;
+using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
-using Dtd.Domain.AgenciaBases;
 using ErrorOr;
 using MediatR;
 
@@ -12,29 +12,32 @@ public sealed record EstablecerAgenciaBasesDefectoCommand(
     string Empresa,
     string AlmacenCodigo,
     string AgenciaCodigo,
-    IReadOnlyList<Guid> AgenciaBaseIds) : IRequest<ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>;
+    IReadOnlyList<Guid> AgenciaBaseIds)
+    : IRequest<ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>;
 
 internal sealed class EstablecerAgenciaBasesDefectoCommandHandler
-    : IRequestHandler<EstablecerAgenciaBasesDefectoCommand, ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>
+    : IRequestHandler<
+        EstablecerAgenciaBasesDefectoCommand,
+        ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IAgenciaBaseRepository _agenciaBaseRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public EstablecerAgenciaBasesDefectoCommandHandler(
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         IAgenciaBaseRepository agenciaBaseRepository,
         IUnitOfWork unitOfWork,
-        IUsuarioContexto usuarioContexto)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
         _agenciaBaseRepository = agenciaBaseRepository;
         _unitOfWork = unitOfWork;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
     public async Task<ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>> Handle(
@@ -42,13 +45,6 @@ internal sealed class EstablecerAgenciaBasesDefectoCommandHandler
         CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
-
-        if (_usuarioContexto.Current is { } usuario && !usuario.Empresas.Contains(empresa))
-        {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{empresa}'.");
-        }
 
         var almacen = await _almacenRepository.GetByEmpresaYCodigoAsync(
             empresa,
@@ -59,7 +55,19 @@ internal sealed class EstablecerAgenciaBasesDefectoCommandHandler
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacen '{request.AlmacenCodigo}' no existe para la empresa '{empresa}'.");
+                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"para la empresa '{empresa}'.");
+        }
+
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                empresa,
+                almacen.Id,
+                cancellationToken);
+
+        if (accesoAlmacen.IsError)
+        {
+            return accesoAlmacen.Errors;
         }
 
         var agencia = await _agenciaRepository.GetByEmpresaYCodigoAsync(
@@ -71,44 +79,52 @@ internal sealed class EstablecerAgenciaBasesDefectoCommandHandler
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no esta disponible para el almacen '{request.AlmacenCodigo}' (empresa '{empresa}').");
+                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
+                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"(empresa '{empresa}').");
         }
 
-        var disponible = await _almacenRepository.EsAgenciaDisponibleAsync(
-            almacen.Id,
-            agencia.Id,
-            cancellationToken);
+        var disponible =
+            await _almacenRepository.EsAgenciaDisponibleAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
 
         if (!disponible)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no esta disponible para el almacen '{request.AlmacenCodigo}' (empresa '{empresa}').");
+                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
+                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"(empresa '{empresa}').");
         }
 
-        var idsUnicos = request.AgenciaBaseIds.Where(id => id != Guid.Empty).Distinct().ToList();
+        var idsUnicos = request.AgenciaBaseIds
+            .Where(id => id != Guid.Empty)
+            .Distinct()
+            .ToList();
+
         foreach (var id in idsUnicos)
         {
-            var agenciaBase = await _agenciaBaseRepository.GetByIdAsync(id, cancellationToken);
-            if (agenciaBase is null)
+            var agenciaBase =
+                await _agenciaBaseRepository.GetByIdAsync(
+                    id,
+                    cancellationToken);
+
+            if (agenciaBase is null ||
+                agenciaBase.Empresa != empresa)
             {
                 return Error.NotFound(
                     "AgenciaBase.NoEncontrado",
-                    $"No existe el agenciaBase '{id}'.");
-            }
-
-            if (agenciaBase.Empresa != empresa)
-            {
-                return Error.Forbidden(
-                    "AgenciaBase.OtraEmpresa",
-                    $"El agenciaBase '{id}' no pertenece a la empresa '{empresa}'.");
+                    $"No existe el agenciaBase '{id}' " +
+                    $"para la empresa '{empresa}'.");
             }
 
             if (!agenciaBase.Activo)
             {
                 return Error.Validation(
                     "AgenciaBase.Inactivo",
-                    $"El agenciaBase '{agenciaBase.Codigo}' no esta activo.");
+                    $"El agenciaBase '{agenciaBase.Codigo}' no está activo.");
             }
         }
 
@@ -119,14 +135,18 @@ internal sealed class EstablecerAgenciaBasesDefectoCommandHandler
             idsUnicos,
             cancellationToken);
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-        var defaults = await _agenciaBaseRepository.ObtenerAgenciaBasesDefectoAsync(
-            empresa,
-            request.AlmacenCodigo,
-            request.AgenciaCodigo,
+        await _unitOfWork.SaveChangesAsync(
             cancellationToken);
 
-        return defaults.Select(CrearAgenciaBaseCommandHandler.ToDto).ToList();
+        var defaults =
+            await _agenciaBaseRepository.ObtenerAgenciaBasesDefectoAsync(
+                empresa,
+                request.AlmacenCodigo,
+                request.AgenciaCodigo,
+                cancellationToken);
+
+        return defaults
+            .Select(CrearAgenciaBaseCommandHandler.ToDto)
+            .ToList();
     }
 }

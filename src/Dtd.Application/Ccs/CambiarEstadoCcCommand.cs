@@ -1,7 +1,6 @@
-using Dtd.Application.Security;
+using Dtd.Application.Almacenes;
 using Dtd.Domain.Ccs;
 using Dtd.Domain.Common;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -9,11 +8,13 @@ namespace Dtd.Application.Ccs;
 
 /// <summary>
 /// Activa o desactiva un CC del catálogo. Un único comando para los dos verbos; los endpoints
-/// <c>/activar</c> y <c>/desactivar</c> son wrappers que fijan <c>Activo</c> a true/false. Carga con
-/// tracking para que el cambio de <c>Activo</c> se persista con SaveChanges.
+/// <c>/activar</c> y <c>/desactivar</c> son wrappers que fijan <c>Activo</c> a true/false.
 /// </summary>
 /// <returns>El <see cref="CcCatalogoDto"/> con el nuevo estado.</returns>
-public sealed record CambiarEstadoCcCommand(string Empresa, Guid CcId, bool Activo)
+public sealed record CambiarEstadoCcCommand(
+    string Empresa,
+    Guid CcId,
+    bool Activo)
     : IRequest<ErrorOr<CcCatalogoDto>>;
 
 internal sealed class CambiarEstadoCcCommandHandler
@@ -21,42 +22,45 @@ internal sealed class CambiarEstadoCcCommandHandler
 {
     private readonly ICcRepository _ccRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public CambiarEstadoCcCommandHandler(
         ICcRepository ccRepository,
         IUnitOfWork unitOfWork,
-        IUsuarioContexto usuarioContexto)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _ccRepository = ccRepository;
         _unitOfWork = unitOfWork;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<CcCatalogoDto>> Handle(CambiarEstadoCcCommand request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<CcCatalogoDto>> Handle(
+        CambiarEstadoCcCommand request,
+        CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
 
-        if (_usuarioContexto.Current is { } usuario && !usuario.Empresas.Contains(empresa))
+        var accesoEmpresa =
+            await _accesoAlmacenService.ValidarAccesoEmpresaAsync(
+                empresa,
+                cancellationToken);
+
+        if (accesoEmpresa.IsError)
         {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{empresa}'.");
+            return accesoEmpresa.Errors;
         }
 
-        var cc = await _ccRepository.GetByIdAsync(request.CcId, cancellationToken);
-        if (cc is null)
+        var cc = await _ccRepository.GetByIdAsync(
+            request.CcId,
+            cancellationToken);
+
+        if (cc is null ||
+            cc.Empresa != empresa)
         {
             return Error.NotFound(
                 "Cc.NoEncontrado",
-                $"No existe el CC '{request.CcId}'.");
-        }
-
-        if (cc.Empresa != empresa)
-        {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El CC '{request.CcId}' no pertenece a la empresa '{empresa}'.");
+                $"No existe el CC '{request.CcId}' " +
+                $"para la empresa '{empresa}'.");
         }
 
         if (request.Activo)
@@ -68,7 +72,9 @@ internal sealed class CambiarEstadoCcCommandHandler
             cc.Desactivar();
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
+        await _unitOfWork.SaveChangesAsync(
+            cancellationToken);
+
         return CrearCcCommandHandler.ToDto(cc);
     }
 }

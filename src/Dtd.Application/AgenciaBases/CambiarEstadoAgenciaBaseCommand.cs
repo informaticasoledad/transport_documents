@@ -1,7 +1,6 @@
-using Dtd.Application.Security;
+using Dtd.Application.Almacenes;
 using Dtd.Domain.Common;
 using Dtd.Domain.AgenciaBases;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -13,50 +12,59 @@ namespace Dtd.Application.AgenciaBases;
 /// tracking para que el cambio de <c>Activo</c> se persista con SaveChanges.
 /// </summary>
 /// <returns>El <see cref="AgenciaBaseCatalogoDto"/> con el nuevo estado.</returns>
-public sealed record CambiarEstadoAgenciaBaseCommand(string Empresa, Guid AgenciaBaseId, bool Activo)
+public sealed record CambiarEstadoAgenciaBaseCommand(
+    string Empresa,
+    Guid AgenciaBaseId,
+    bool Activo)
     : IRequest<ErrorOr<AgenciaBaseCatalogoDto>>;
 
 internal sealed class CambiarEstadoAgenciaBaseCommandHandler
-    : IRequestHandler<CambiarEstadoAgenciaBaseCommand, ErrorOr<AgenciaBaseCatalogoDto>>
+    : IRequestHandler<
+        CambiarEstadoAgenciaBaseCommand,
+        ErrorOr<AgenciaBaseCatalogoDto>>
 {
     private readonly IAgenciaBaseRepository _agenciaBaseRepository;
     private readonly IUnitOfWork _unitOfWork;
-    private readonly IUsuarioContexto _usuarioContexto;
+    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public CambiarEstadoAgenciaBaseCommandHandler(
         IAgenciaBaseRepository agenciaBaseRepository,
         IUnitOfWork unitOfWork,
-        IUsuarioContexto usuarioContexto)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _agenciaBaseRepository = agenciaBaseRepository;
         _unitOfWork = unitOfWork;
-        _usuarioContexto = usuarioContexto;
+        _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<AgenciaBaseCatalogoDto>> Handle(CambiarEstadoAgenciaBaseCommand request, CancellationToken cancellationToken)
+    public async Task<ErrorOr<AgenciaBaseCatalogoDto>> Handle(
+        CambiarEstadoAgenciaBaseCommand request,
+        CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
 
-        if (_usuarioContexto.Current is { } usuario && !usuario.Empresas.Contains(empresa))
+        var accesoEmpresa =
+            await _accesoAlmacenService.ValidarAccesoEmpresaAsync(
+                empresa,
+                cancellationToken);
+
+        if (accesoEmpresa.IsError)
         {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El usuario no tiene acceso a la empresa '{empresa}'.");
+            return accesoEmpresa.Errors;
         }
 
-        var agenciaBase = await _agenciaBaseRepository.GetByIdAsync(request.AgenciaBaseId, cancellationToken);
-        if (agenciaBase is null)
+        var agenciaBase =
+            await _agenciaBaseRepository.GetByIdAsync(
+                request.AgenciaBaseId,
+                cancellationToken);
+
+        if (agenciaBase is null ||
+            agenciaBase.Empresa != empresa)
         {
             return Error.NotFound(
                 "AgenciaBase.NoEncontrado",
-                $"No existe el agenciaBase '{request.AgenciaBaseId}'.");
-        }
-
-        if (agenciaBase.Empresa != empresa)
-        {
-            return Error.Forbidden(
-                "Empresa.NoAutorizada",
-                $"El agenciaBase '{request.AgenciaBaseId}' no pertenece a la empresa '{empresa}'.");
+                $"No existe el agenciaBase '{request.AgenciaBaseId}' " +
+                $"para la empresa '{empresa}'.");
         }
 
         if (request.Activo)
@@ -68,7 +76,10 @@ internal sealed class CambiarEstadoAgenciaBaseCommandHandler
             agenciaBase.Desactivar();
         }
 
-        await _unitOfWork.SaveChangesAsync(cancellationToken);
-        return CrearAgenciaBaseCommandHandler.ToDto(agenciaBase);
+        await _unitOfWork.SaveChangesAsync(
+            cancellationToken);
+
+        return CrearAgenciaBaseCommandHandler.ToDto(
+            agenciaBase);
     }
 }

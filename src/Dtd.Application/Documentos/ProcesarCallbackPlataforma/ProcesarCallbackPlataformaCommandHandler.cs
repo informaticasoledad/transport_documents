@@ -5,10 +5,10 @@ using Dtd.Domain.Documentos;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Documentos.ProcesarCallbackDocuten;
+namespace Dtd.Application.Documentos.ProcesarCallbackPlataforma;
 
-internal sealed class ProcesarCallbackDocutenCommandHandler
-    : IRequestHandler<ProcesarCallbackDocutenCommand, ErrorOr<ProcesarCallbackDocutenResult>>
+internal sealed class ProcesarCallbackPlataformaCommandHandler
+    : IRequestHandler<ProcesarCallbackPlataformaCommand, ErrorOr<ProcesarCallbackPlataformaResult>>
 {
     private const string EventoFirma = "SIGNATURE";
     private const int CallbackLogRetentionDays = 30;
@@ -17,7 +17,7 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
     private readonly IDocutenCallbackLogRepository _callbackLogRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public ProcesarCallbackDocutenCommandHandler(
+    public ProcesarCallbackPlataformaCommandHandler(
         IDocumentoRepository documentoRepository,
         IDocutenCallbackLogRepository callbackLogRepository,
         IUnitOfWork unitOfWork)
@@ -27,15 +27,15 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
         _unitOfWork = unitOfWork;
     }
 
-    public async Task<ErrorOr<ProcesarCallbackDocutenResult>> Handle(
-        ProcesarCallbackDocutenCommand request,
+    public async Task<ErrorOr<ProcesarCallbackPlataformaResult>> Handle(
+        ProcesarCallbackPlataformaCommand request,
         CancellationToken cancellationToken)
     {
         if (request.Payload.ValueKind != JsonValueKind.Object)
         {
             return await FinalizarAsync(
                 request,
-                new ProcesarCallbackDocutenResult(null, "unknown", Procesado: false),
+                new ProcesarCallbackPlataformaResult(null, "unknown", Procesado: false),
                 estado: null,
                 mensaje: "Payload no objeto.",
                 cancellationToken);
@@ -72,7 +72,7 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
             cancellationToken);
     }
 
-    private async Task<ErrorOr<ProcesarCallbackDocutenResult>> ProcesarDocumentoAsync(
+    private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> ProcesarDocumentoAsync(
         JsonElement payload,
         CancellationToken cancellationToken)
     {
@@ -80,22 +80,22 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
         var documentoId = TryParseDocumentoId(lotReference);
         if (documentoId is null)
         {
-            return new ProcesarCallbackDocutenResult(null, "document", Procesado: false);
+            return new ProcesarCallbackPlataformaResult(null, "document", Procesado: false);
         }
 
         var documento = await _documentoRepository.GetByIdAsync(documentoId.Value, cancellationToken);
         if (documento is null)
         {
-            return new ProcesarCallbackDocutenResult(documentoId, "document", Procesado: false);
+            return new ProcesarCallbackPlataformaResult(null, "document", Procesado: false);
         }
 
-        var callbackAceptado = documento.RegistrarCallbackDocumentoDocuten(
+        var callbackAceptado = documento.RegistrarCallbackDocumentoPlataforma(
             TryGetString(payload, "lot_id"),
             TryGetString(payload, "lot_status"));
 
         if (!callbackAceptado)
         {
-            return new ProcesarCallbackDocutenResult(documento.Id, "document", Procesado: false);
+            return new ProcesarCallbackPlataformaResult(documento.Id, "document", Procesado: false);
         }
 
         if (payload.TryGetProperty("shipments", out var shipments) &&
@@ -110,10 +110,10 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
             }
         }
 
-        return new ProcesarCallbackDocutenResult(documento.Id, "document", Procesado: true);
+        return new ProcesarCallbackPlataformaResult(documento.Id, "document", Procesado: true);
     }
 
-    private async Task<ErrorOr<ProcesarCallbackDocutenResult>> ProcesarFirmaAsync(
+    private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> ProcesarFirmaAsync(
         JsonElement payload,
         CancellationToken cancellationToken)
     {
@@ -121,13 +121,13 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
         var documentoId = TryParseDocumentoId(shipmentReference);
         if (documentoId is null)
         {
-            return new ProcesarCallbackDocutenResult(null, "signature", Procesado: false);
+            return new ProcesarCallbackPlataformaResult(null, "signature", Procesado: false);
         }
 
         var documento = await _documentoRepository.GetByIdAsync(documentoId.Value, cancellationToken);
         if (documento is null)
         {
-            return new ProcesarCallbackDocutenResult(documentoId, "signature", Procesado: false);
+            return new ProcesarCallbackPlataformaResult(documentoId, "signature", Procesado: false);
         }
 
         var procesado = documento.RegistrarCallbackEnvioDocuten(
@@ -135,12 +135,12 @@ internal sealed class ProcesarCallbackDocutenCommandHandler
             TryGetString(payload, "shipment_id"),
             TryGetString(payload, "shipment_status"));
 
-        return new ProcesarCallbackDocutenResult(documento.Id, "signature", procesado);
+        return new ProcesarCallbackPlataformaResult(documento.Id, "signature", procesado);
     }
 
-    private async Task<ErrorOr<ProcesarCallbackDocutenResult>> FinalizarAsync(
-        ProcesarCallbackDocutenCommand request,
-        ProcesarCallbackDocutenResult result,
+    private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> FinalizarAsync(
+        ProcesarCallbackPlataformaCommand request,
+        ProcesarCallbackPlataformaResult result,
         string? estado,
         string? mensaje,
         CancellationToken cancellationToken)

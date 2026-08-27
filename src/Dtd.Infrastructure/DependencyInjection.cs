@@ -1,3 +1,4 @@
+using Dtd.Application.Almacenes;
 using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.AgenciaBases;
@@ -129,6 +130,8 @@ public static class DependencyInjection
             services.AddHttpClient<IDocutenGateway, DocutenGateway>()
                 .AddStandardResilienceHandler();
         }
+
+        services.AddScoped<IUsuarioAlmacenesProvider, MockUsuarioAlmacenesProvider>();
 
         return services;
     }
