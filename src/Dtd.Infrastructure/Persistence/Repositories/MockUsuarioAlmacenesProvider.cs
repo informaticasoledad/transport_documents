@@ -16,7 +16,8 @@ namespace Dtd.Infrastructure.Persistence.Repositories
             IReadOnlyCollection<string> almacenes =
             [
                 "21",
-                "54"
+                "54",
+                "78"
             ];
 
             return Task.FromResult(almacenes);
