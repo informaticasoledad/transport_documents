@@ -1,0 +1,39 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  namespace: default
+  name: {{ .Values.appName }}
+  labels:
+    app: {{ .Values.appName }}
+
+spec:
+  replicas: {{ .Values.replicaCount }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: {{ .Values.appName }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.appName }}
+    spec:
+      containers:
+        - name: {{ .Values.appName }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - name: web
+              containerPort: 80
+          resources:
+{{ toYaml .Values.resources | nindent 12 }}
+          livenessProbe: 
+            httpGet: 
+              path: /index.html 
+              port: 80 
+            initialDelaySeconds: 5 #Default 0 
+            periodSeconds: 30 #Default 10 
+            timeoutSeconds: 1 #Default 1 
+            successThreshold: 1 #Default 1 
+            failureThreshold: 3 #Default 3           
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | nindent 8 }}

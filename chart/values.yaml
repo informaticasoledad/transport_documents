@@ -1,0 +1,22 @@
+# values.yaml
+appName: apptalleres-prod #cambiame 
+replicaCount: 1
+ingress:
+  enabled: true
+  host: "app.confortauto.com" #cambiame 
+certificate:
+  enabled: true
+  dnsName: "app.confortauto.com" #cambiame 
+image:
+  repository: "gruposoledad/tallerapp" #cambiame 
+  tag: "v2025.06.05.08.35"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: regcred
+resources:
+  requests:
+    memory: "16Mi"
+    cpu: "5m"
+  limits:
+    memory: "64Mi"
+    cpu: "350m"

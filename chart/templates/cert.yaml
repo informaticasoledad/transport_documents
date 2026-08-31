@@ -1,0 +1,15 @@
+{{- if .Values.certificate.enabled }}
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ .Values.certificate.dnsName | quote }}
+  namespace: default
+spec:
+  dnsNames:
+    - {{ .Values.certificate.dnsName | quote }}
+  secretName: {{ .Values.certificate.dnsName | quote }}
+  commonName: {{ .Values.certificate.dnsName | quote }}
+  issuerRef:
+    name: letsencrypt-prod
+    kind: ClusterIssuer
+{{- end }}
