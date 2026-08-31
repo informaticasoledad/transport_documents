@@ -1,0 +1,84 @@
+# This is a basic workflow to help you get started with Actions
+
+name: CI
+
+# Controls when the workflow will run
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/**'    
+  pull_request:
+    branches: [ main ]
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+    
+      - name: Get current date
+        id: date
+        run: echo "tag=v$(date +'%Y.%m.%d.%H.%M')" >> $GITHUB_OUTPUT
+
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Inicia sesión en el registro de contenedores (Docker Hub)
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: gruposoledad
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      # Construye la imagen de Docker y la sube al registro
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: . # El contexto de construcción es la raíz del repo
+          file: ./Dockerfile # Ruta al Dockerfile
+          push: true # Indica que se debe subir la imagen al registro
+          tags: |
+            gruposoledad/transport_documents:${{ steps.date.outputs.tag }}
+            gruposoledad/transport_documents:latest
+
+      
+      - name: create release
+        uses: ncipollo/release-action@v1.8.10
+        with:
+          artifacts: my-artifact
+          tag: ${{ steps.date.outputs.tag }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: mirar directorios
+        run: ls -lah    
+        
+      - name: Print new tag
+        run: echo "El nuevo tag es ${{ steps.date.outputs.tag }}"
+# modificamos el fichero deploy
+      - name: Update YAML file with yq
+        uses: mikefarah/yq@v4
+        with:
+          cmd: yq -i '.image.tag = "${{ steps.date.outputs.tag }}"' chart/values.yaml
+
+      
+      - name: mirar cambios
+        run: cat chart/values.yaml        
+        
+      - name: Update resources
+        uses: test-room-7/action-update-file@v1.5.0
+        with:
+          file-path: |
+              chart/values.yaml
+          commit-msg: Actualizar deploys
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-removing: true
