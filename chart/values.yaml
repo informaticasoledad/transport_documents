@@ -1,12 +1,12 @@
 # values.yaml
-appName: apptalleres-prod #cambiame 
+appName: transport_documents-prod #cambiame 
 replicaCount: 1
 ingress:
   enabled: true
-  host: "app.confortauto.com" #cambiame 
+  host: "transport_documents.gruposoledad.com" #cambiame 
 certificate:
   enabled: true
-  dnsName: "app.confortauto.com" #cambiame 
+  dnsName: "transport_documents.gruposoledad.com" #cambiame 
 image:
   repository: "gruposoledad/tallerapp" #cambiame 
   tag: "v2025.06.05.08.35"
