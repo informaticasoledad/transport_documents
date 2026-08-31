@@ -8,7 +8,7 @@ certificate:
   enabled: true
   dnsName: "transport_documents.gruposoledad.com" #cambiame 
 image:
-  repository: "gruposoledad/tallerapp" #cambiame 
+  repository: "gruposoledad/transport_documents" #cambiame 
   tag: "v2026.08.31.12.17"
   pullPolicy: IfNotPresent
 imagePullSecrets:
