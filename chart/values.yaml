@@ -3,10 +3,10 @@ appName: transport-documents-prod #cambiame
 replicaCount: 1
 ingress:
   enabled: true
-  host: "transport_documents.gruposoledad.com" #cambiame 
+  host: "transport-documents.gruposoledad.com" #cambiame 
 certificate:
   enabled: true
-  dnsName: "transport_documents.gruposoledad.com" #cambiame 
+  dnsName: "transport-documents.gruposoledad.com" #cambiame 
 image:
   repository: "gruposoledad/transport_documents" #cambiame 
   tag: "v2026.08.31.12.17"
