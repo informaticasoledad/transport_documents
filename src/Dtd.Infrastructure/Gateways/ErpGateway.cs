@@ -58,6 +58,7 @@ internal sealed class ErpGateway : IExpedicionErpGateway
         var config = await _resolver.ResolveAsync(empresa, cancellationToken)
             ?? throw new EmpresaNoConfiguradaException(empresa);
 
+
         // JWT bearer token via OAuth2 client-credentials, cached per empresa.
         var token = await _tokenProvider.GetTokenAsync(config, cancellationToken);
 
