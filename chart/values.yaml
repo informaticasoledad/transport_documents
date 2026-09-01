@@ -1,0 +1,22 @@
+# values.yaml
+appName: transport-documents-prod #cambiame 
+replicaCount: 1
+ingress:
+  enabled: true
+  host: "transport-documents.gruposoledad.com" #cambiame 
+certificate:
+  enabled: true
+  dnsName: "transport-documents.gruposoledad.com" #cambiame 
+image:
+  repository: "gruposoledad/transport_documents" #cambiame 
+  tag: "v2026.08.31.12.17"
+  pullPolicy: IfNotPresent
+imagePullSecrets:
+  - name: regcred
+resources:
+  requests:
+    memory: "16Mi"
+    cpu: "5m"
+  limits:
+    memory: "64Mi"
+    cpu: "350m"
