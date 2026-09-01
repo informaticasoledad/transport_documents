@@ -30,7 +30,7 @@ internal sealed class ListarDocumentosQueryHandler
     {
         var estado = ParseEstado(request.Estado);
 
-        if (request.Estado is not null && estado is null)
+        if (!string.IsNullOrWhiteSpace(request.Estado) && estado is null)
         {
             return Error.Validation(
                 "Documento.EstadoInvalido",
