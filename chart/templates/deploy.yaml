@@ -21,6 +21,11 @@ spec:
         - name: {{ .Values.appName }}
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: TZ
+              value: Europe/Madrid
+            - name: ERPAUTH_MASTER_KEY
+              value: 2KtlatXUbHPOvbrP0Pin3HfmFc35QAy4OLX6/IUgm6A=
           ports:
             - name: web
               containerPort: 8080
