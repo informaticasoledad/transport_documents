@@ -18,7 +18,7 @@ spec:
       namespace: traefik
     services:
     - name: {{ .Values.appName }}
-      port: 80
+      port: 8080
   tls:
 #    certResolver: myresolver
     secretName: {{ .Values.ingress.host | quote }}
