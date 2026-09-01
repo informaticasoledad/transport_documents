@@ -9,7 +9,7 @@ certificate:
   dnsName: "transport-documents.gruposoledad.com" #cambiame 
 image:
   repository: "gruposoledad/transport_documents" #cambiame 
-  tag: "v2026.08.31.12.17"
+  tag: "v2026.09.01.14.41"
   pullPolicy: IfNotPresent
 imagePullSecrets:
   - name: regcred
@@ -18,5 +18,5 @@ resources:
     memory: "16Mi"
     cpu: "5m"
   limits:
-    memory: "64Mi"
-    cpu: "350m"
+    memory: "1024Mi"
+    cpu: "1000m"
