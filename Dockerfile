@@ -13,6 +13,9 @@ RUN dotnet restore dtd.slnx
 # Copy the rest of the source and publish.
 COPY src/ ./src/
 RUN dotnet publish src/Dtd.Api/Dtd.Api.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgssapi-krb5-2 \
+    && rm -rf /var/lib/apt/lists/*
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
