@@ -9,15 +9,14 @@ using MediatR;
 namespace Dtd.Application.Almacenes.ListarAgenciaBasesDefecto;
 
 /// <summary>
-/// Lista los agencia-bases por defecto de una tupla (empresa, almacén, agencia) para que el
-/// front los auto-adjunte al generar un documento para esa tupla. El back no los auto-adjunta;
-/// los añade el front vía <c>POST /documentos/{id}/agencia-bases</c>.
-/// Espejo exacto de <c>ListarConductoresDefectoQuery</c>.
+/// Lista las agencia-bases por defecto de una tupla
+/// (empresa, almacén, agencia).
+/// El back no las auto-adjunta.
 /// </summary>
 public sealed record ListarAgenciaBasesDefectoQuery(
     string Empresa,
-    string AlmacenCodigo,
-    string AgenciaCodigo)
+    Guid AlmacenId,
+    Guid AgenciaId)
     : IRequest<ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>;
 
 internal sealed class ListarAgenciaBasesDefectoQueryHandler
@@ -48,17 +47,15 @@ internal sealed class ListarAgenciaBasesDefectoQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 
@@ -73,18 +70,16 @@ internal sealed class ListarAgenciaBasesDefectoQueryHandler
             return accesoAlmacen.Errors;
         }
 
-        var agencia =
-            await _agenciaRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AgenciaCodigo,
-                cancellationToken);
+        var agencia = await _agenciaRepository.GetByIdAsync(
+            request.AgenciaId,
+            cancellationToken);
 
-        if (agencia is null)
+        if (agencia is null || agencia.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
@@ -98,16 +93,15 @@ internal sealed class ListarAgenciaBasesDefectoQueryHandler
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
         var agenciaBases =
             await _agenciaBaseRepository.ObtenerAgenciaBasesDefectoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                request.AgenciaCodigo,
+                almacen.Id,
+                agencia.Id,
                 cancellationToken);
 
         return agenciaBases

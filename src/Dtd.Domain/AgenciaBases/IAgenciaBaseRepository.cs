@@ -2,7 +2,9 @@ namespace Dtd.Domain.AgenciaBases;
 
 public interface IAgenciaBaseRepository
 {
-    Task<AgenciaBase?> GetByIdAsync(Guid agenciaBaseId, CancellationToken cancellationToken = default);
+    Task<AgenciaBase?> GetByIdAsync(
+        Guid agenciaBaseId,
+        CancellationToken cancellationToken = default);
 
     Task<AgenciaBase?> GetByEmpresaYCodigoAsync(
         string empresa,
@@ -18,9 +20,8 @@ public interface IAgenciaBaseRepository
         CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<AgenciaBase>> ObtenerAgenciaBasesDefectoAsync(
-        string empresa,
-        string almacenCodigo,
-        string agenciaCodigo,
+        Guid almacenId,
+        Guid agenciaId,
         CancellationToken cancellationToken = default);
 
     Task AddAsync(
@@ -32,9 +33,8 @@ public interface IAgenciaBaseRepository
         CancellationToken cancellationToken = default);
 
     Task SetDefectosAsync(
-        string empresa,
-        string almacenCodigo,
-        string agenciaCodigo,
+        Guid almacenId,
+        Guid agenciaId,
         IReadOnlyCollection<Guid> agenciaBaseIds,
         CancellationToken cancellationToken = default);
 }

@@ -1,18 +1,13 @@
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Conductores;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
 namespace Dtd.Application.Conductores.ListarConductores;
 
-/// <summary>
-/// Lista los conductores activos del catálogo de una agencia de una empresa,
-/// para el dropdown de selección del front al asignar conductores a un documento.
-/// </summary>
 public sealed record ListarConductoresQuery(
     string Empresa,
-    string AgenciaCodigo)
+    Guid AgenciaId)
     : IRequest<ErrorOr<IReadOnlyList<ConductorCatalogoDto>>>;
 
 internal sealed class ListarConductoresQueryHandler
@@ -37,16 +32,15 @@ internal sealed class ListarConductoresQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var agencia = await _agenciaRepository.GetByEmpresaYCodigoAsync(
-            empresa,
-            request.AgenciaCodigo,
+        var agencia = await _agenciaRepository.GetByIdAsync(
+            request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null)
+        if (agencia is null || agencia.Empresa != empresa)
         {
             return Error.NotFound(
                 "Agencia.NoEncontrada",
-                $"La agencia '{request.AgenciaCodigo}' de la empresa '{empresa}' no existe en el catálogo.");
+                $"La agencia '{request.AgenciaId}' de la empresa '{empresa}' no existe en el catálogo.");
         }
 
         var conductores = await _conductorRepository.ListarPorAgenciaAsync(

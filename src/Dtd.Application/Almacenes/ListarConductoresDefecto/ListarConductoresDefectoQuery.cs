@@ -2,21 +2,23 @@ using Dtd.Application.Conductores;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Conductores;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
 namespace Dtd.Application.Almacenes.ListarConductoresDefecto;
 
 /// <summary>
-/// Lista los conductores por defecto de una tupla (empresa, almacén, agencia) para que el
-/// front los auto-adjunte al generar un documento para esa tupla. Pueden ser varios; sólo los activos.
-/// El back no los auto-adjunta — los añade el front vía <c>POST /documentos/{id}/conductores</c>.
+/// Lista los conductores por defecto de una tupla
+/// (empresa, almacén, agencia) para que el front los
+/// auto-adjunte al generar un documento para esa tupla.
+/// Pueden ser varios; sólo los activos.
+/// El back no los auto-adjunta: los añade el front vía
+/// POST /documentos/{id}/conductores.
 /// </summary>
 public sealed record ListarConductoresDefectoQuery(
     string Empresa,
-    string AlmacenCodigo,
-    string AgenciaCodigo)
+    Guid AlmacenId,
+    Guid AgenciaId)
     : IRequest<ErrorOr<IReadOnlyList<ConductorCatalogoDto>>>;
 
 internal sealed class ListarConductoresDefectoQueryHandler
@@ -47,70 +49,64 @@ internal sealed class ListarConductoresDefectoQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        // El almacén debe existir para la empresa.
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        // El almacén debe existir.
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 
         // El usuario debe tener acceso al almacén concreto.
-        var accesoAlmacen =
-            await _accesoAlmacenService.ValidarAccesoAsync(
-                empresa,
-                almacen.Id,
-                cancellationToken);
+        var accesoAlmacen = await _accesoAlmacenService.ValidarAccesoAsync(
+            empresa,
+            almacen.Id,
+            cancellationToken);
 
         if (accesoAlmacen.IsError)
         {
             return accesoAlmacen.Errors;
         }
 
-        // La agencia debe existir para la empresa.
-        var agencia =
-            await _agenciaRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AgenciaCodigo,
-                cancellationToken);
+        // La agencia debe existir y pertenecer a la empresa.
+        var agencia = await _agenciaRepository.GetByIdAsync(
+            request.AgenciaId,
+            cancellationToken);
 
-        if (agencia is null)
+        if (agencia is null || agencia.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
-        // Y además debe estar vinculada al almacén.
-        var disponible =
-            await _almacenRepository.EsAgenciaDisponibleAsync(
-                almacen.Id,
-                agencia.Id,
-                cancellationToken);
+        // Además debe estar vinculada al almacén.
+        var disponible = await _almacenRepository.EsAgenciaDisponibleAsync(
+            almacen.Id,
+            agencia.Id,
+            cancellationToken);
 
         if (!disponible)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
         var conductores =
             await _conductorRepository.ObtenerConductoresDefectoAsync(
                 empresa,
-                request.AlmacenCodigo,
-                request.AgenciaCodigo,
+                almacen.Id,
+                agencia.Id,
                 cancellationToken);
 
         return conductores

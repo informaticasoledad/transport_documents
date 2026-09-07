@@ -3,7 +3,6 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
 using Dtd.Domain.Common;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -19,8 +18,8 @@ namespace Dtd.Application.Ccs;
 /// <returns>La lista de <see cref="CcCatalogoDto"/> de los defaults efectivos.</returns>
 public sealed record EstablecerCcsDefectoCommand(
     string Empresa,
-    string AlmacenCodigo,
-    string AgenciaCodigo,
+    Guid AlmacenId,
+    Guid AgenciaId,
     IReadOnlyList<Guid> CcIds)
     : IRequest<ErrorOr<IReadOnlyList<CcCatalogoDto>>>;
 
@@ -55,17 +54,15 @@ internal sealed class EstablecerCcsDefectoCommandHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 
@@ -80,18 +77,16 @@ internal sealed class EstablecerCcsDefectoCommandHandler
             return accesoAlmacen.Errors;
         }
 
-        var agencia =
-            await _agenciaRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AgenciaCodigo,
-                cancellationToken);
+        var agencia = await _agenciaRepository.GetByIdAsync(
+            request.AgenciaId,
+            cancellationToken);
 
-        if (agencia is null)
+        if (agencia is null || agencia.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
@@ -105,8 +100,8 @@ internal sealed class EstablecerCcsDefectoCommandHandler
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaCodigo}' no está disponible " +
-                $"para el almacén '{request.AlmacenCodigo}' " +
+                $"La agencia '{request.AgenciaId}' no está disponible " +
+                $"para el almacén '{request.AlmacenId}' " +
                 $"(empresa '{empresa}').");
         }
 
@@ -130,15 +125,14 @@ internal sealed class EstablecerCcsDefectoCommandHandler
                 return Error.NotFound(
                     "Cc.NoVinculado",
                     $"El CC '{id}' no está vinculado al almacén " +
-                    $"'{request.AlmacenCodigo}' y la agencia " +
-                    $"'{request.AgenciaCodigo}'.");
+                    $"'{request.AlmacenId}' y la agencia " +
+                    $"'{request.AgenciaId}'.");
             }
         }
 
         await _ccRepository.SetDefectosAsync(
-            empresa,
-            request.AlmacenCodigo,
-            request.AgenciaCodigo,
+            almacen.Id,
+            agencia.Id,
             idsUnicos,
             cancellationToken);
 
@@ -147,9 +141,8 @@ internal sealed class EstablecerCcsDefectoCommandHandler
 
         var defaults =
             await _ccRepository.ObtenerCcsDefectoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                request.AgenciaCodigo,
+                almacen.Id,
+                agencia.Id,
                 cancellationToken);
 
         return defaults

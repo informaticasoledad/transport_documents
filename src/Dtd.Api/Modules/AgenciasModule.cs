@@ -1,5 +1,4 @@
 using Dtd.Application.Agencias.ListarAgencias;
-using Dtd.Application.Conductores.ListarConductores;
 using Dtd.Application.AgenciaBases.ListarAgenciaBases;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -26,14 +25,6 @@ public static class AgenciasModule
         empresas.MapGet("/{empresa}/agencias", async (string empresa, IMediator mediator, CancellationToken ct) =>
         {
             var result = await mediator.Send(new ListarAgenciasQuery(empresa), ct);
-            return result.ToHttpResult(list => Results.Ok(list));
-        });
-
-        // Conductores activos del catálogo de una agencia (dropdown agencia → conductores).
-        empresas.MapGet("/{empresa}/agencias/{agenciaCodigo}/conductores", async (
-            string empresa, string agenciaCodigo, IMediator mediator, CancellationToken ct) =>
-        {
-            var result = await mediator.Send(new ListarConductoresQuery(empresa, agenciaCodigo), ct);
             return result.ToHttpResult(list => Results.Ok(list));
         });
 

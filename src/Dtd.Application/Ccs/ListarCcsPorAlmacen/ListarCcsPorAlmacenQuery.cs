@@ -1,8 +1,6 @@
 using Dtd.Application.Almacenes;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
-using Dtd.Domain.Common;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -11,12 +9,12 @@ namespace Dtd.Application.Ccs.ListarCcsPorAlmacen;
 /// <summary>
 /// Lista los CCs activos del catálogo vinculados a un almacén de una empresa,
 /// para el dropdown de selección del front.
-/// El almacén se resuelve por (empresa, almacenCodigo).
+/// El almacén se resuelve por Id.
 /// Espejo de <c>ListarAgenciaBasesPorAlmacenQuery</c>.
 /// </summary>
 public sealed record ListarCcsPorAlmacenQuery(
     string Empresa,
-    string AlmacenCodigo)
+    Guid AlmacenId)
     : IRequest<ErrorOr<IReadOnlyList<CcCatalogoDto>>>;
 
 internal sealed class ListarCcsPorAlmacenQueryHandler
@@ -44,17 +42,15 @@ internal sealed class ListarCcsPorAlmacenQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 

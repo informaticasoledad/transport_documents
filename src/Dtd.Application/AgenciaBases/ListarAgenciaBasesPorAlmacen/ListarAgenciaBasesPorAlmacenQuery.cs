@@ -7,13 +7,13 @@ using MediatR;
 namespace Dtd.Application.AgenciaBases.ListarAgenciaBasesPorAlmacen;
 
 /// <summary>
-/// Lista los agencia-bases activos del catálogo vinculados a un almacén de una empresa,
+/// Lista las agencia-bases activas del catálogo vinculadas a un almacén de una empresa,
 /// para el dropdown de selección del front.
-/// El almacén se resuelve por (empresa, almacenCodigo).
+/// El almacén se resuelve por Id.
 /// </summary>
 public sealed record ListarAgenciaBasesPorAlmacenQuery(
     string Empresa,
-    string AlmacenCodigo)
+    Guid AlmacenId)
     : IRequest<ErrorOr<IReadOnlyList<AgenciaBaseCatalogoDto>>>;
 
 internal sealed class ListarAgenciaBasesPorAlmacenQueryHandler
@@ -41,17 +41,15 @@ internal sealed class ListarAgenciaBasesPorAlmacenQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 

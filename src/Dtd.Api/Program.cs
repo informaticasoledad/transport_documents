@@ -66,6 +66,7 @@ builder.Services.AddHealthChecks()
 builder.Services.AddDocumentosModule();
 builder.Services.AddAlmacenesModule();
 builder.Services.AddAgenciasModule();
+builder.Services.AddConductoresModule();
 builder.Services.AddAgenciaBasesModule();
 builder.Services.AddCcsModule();
 builder.Services.AddDocutenModule();
@@ -103,6 +104,7 @@ app.MapDocumentosEndpoints();
 app.MapAlmacenesEndpoints();
 app.MapAgenciasEndpoints();
 app.MapAgenciaBasesEndpoints();
+app.MapConductoresEndpoints();
 app.MapCcsEndpoints();
 app.MapDocutenEndpoints();
 

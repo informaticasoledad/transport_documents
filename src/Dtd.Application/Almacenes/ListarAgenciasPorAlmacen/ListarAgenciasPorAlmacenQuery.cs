@@ -1,6 +1,5 @@
 using Dtd.Application.Almacenes;
 using Dtd.Domain.Almacenes;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -14,7 +13,7 @@ namespace Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 /// </summary>
 public sealed record ListarAgenciasPorAlmacenQuery(
     string Empresa,
-    string AlmacenCodigo)
+    Guid AlmacenId)
     : IRequest<ErrorOr<IReadOnlyList<AgenciaDto>>>;
 
 internal sealed class ListarAgenciasPorAlmacenQueryHandler
@@ -39,17 +38,15 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        var almacen =
-            await _almacenRepository.GetByEmpresaYCodigoAsync(
-                empresa,
-                request.AlmacenCodigo,
-                cancellationToken);
+        var almacen = await _almacenRepository.GetByIdAsync(
+            request.AlmacenId,
+            cancellationToken);
 
-        if (almacen is null)
+        if (almacen is null || almacen.Empresa != empresa)
         {
             return Error.NotFound(
                 "Almacen.NoConfigurado",
-                $"El almacén '{request.AlmacenCodigo}' no existe " +
+                $"El almacén '{request.AlmacenId}' no existe " +
                 $"para la empresa '{empresa}'.");
         }
 
@@ -66,8 +63,7 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
 
         var agencias =
             await _almacenRepository.ListarAgenciasDisponiblesAsync(
-                empresa,
-                request.AlmacenCodigo,
+                almacen.Id,
                 cancellationToken);
 
         return agencias

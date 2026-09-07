@@ -21,7 +21,11 @@ public interface IAlmacenRepository
     Task<IReadOnlyList<Almacen>> ListarPorEmpresaAsync(string empresa, CancellationToken cancellationToken = default);
 
     /// <summary>Agencias (carriers) disponibles para un almacén (unión <c>almacen_agencias</c>).</summary>
-    Task<IReadOnlyList<Agencia>> ListarAgenciasDisponiblesAsync(string empresa, string codigo, CancellationToken cancellationToken = default);
+    /// <summary>
+    /// Agencias (carriers) disponibles para un almacén
+    /// (unión <c>almacen_agencias</c>).
+    /// </summary>
+    Task<IReadOnlyList<Agencia>> ListarAgenciasDisponiblesAsync(Guid almacenId, CancellationToken cancellationToken = default);
 
     /// <summary>True si la agencia está entre las disponibles del almacén (validación al generar).</summary>
     Task<bool> EsAgenciaDisponibleAsync(Guid almacenId, Guid agenciaId, CancellationToken cancellationToken = default);
