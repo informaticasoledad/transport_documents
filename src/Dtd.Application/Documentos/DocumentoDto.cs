@@ -21,8 +21,10 @@ public sealed record DocumentoDto
     public string? Usuario { get; init; }
     public DateTimeOffset FechaGeneracion { get; init; }
     public DateTimeOffset ActualizadoEn { get; init; }
-    public int TotalExpediciones { get; init; }
-    public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
+    /// <summary>
+    /// /public int TotalExpediciones { get; init; }
+    /// </summary>
+    ////public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
     public bool EnvioDirecto { get; init; }
     public IReadOnlyList<EnvioDto> Envios { get; init; } = [];
 }

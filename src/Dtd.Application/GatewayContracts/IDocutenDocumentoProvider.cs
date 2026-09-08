@@ -14,6 +14,6 @@ public interface IDocutenDocumentoProvider
         Almacen almacen,
         Agencia agencia,
         Template template,
-        IReadOnlyCollection<int> participantOrders,
+        IReadOnlyCollection<DocutenPartyDto> parties,
         CancellationToken cancellationToken = default);
 }

@@ -36,8 +36,8 @@ internal static class DocumentoDtoFactory
             Ccs = documento.Ccs.Select(ToDto).ToList(),
             Usuario = documento.UsuarioGeneracionId,
             FechaGeneracion = documento.FechaGeneracion,
-            TotalExpediciones = documento.Expediciones.Count,
-            Expediciones = expediciones,
+            //TotalExpediciones = documento.Expediciones.Count,
+            //Expediciones = expediciones,
             EnvioDirecto = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorAlmacenDestino,
             Envios = documento.Envios
                 .OrderBy(e => e.Orden)

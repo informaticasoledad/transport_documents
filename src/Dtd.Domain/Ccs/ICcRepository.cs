@@ -84,4 +84,12 @@ public interface ICcRepository
         Guid agenciaId,
         IReadOnlyCollection<Guid> ccIds,
         CancellationToken cancellationToken = default);
-}
+
+    /// <summary>
+    /// CCs activos disponibles para la relación almacén-agencia.
+    /// </summary>
+    Task<IReadOnlyList<Cc>> ListarPorAlmacenYAgenciaAsync(
+        Guid almacenId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default);
+    }

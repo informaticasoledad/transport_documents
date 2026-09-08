@@ -1,5 +1,6 @@
 using Dtd.Application.Ccs;
 using Dtd.Application.Ccs.ListarTodosCcs;
+using Dtd.Application.Ccs.ObtenerCcsDefecto;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -71,6 +72,25 @@ public static class CcsModule
         empresas.MapGet("/{empresa}/ccs", async (string empresa, IMediator mediator, CancellationToken ct) =>
         {
             var result = await mediator.Send(new ListarTodosCcsQuery(empresa), ct);
+            return result.ToHttpResult(list => Results.Ok(list));
+        });
+
+        empresas.MapGet(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs/por-defecto",
+        async (
+            string empresa,
+            Guid almacenId,
+            Guid agenciaId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var result = await mediator.Send(
+                new ObtenerCcsDefectoQuery(
+                    empresa,
+                    almacenId,
+                    agenciaId),
+                ct);
+
             return result.ToHttpResult(list => Results.Ok(list));
         });
 

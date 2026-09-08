@@ -2,211 +2,234 @@ using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
 using Microsoft.EntityFrameworkCore;
 
-namespace Dtd.Infrastructure.Persistence.Repositories;
-
-internal sealed class CcRepository : ICcRepository
+namespace Dtd.Infrastructure.Persistence.Repositories
 {
-    private readonly DtdDbContext _dbContext;
-
-    public CcRepository(DtdDbContext dbContext) =>
-        _dbContext = dbContext;
-
-    public async Task<Cc?> GetByIdAsync(
-        Guid ccId,
-        CancellationToken cancellationToken = default) =>
-        await _dbContext.Ccs
-            .FirstOrDefaultAsync(
-                c => c.Id == ccId,
-                cancellationToken);
-
-    public async Task<Cc?> GetByEmpresaYCodigoAsync(
-        string empresa,
-        string codigo,
-        CancellationToken cancellationToken = default) =>
-        await _dbContext.Ccs
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                c => c.Empresa == empresa &&
-                     c.Codigo == codigo,
-                cancellationToken);
-
-    public async Task<IReadOnlyList<Cc>> ListarPorEmpresaAsync(
-        string empresa,
-        CancellationToken cancellationToken = default) =>
-        await _dbContext.Ccs
-            .AsNoTracking()
-            .Where(c => c.Empresa == empresa)
-            .OrderBy(c => c.Codigo)
-            .ThenBy(c => c.Nombre)
-            .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<Cc>> ListarPorAlmacenAsync(
-        Guid almacenId,
-        CancellationToken cancellationToken = default) =>
-        await (
-            from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
-            where relacion.AlmacenId == almacenId
-
-            join c in _dbContext.Ccs.AsNoTracking()
-                on relacion.CcId equals c.Id
-
-            where c.Activo
-            orderby c.Nombre
-            select c
-        )
-        .Distinct()
-        .ToListAsync(cancellationToken);
-
-    public async Task<IReadOnlyList<Cc>> ListarPorAgenciaAsync(
-        Guid agenciaId,
-        CancellationToken cancellationToken = default) =>
-        await (
-            from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
-            where relacion.AgenciaId == agenciaId
-
-            join c in _dbContext.Ccs.AsNoTracking()
-                on relacion.CcId equals c.Id
-
-            where c.Activo
-            orderby c.Nombre
-            select c
-        )
-        .Distinct()
-        .ToListAsync(cancellationToken);
-
-    public async Task<Cc?> GetByAlmacenYAgenciaEIdAsync(
-        Guid almacenId,
-        Guid agenciaId,
-        Guid ccId,
-        CancellationToken cancellationToken = default)
+    internal sealed class CcRepository : ICcRepository
     {
-        var disponible =
-            await _dbContext.AlmacenAgenciaCcs
-                .AsNoTracking()
-                .AnyAsync(
-                    x =>
-                        x.AlmacenId == almacenId &&
-                        x.AgenciaId == agenciaId &&
-                        x.CcId == ccId,
+        private readonly DtdDbContext _dbContext;
+
+        public CcRepository(DtdDbContext dbContext) =>
+            _dbContext = dbContext;
+
+        public async Task<Cc?> GetByIdAsync(
+            Guid ccId,
+            CancellationToken cancellationToken = default) =>
+            await _dbContext.Ccs
+                .FirstOrDefaultAsync(
+                    c => c.Id == ccId,
                     cancellationToken);
 
-        if (!disponible)
-        {
-            return null;
-        }
+        public async Task<Cc?> GetByEmpresaYCodigoAsync(
+            string empresa,
+            string codigo,
+            CancellationToken cancellationToken = default) =>
+            await _dbContext.Ccs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    c => c.Empresa == empresa &&
+                         c.Codigo == codigo,
+                    cancellationToken);
 
-        return await _dbContext.Ccs
-            .AsNoTracking()
-            .FirstOrDefaultAsync(
-                c => c.Id == ccId,
-                cancellationToken);
-    }
+        public async Task<IReadOnlyList<Cc>> ListarPorAlmacenYAgenciaAsync(
+           Guid almacenId,
+           Guid agenciaId,
+           CancellationToken cancellationToken = default) =>
+           await (
+               from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
+               where relacion.AlmacenId == almacenId &&
+                     relacion.AgenciaId == agenciaId
 
-    public async Task<IReadOnlyList<Cc>> ObtenerCcsDefectoAsync(
-        Guid almacenId,
-        Guid agenciaId,
-        CancellationToken cancellationToken = default)
-    {
-        return await (
-            from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
-            where relacion.AlmacenId == almacenId &&
-                  relacion.AgenciaId == agenciaId &&
-                  relacion.PorDefecto
+               join c in _dbContext.Ccs.AsNoTracking()
+                   on relacion.CcId equals c.Id
 
-            join c in _dbContext.Ccs.AsNoTracking()
-                on relacion.CcId equals c.Id
+               where c.Activo
+               orderby c.Nombre
+               select c
+           )
+           .Distinct()
+           .ToListAsync(cancellationToken);
+               
 
-            where c.Activo
-            orderby c.Nombre
-            select c
-        ).ToListAsync(cancellationToken);
-    }
-
-    public async Task AddAsync(
-        Cc cc,
-        IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
-        CancellationToken cancellationToken = default)
-    {
-        await _dbContext.Ccs.AddAsync(
-            cc,
-            cancellationToken);
-
-        foreach (var vinculo in Deduplicar(vinculos))
-        {
-            await _dbContext.AlmacenAgenciaCcs.AddAsync(
-                AlmacenAgenciaCc.Crear(
-                    vinculo.AlmacenId,
-                    vinculo.AgenciaId,
-                    cc.Id,
-                    vinculo.PorDefecto),
-                cancellationToken);
-        }
-    }
-
-    public async Task ActualizarAsync(
-        Cc cc,
-        IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
-        CancellationToken cancellationToken = default)
-    {
-        var actuales =
-            await _dbContext.AlmacenAgenciaCcs
-                .Where(x => x.CcId == cc.Id)
+        public async Task<IReadOnlyList<Cc>> ListarPorEmpresaAsync(
+            string empresa,
+            CancellationToken cancellationToken = default) =>
+            await _dbContext.Ccs
+                .AsNoTracking()
+                .Where(c => c.Empresa == empresa)
+                .OrderBy(c => c.Codigo)
+                .ThenBy(c => c.Nombre)
                 .ToListAsync(cancellationToken);
 
-        if (actuales.Count > 0)
-        {
-            _dbContext.AlmacenAgenciaCcs.RemoveRange(actuales);
-        }
+        public async Task<IReadOnlyList<Cc>> ListarPorAlmacenAsync(
+            Guid almacenId,
+            CancellationToken cancellationToken = default) =>
+            await (
+                from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
+                where relacion.AlmacenId == almacenId
 
-        foreach (var vinculo in Deduplicar(vinculos))
-        {
-            await _dbContext.AlmacenAgenciaCcs.AddAsync(
-                AlmacenAgenciaCc.Crear(
-                    vinculo.AlmacenId,
-                    vinculo.AgenciaId,
-                    cc.Id,
-                    vinculo.PorDefecto),
-                cancellationToken);
-        }
-    }
+                join c in _dbContext.Ccs.AsNoTracking()
+                    on relacion.CcId equals c.Id
 
-    public async Task SetDefectosAsync(
-        Guid almacenId,
-        Guid agenciaId,
-        IReadOnlyCollection<Guid> ccIds,
-        CancellationToken cancellationToken = default)
-    {
-        var idsDefecto = ccIds
-            .Where(id => id != Guid.Empty)
+                where c.Activo
+                orderby c.Nombre
+                select c
+            )
             .Distinct()
-            .ToHashSet();
+            .ToListAsync(cancellationToken);
 
-        var relaciones =
-            await _dbContext.AlmacenAgenciaCcs
-                .Where(x =>
-                    x.AlmacenId == almacenId &&
-                    x.AgenciaId == agenciaId)
-                .ToListAsync(cancellationToken);
+        public async Task<IReadOnlyList<Cc>> ListarPorAgenciaAsync(
+            Guid agenciaId,
+            CancellationToken cancellationToken = default) =>
+            await (
+                from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
+                where relacion.AgenciaId == agenciaId
 
-        foreach (var relacion in relaciones)
+                join c in _dbContext.Ccs.AsNoTracking()
+                    on relacion.CcId equals c.Id
+
+                where c.Activo
+                orderby c.Nombre
+                select c
+            )
+            .Distinct()
+            .ToListAsync(cancellationToken);
+
+        public async Task<Cc?> GetByAlmacenYAgenciaEIdAsync(
+            Guid almacenId,
+            Guid agenciaId,
+            Guid ccId,
+            CancellationToken cancellationToken = default)
         {
-            relacion.ConfigurarPorDefecto(
-                idsDefecto.Contains(relacion.CcId));
-        }
-    }
+            var disponible =
+                await _dbContext.AlmacenAgenciaCcs
+                    .AsNoTracking()
+                    .AnyAsync(
+                        x =>
+                            x.AlmacenId == almacenId &&
+                            x.AgenciaId == agenciaId &&
+                            x.CcId == ccId,
+                        cancellationToken);
 
-    private static IReadOnlyList<CcVinculoAlmacenAgencia> Deduplicar(
-        IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos) =>
-        vinculos
-            .GroupBy(x => new
+            if (!disponible)
             {
-                x.AlmacenId,
-                x.AgenciaId
-            })
-            .Select(g =>
-                new CcVinculoAlmacenAgencia(
-                    g.Key.AlmacenId,
-                    g.Key.AgenciaId,
-                    g.Any(x => x.PorDefecto)))
-            .ToList();
+                return null;
+            }
+
+            return await _dbContext.Ccs
+                .AsNoTracking()
+                .FirstOrDefaultAsync(
+                    c => c.Id == ccId,
+                    cancellationToken);
+        }
+
+        public async Task<IReadOnlyList<Cc>> ObtenerCcsDefectoAsync(
+            Guid almacenId,
+            Guid agenciaId,
+            CancellationToken cancellationToken = default)
+        {
+            return await (
+                from relacion in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
+                where relacion.AlmacenId == almacenId &&
+                      relacion.AgenciaId == agenciaId &&
+                      relacion.PorDefecto
+
+                join c in _dbContext.Ccs.AsNoTracking()
+                    on relacion.CcId equals c.Id
+
+                where c.Activo
+                orderby c.Nombre
+                select c
+            ).ToListAsync(cancellationToken);
+        }
+
+        public async Task AddAsync(
+            Cc cc,
+            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
+            CancellationToken cancellationToken = default)
+        {
+            await _dbContext.Ccs.AddAsync(
+                cc,
+                cancellationToken);
+
+            foreach (var vinculo in Deduplicar(vinculos))
+            {
+                await _dbContext.AlmacenAgenciaCcs.AddAsync(
+                    AlmacenAgenciaCc.Crear(
+                        vinculo.AlmacenId,
+                        vinculo.AgenciaId,
+                        cc.Id,
+                        vinculo.PorDefecto),
+                    cancellationToken);
+            }
+        }
+
+        public async Task ActualizarAsync(
+            Cc cc,
+            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
+            CancellationToken cancellationToken = default)
+        {
+            var actuales =
+                await _dbContext.AlmacenAgenciaCcs
+                    .Where(x => x.CcId == cc.Id)
+                    .ToListAsync(cancellationToken);
+
+            if (actuales.Count > 0)
+            {
+                _dbContext.AlmacenAgenciaCcs.RemoveRange(actuales);
+            }
+
+            foreach (var vinculo in Deduplicar(vinculos))
+            {
+                await _dbContext.AlmacenAgenciaCcs.AddAsync(
+                    AlmacenAgenciaCc.Crear(
+                        vinculo.AlmacenId,
+                        vinculo.AgenciaId,
+                        cc.Id,
+                        vinculo.PorDefecto),
+                    cancellationToken);
+            }
+        }
+
+        public async Task SetDefectosAsync(
+            Guid almacenId,
+            Guid agenciaId,
+            IReadOnlyCollection<Guid> ccIds,
+            CancellationToken cancellationToken = default)
+        {
+            var idsDefecto = ccIds
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToHashSet();
+
+            var relaciones =
+                await _dbContext.AlmacenAgenciaCcs
+                    .Where(x =>
+                        x.AlmacenId == almacenId &&
+                        x.AgenciaId == agenciaId)
+                    .ToListAsync(cancellationToken);
+
+            foreach (var relacion in relaciones)
+            {
+                relacion.ConfigurarPorDefecto(
+                    idsDefecto.Contains(relacion.CcId));
+            }
+        }
+
+        private static IReadOnlyList<CcVinculoAlmacenAgencia> Deduplicar(
+            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos) =>
+            vinculos
+                .GroupBy(x => new
+                {
+                    x.AlmacenId,
+                    x.AgenciaId
+                })
+                .Select(g =>
+                    new CcVinculoAlmacenAgencia(
+                        g.Key.AlmacenId,
+                        g.Key.AgenciaId,
+                        g.Any(x => x.PorDefecto)))
+                .ToList();
+
+
+    }  
 }

@@ -27,7 +27,7 @@ namespace Dtd.Infrastructure.Gateways
     Almacen almacen,
     Agencia agencia,
     Template template,
-    IReadOnlyCollection<int> participantOrders,
+    IReadOnlyCollection<DocutenPartyDto> parties,
     CancellationToken cancellationToken = default)
         {
             var builder = _builderResolver.Resolve(template.DocumentType);
@@ -39,7 +39,7 @@ namespace Dtd.Infrastructure.Gateways
                 almacen,
                 agencia);
 
-            var signers = BuildSigners(participantOrders);
+            var signers = BuildSigners(parties);
 
             var dto = new DocutenDocumentoDto
             {
@@ -58,13 +58,15 @@ namespace Dtd.Infrastructure.Gateways
             return Task.FromResult(dto);
         }
 
-        private static IReadOnlyList<DocutenSignerDto> BuildSigners(IReadOnlyCollection<int> participantOrders)
+        private static IReadOnlyList<DocutenSignerDto> BuildSigners(
+            IEnumerable<DocutenPartyDto> parties)
         {
-            return participantOrders
-                .OrderBy(x => x)
-                .Select(order => new DocutenSignerDto
+            return parties
+                //.Where(p => p.SigningRole == "signer")
+                .OrderBy(p => p.Order)
+                .Select(p => new DocutenSignerDto
                 {
-                    Order = order
+                    Order = p.Order
                 })
                 .ToArray();
         }

@@ -73,26 +73,6 @@ public static class AlmacenesModule
             });
 
         empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/conductores-default",
-            async (
-                string empresa,
-                Guid almacenId,
-                Guid agenciaId,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarConductoresDefectoQuery(
-                        empresa,
-                        almacenId,
-                        agenciaId),
-                    ct);
-
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
-
-        empresas.MapGet(
             "/{empresa}/almacenes/{almacenId:guid}/agencia-bases",
             async (
                 string empresa,

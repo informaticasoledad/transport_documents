@@ -47,12 +47,13 @@ public static class DocumentoToDocutenMapper
                 drivers.Count,
                 language);
 
-            var participantOrders = new[] { consignor.Order }
-                .Concat(drivers.Select(x => x.Order))
-                .Concat(consignees.Select(x => x.Order))
-                .Distinct()
-                .OrderBy(x => x)
-                .ToArray();
+            var parties = new List<DocutenPartyDto>
+    {
+        consignor
+    };
+
+            parties.AddRange(drivers);
+            parties.AddRange(consignees);
 
             var documentoDto = await documentoProvider.ObtenerDocumentoAsync(
                 documento,
@@ -61,7 +62,7 @@ public static class DocumentoToDocutenMapper
                 almacen,
                 agencia,
                 template,
-                participantOrders,
+                parties,
                 cancellationToken);
 
             shipments.Add(new DocutenShipmentDto
