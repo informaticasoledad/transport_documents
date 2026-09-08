@@ -147,6 +147,15 @@ internal sealed class DocumentoDigitalTransporteConfiguration
             .HasForeignKey(x => x.AgenciaId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.HasMany(x => x.Eventos)
+            .WithOne()
+            .HasForeignKey(x => x.DocumentoId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+                builder.Metadata
+                    .FindNavigation(nameof(DocumentoDigitalTransporte.Eventos))!
+                    .SetPropertyAccessMode(PropertyAccessMode.Field);
+
         builder.HasIndex(x => new
         {
             x.Empresa,

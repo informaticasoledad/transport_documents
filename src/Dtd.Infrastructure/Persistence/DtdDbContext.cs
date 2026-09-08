@@ -22,6 +22,8 @@ public sealed class DtdDbContext : DbContext
     public DtdDbContext(DbContextOptions<DtdDbContext> options) : base(options) { }
 
     public DbSet<DocumentoDigitalTransporte> Documentos => Set<DocumentoDigitalTransporte>();
+
+    public DbSet<DocumentoEvento> DocumentoEventos => Set<DocumentoEvento>();
     public DbSet<Expedicion> Expediciones => Set<Expedicion>();
     public DbSet<Agencia> Agencias => Set<Agencia>();
     public DbSet<Conductor> Conductores => Set<Conductor>();

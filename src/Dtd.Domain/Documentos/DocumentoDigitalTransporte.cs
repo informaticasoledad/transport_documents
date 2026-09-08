@@ -33,6 +33,10 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public string Referencia { get; private set; } = string.Empty;
 
+    private readonly List<DocumentoEvento> _eventos = new();
+
+    public IReadOnlyCollection<DocumentoEvento> Eventos => _eventos;
+
     public bool Finalizado { get; private set; }
 
     private DocumentoDigitalTransporte()
@@ -170,6 +174,15 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         {
             return resultadoEnvios.Errors;
         }
+
+
+        documento.RegistrarEvento(
+            TipoEventoDocumento.Creado,
+            estadoAnterior: null,
+            estadoNuevo: documento.Estado,
+            descripcion: "Documento generado.",
+            origen: "Sistema",
+            usuario: usuarioGeneracionId);
 
         return documento;
     }
@@ -413,17 +426,34 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
                 $"El documento ya está en estado '{Estado}' y no se puede reenviar.");
         }
 
+        var estadoAnterior = Estado;
+
         PlataformaId = NormalizarOpcional(lotId);
         PlataformaEstado = NormalizarOpcional(estadoDocuten);
+
         CambiarEstado(EstadoDocumento.Enviando);
+
+        RegistrarEvento(
+            TipoEventoDocumento.EnviadoPlataforma,
+            estadoAnterior,
+            Estado,
+            descripcion: "Documento enviado a plataforma.",
+            origen: "Docuten");
     }
 
-    public bool RegistrarCallbackDocumentoPlataforma(string? lotId, string? estadoDocuten)
+    public bool RegistrarCallbackDocumentoPlataforma(
+    string? lotId,
+    string? estadoDocuten)
     {
+        var estadoAnterior = Estado;
+
         if (!string.IsNullOrWhiteSpace(lotId))
         {
             if (!string.IsNullOrWhiteSpace(PlataformaId) &&
-                !string.Equals(PlataformaId, lotId.Trim(), StringComparison.OrdinalIgnoreCase))
+                !string.Equals(
+                    PlataformaId,
+                    lotId.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return false;
             }
@@ -434,56 +464,86 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         if (!string.IsNullOrWhiteSpace(estadoDocuten))
         {
             var estado = estadoDocuten.Trim();
+
             PlataformaEstado = estado;
+
             AplicarEstadoDocumentoDesdeCallbackPlataforma(estado);
         }
 
         if (Estado == EstadoDocumento.Nuevo)
         {
-            Estado = EstadoDocumento.Enviando;
+            CambiarEstado(EstadoDocumento.Enviando);
         }
+
+        RegistrarEvento(
+            TipoEventoDocumento.CallbackDocumento,
+            estadoAnterior,
+            Estado,
+            descripcion: $"Callback de plataforma: {estadoDocuten}",
+            origen: "Docuten");
 
         return true;
     }
 
     private void AplicarEstadoDocumentoDesdeCallbackPlataforma(string estado)
     {
-        if (string.Equals(estado, EstadoDocuten.Success, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+            estado,
+            EstadoDocuten.Success,
+            StringComparison.OrdinalIgnoreCase))
         {
-            if (Estado is EstadoDocumento.Nuevo or EstadoDocumento.Enviando or EstadoDocumento.Error)
+            if (Estado is EstadoDocumento.Nuevo
+                or EstadoDocumento.Enviando
+                or EstadoDocumento.Error)
             {
-                Estado = EstadoDocumento.PendienteFirmas;
+                CambiarEstado(EstadoDocumento.PendienteFirmas);
             }
 
             return;
         }
 
-        if (string.Equals(estado, EstadoDocuten.Error, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+            estado,
+            EstadoDocuten.Error,
+            StringComparison.OrdinalIgnoreCase))
         {
-            if (Estado is not EstadoDocumento.Finalizado and not EstadoDocumento.Anulado and not EstadoDocumento.Cancelado)
+            if (Estado is not EstadoDocumento.Finalizado
+                and not EstadoDocumento.Anulado
+                and not EstadoDocumento.Cancelado)
             {
-                Estado = EstadoDocumento.Error;
+                CambiarEstado(EstadoDocumento.Error);
             }
 
             return;
         }
 
-        if (string.Equals(estado, EstadoDocuten.Completed, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(estado, EstadoDocuten.Delivered, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+                estado,
+                EstadoDocuten.Completed,
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                estado,
+                EstadoDocuten.Delivered,
+                StringComparison.OrdinalIgnoreCase))
         {
-            if (Estado is not EstadoDocumento.Anulado and not EstadoDocumento.Cancelado)
+            if (Estado is not EstadoDocumento.Anulado
+                and not EstadoDocumento.Cancelado)
             {
-                Estado = EstadoDocumento.Finalizado;
+                CambiarEstado(EstadoDocumento.Finalizado);
             }
 
             return;
         }
 
-        if (string.Equals(estado, EstadoDocuten.Cancelled, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(
+            estado,
+            EstadoDocuten.Cancelled,
+            StringComparison.OrdinalIgnoreCase))
         {
-            if (Estado is not EstadoDocumento.Finalizado and not EstadoDocumento.Anulado)
+            if (Estado is not EstadoDocumento.Finalizado
+                and not EstadoDocumento.Anulado)
             {
-                Estado = EstadoDocumento.Cancelado;
+                CambiarEstado(EstadoDocumento.Cancelado);
             }
         }
     }
@@ -522,15 +582,33 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         }
 
         var envio = _envios.FirstOrDefault(e =>
-            string.Equals(e.Referencia, shipmentReference.Trim(), StringComparison.OrdinalIgnoreCase));
+            string.Equals(
+                e.Referencia,
+                shipmentReference.Trim(),
+                StringComparison.OrdinalIgnoreCase));
 
         if (envio is null)
         {
             return false;
         }
 
-        envio.RegistrarCallbackDocuten(shipmentId, estadoDocuten);
+        var estadoAnterior = Estado;
+
+        envio.RegistrarCallbackDocuten(
+            shipmentId,
+            estadoDocuten);
+
         RecalcularEstadoDesdeEnviosPlataforma();
+
+        RegistrarEvento(
+            TipoEventoDocumento.CallbackEnvio,
+            estadoAnterior,
+            Estado,
+            descripcion:
+                $"Callback del envío '{shipmentReference}': {estadoDocuten}",
+            origen: "Docuten",
+            envioId: envio.Id);
+
         return true;
     }
 
@@ -552,39 +630,53 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             return;
         }
 
-        if (estados.Any(e => string.Equals(e, EstadoDocuten.Error, StringComparison.OrdinalIgnoreCase)))
+        if (estados.Any(e =>
+            string.Equals(
+                e,
+                EstadoDocuten.Error,
+                StringComparison.OrdinalIgnoreCase)))
         {
             if (Estado != EstadoDocumento.Finalizado)
             {
-                Estado = EstadoDocumento.Error;
+                CambiarEstado(EstadoDocumento.Error);
             }
 
             return;
         }
 
-        if (estados.Any(e => string.Equals(e, EstadoDocuten.Cancelled, StringComparison.OrdinalIgnoreCase)))
+        if (estados.Any(e =>
+            string.Equals(
+                e,
+                EstadoDocuten.Cancelled,
+                StringComparison.OrdinalIgnoreCase)))
         {
             if (Estado != EstadoDocumento.Finalizado)
             {
-                Estado = EstadoDocumento.Cancelado;
+                CambiarEstado(EstadoDocumento.Cancelado);
             }
 
             return;
         }
 
         var todosFinalizados = _envios.All(e =>
-            string.Equals(e.PlataformaEnvioEstado, EstadoDocuten.Delivered, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(e.PlataformaEnvioEstado, EstadoDocuten.Completed, StringComparison.OrdinalIgnoreCase));
+            string.Equals(
+                e.PlataformaEnvioEstado,
+                EstadoDocuten.Delivered,
+                StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(
+                e.PlataformaEnvioEstado,
+                EstadoDocuten.Completed,
+                StringComparison.OrdinalIgnoreCase));
 
         if (todosFinalizados)
         {
-            Estado = EstadoDocumento.Finalizado;
+            CambiarEstado(EstadoDocumento.Finalizado);
             return;
         }
 
         if (Estado is EstadoDocumento.Enviando or EstadoDocumento.Error)
         {
-            Estado = EstadoDocumento.PendienteFirmas;
+            CambiarEstado(EstadoDocumento.PendienteFirmas);
         }
     }
 
@@ -609,5 +701,25 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             EstadoDocumento.Finalizado or
             EstadoDocumento.Anulado or
             EstadoDocumento.Cancelado;
+    }
+
+    private void RegistrarEvento(
+    TipoEventoDocumento tipo,
+    EstadoDocumento? estadoAnterior = null,
+    EstadoDocumento? estadoNuevo = null,
+    string? descripcion = null,
+    string? origen = null,
+    string? usuario = null,
+    Guid? envioId = null)
+    {
+        _eventos.Add(new DocumentoEvento(
+            Id,
+            tipo,
+            estadoAnterior,
+            estadoNuevo,
+            descripcion,
+            origen,
+            usuario,
+            envioId));
     }
 }

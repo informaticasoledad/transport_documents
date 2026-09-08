@@ -95,6 +95,7 @@ public static class DocumentosModule
             return result.ToHttpResult(list => Results.Ok(list));
         });
 
+        /*
         documentos.MapPost("/{id:guid}/sincronizar-estado", async (
             Guid id,
             IMediator mediator,
@@ -102,7 +103,7 @@ public static class DocumentosModule
         {
             var result = await mediator.Send(new SincronizarEstadoDocutenCommand(id), ct);
             return result.ToHttpResult(dto => Results.Ok(dto));
-        });
+        })*/;
 
         documentos.MapGet("/{id:guid}", async (
             Guid id,
