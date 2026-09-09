@@ -49,7 +49,6 @@ internal sealed class ListarConductoresQueryHandler
             .Select(c => new ConductorCatalogoDto
             {
                 Id = c.Id,
-                Codigo = c.Codigo,
                 Nombre = c.Nombre,
                 TaxId = c.TaxId,
                 LicensePlate = c.LicensePlate,

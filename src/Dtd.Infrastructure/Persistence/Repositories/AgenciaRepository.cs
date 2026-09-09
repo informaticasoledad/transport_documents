@@ -76,4 +76,51 @@ internal sealed class AgenciaRepository : IAgenciaRepository
         _dbContext.Agencias
             .AddAsync(agencia, cancellationToken)
             .AsTask();
+
+    public void Remove(Agencia agencia)
+    {
+        _dbContext.Agencias.Remove(agencia);
+    }
+
+    public async Task<(IReadOnlyList<Agencia> Items, int Total)> BuscarAsync(
+    string? texto,
+    bool? activa,
+    bool? envioDirecto,
+    int skip,
+    int take,
+    CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Agencias
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(texto))
+        {
+            var filtro = texto.Trim();
+
+            query = query.Where(a =>
+                a.Codigo.Contains(filtro) ||
+                a.Nombre.Contains(filtro));
+        }
+
+        if (activa.HasValue)
+        {
+            query = query.Where(a => a.Activa == activa.Value);
+        }
+
+        if (envioDirecto.HasValue)
+        {
+            query = query.Where(a => a.EnvioDirecto == envioDirecto.Value);
+        }
+
+        var total = await query.CountAsync(cancellationToken);
+
+        var items = await query
+            .OrderBy(a => a.Codigo)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
 }

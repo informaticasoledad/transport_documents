@@ -5,16 +5,26 @@ using MediatR;
 namespace Dtd.Application.Agencias.ListarAgencias;
 
 /// <summary>
-/// Lista las agencias activas del catálogo,
-/// para el dropdown de selección del front.
+/// Lista agencias con filtros y paginación.
 /// </summary>
-public sealed record ListarAgenciasQuery
-    : IRequest<ErrorOr<IReadOnlyList<AgenciaDto>>>;
+public sealed record ListarAgenciasQuery(
+    string? Texto,
+    bool? Activa,
+    bool? EnvioDirecto,
+    int Page = 1,
+    int PageSize = 20)
+    : IRequest<ErrorOr<AgenciasPaginadasDto>>;
+
+public sealed record AgenciasPaginadasDto(
+    IReadOnlyList<AgenciaDto> Items,
+    int Page,
+    int PageSize,
+    int Total);
 
 internal sealed class ListarAgenciasQueryHandler
     : IRequestHandler<
         ListarAgenciasQuery,
-        ErrorOr<IReadOnlyList<AgenciaDto>>>
+        ErrorOr<AgenciasPaginadasDto>>
 {
     private readonly IAgenciaRepository _agenciaRepository;
 
@@ -24,15 +34,25 @@ internal sealed class ListarAgenciasQueryHandler
         _agenciaRepository = agenciaRepository;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<AgenciaDto>>> Handle(
+    public async Task<ErrorOr<AgenciasPaginadasDto>> Handle(
         ListarAgenciasQuery request,
         CancellationToken cancellationToken)
     {
-        var agencias =
-            await _agenciaRepository.ListarActivasAsync(
+        var page = Math.Max(request.Page, 1);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var skip = (page - 1) * pageSize;
+
+        var (agencias, total) =
+            await _agenciaRepository.BuscarAsync(
+                request.Texto,
+                request.Activa,
+                request.EnvioDirecto,
+                skip,
+                pageSize,
                 cancellationToken);
 
-        return agencias
+        var items = agencias
             .Select(a => new AgenciaDto(
                 a.Id,
                 a.Codigo,
@@ -41,5 +61,11 @@ internal sealed class ListarAgenciasQueryHandler
                 a.AgenciaQs,
                 a.EnvioDirecto))
             .ToList();
+
+        return new AgenciasPaginadasDto(
+            items,
+            page,
+            pageSize,
+            total);
     }
 }

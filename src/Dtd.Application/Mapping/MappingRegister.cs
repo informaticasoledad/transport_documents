@@ -10,7 +10,6 @@ public static class MappingRegister
     public static void Register(TypeAdapterConfig config)
     {
         config.NewConfig<ConductorAsignado, ConductorDto>()
-            .Map(d => d.Codigo, s => s.ConductorCodigo)
             .Map(d => d.Channel, s => s.Canal.Valor)
             .Map(d => d.Email, s => s.Email != null ? s.Email.Valor : null)
             .Map(d => d.Movil, s => s.Movil != null ? s.Movil.Valor : null);

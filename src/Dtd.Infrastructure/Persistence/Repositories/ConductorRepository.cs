@@ -84,22 +84,10 @@ internal sealed class ConductorRepository : IConductorRepository
 
     public async Task AddAsync(
         Conductor conductor,
-        IReadOnlyCollection<Guid> agenciaIds,
         CancellationToken cancellationToken = default)
     {
         await _dbContext.Conductores.AddAsync(
             conductor,
             cancellationToken);
-
-        foreach (var agenciaId in agenciaIds.Distinct())
-        {
-            await _dbContext.ConductorAgencias.AddAsync(
-                new ConductorAgencia
-                {
-                    ConductorId = conductor.Id,
-                    AgenciaId = agenciaId
-                },
-                cancellationToken);
-        }
     }
 }

@@ -52,7 +52,7 @@ internal sealed class EliminarAgenciaCommandHandler
                 "No se puede eliminar la agencia porque tiene documentos asociados.");
         }
 
-        agencia.Desactivar();
+        _agenciaRepository.Remove(agencia);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

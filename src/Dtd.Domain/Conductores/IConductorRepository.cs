@@ -37,10 +37,10 @@ public interface IConductorRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Persiste un conductor del catálogo y sus vínculos iniciales con agencias.
+    /// Persiste un conductor del catálogo.
+    /// No crea vínculos con agencias.
     /// </summary>
     Task AddAsync(
         Conductor conductor,
-        IReadOnlyCollection<Guid> agenciaIds,
         CancellationToken cancellationToken = default);
 }

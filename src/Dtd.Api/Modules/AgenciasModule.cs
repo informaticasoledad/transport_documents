@@ -29,18 +29,28 @@ public static class AgenciasModule
 
         // Listado de agencias.
         agencias.MapGet(
-            "/",
-            async (
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarAgenciasQuery(),
-                    ct);
+          "/",
+          async (
+              string? texto,
+              bool? activa,
+              bool? envioDirecto,
+              int? page,
+              int? pageSize,
+              IMediator mediator,
+              CancellationToken ct) =>
+          {
+              var result = await mediator.Send(
+                  new ListarAgenciasQuery(
+                      texto,
+                      activa,
+                      envioDirecto,
+                      page ?? 1,
+                      pageSize ?? 20),
+                  ct);
 
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
+              return result.ToHttpResult(
+                  response => Results.Ok(response));
+          });
 
         // Obtener una agencia concreta.
         agencias.MapGet(

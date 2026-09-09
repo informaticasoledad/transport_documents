@@ -123,7 +123,6 @@ internal static class DocumentoDtoFactory
         return new ConductorDto
         {
             Id = conductor.Id,
-            Codigo = conductor.ConductorCodigo,
             Nombre = conductor.Nombre,
             TaxId = conductor.TaxId,
             LicensePlate = conductor.LicensePlate,

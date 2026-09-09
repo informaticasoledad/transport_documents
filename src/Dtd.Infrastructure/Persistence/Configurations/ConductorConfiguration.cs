@@ -15,10 +15,6 @@ internal sealed class ConductorConfiguration
 
         // Catálogo global de conductores.
         // La relación con agencias es M:N mediante conductor_agencias.
-        builder.Property(x => x.Codigo)
-            .HasMaxLength(50)
-            .IsRequired();
-
         builder.Property(x => x.Nombre)
             .HasMaxLength(200)
             .IsRequired();
@@ -57,10 +53,6 @@ internal sealed class ConductorConfiguration
                 .HasMaxLength(10)
                 .IsRequired();
         });
-
-        // El código de conductor es globalmente único.
-        builder.HasIndex(x => x.Codigo)
-            .IsUnique();
 
         builder.Ignore(x => x.DomainEvents);
     }

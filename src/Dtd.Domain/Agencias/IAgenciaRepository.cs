@@ -52,5 +52,19 @@ public interface IAgenciaRepository
         Agencia agencia,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    ///  Borrar Agencia
+    /// </summary>
+    void Remove(Agencia agencia);
+
     Task<IReadOnlyList<Agencia>> ListarActivasAsync(CancellationToken cancellationToken);
+
+
+    Task<(IReadOnlyList<Agencia> Items, int Total)> BuscarAsync(
+        string? texto,
+        bool? activa,
+        bool? envioDirecto,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
 }

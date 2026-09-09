@@ -29,6 +29,9 @@ public sealed record DocumentoDto
     public IReadOnlyList<EnvioDto> Envios { get; init; } = [];
 
     public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
+
+    public string Referencia { get; private set; } = string.Empty;
+    public bool Finalizado { get; init; }
 }
 
 

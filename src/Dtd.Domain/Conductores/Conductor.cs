@@ -21,7 +21,6 @@ namespace Dtd.Domain.Conductores;
 /// </summary>
 public sealed class Conductor : AggregateRoot<Guid>
 {
-    public string Codigo { get; private set; }
     public string Nombre { get; private set; }
     public string? TaxId { get; private set; }
     public string? LicensePlate { get; private set; }
@@ -36,14 +35,13 @@ public sealed class Conductor : AggregateRoot<Guid>
     /// </summary>
     private Conductor()
     {
-        Codigo = string.Empty;
+       
         Nombre = string.Empty;
         Canal = null!;
         Language = "es";
     }
 
     private Conductor(
-        string codigo,
         string nombre,
         string? taxId,
         string? licensePlate,
@@ -54,7 +52,6 @@ public sealed class Conductor : AggregateRoot<Guid>
         bool activo)
     {
         Id = Guid.NewGuid();
-        Codigo = codigo;
         Nombre = nombre;
         TaxId = taxId;
         LicensePlate = licensePlate;
@@ -70,22 +67,14 @@ public sealed class Conductor : AggregateRoot<Guid>
     /// Trima los textos y valida la coherencia entre canal y datos de contacto.
     /// </summary>
     public static Conductor Crear(
-        string codigo,
         string nombre,
-        Canal channel,
+        Canal canal,
         Movil? movil,
         Email? email,
         string? taxId = null,
         string? licensePlate = null,
         string language = "es")
     {
-        if (string.IsNullOrWhiteSpace(codigo))
-        {
-            throw new ArgumentException(
-                "El código de conductor es obligatorio.",
-                nameof(codigo));
-        }
-
         if (string.IsNullOrWhiteSpace(nombre))
         {
             throw new ArgumentException(
@@ -93,19 +82,19 @@ public sealed class Conductor : AggregateRoot<Guid>
                 nameof(nombre));
         }
 
-        ArgumentNullException.ThrowIfNull(channel);
+        ArgumentNullException.ThrowIfNull(canal);
 
-        if (channel.RequiereEmail && email is null)
+        if (canal.RequiereEmail && email is null)
         {
             throw new ArgumentException(
-                $"El canal '{channel.Valor}' requiere un email de contacto.",
+                $"El canal '{canal.Valor}' requiere un email de contacto.",
                 nameof(email));
         }
 
-        if (channel.RequiereMovil && movil is null)
+        if (canal.RequiereMovil && movil is null)
         {
             throw new ArgumentException(
-                $"El canal '{channel.Valor}' requiere un móvil de contacto.",
+                $"El canal '{canal.Valor}' requiere un móvil de contacto.",
                 nameof(movil));
         }
 
@@ -115,13 +104,12 @@ public sealed class Conductor : AggregateRoot<Guid>
         }
 
         return new Conductor(
-            codigo.Trim(),
             nombre.Trim(),
             taxId?.Trim(),
             licensePlate?.Trim(),
             movil,
             email,
-            channel,
+            canal,
             language.Trim(),
             activo: true);
     }

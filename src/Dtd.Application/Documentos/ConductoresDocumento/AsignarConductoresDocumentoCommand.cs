@@ -168,7 +168,7 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
             {
                 return Error.Validation(
                     "Conductor.Inactivo",
-                    $"El conductor '{conductor.Codigo}' está inactivo " +
+                    $"El conductor '{conductor.Nombre}' está inactivo " +
                     "y no se puede asignar.");
             }
 
@@ -201,7 +201,6 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
             .Select(c => new ConductorDto
             {
                 Id = c.Id,
-                Codigo = c.ConductorCodigo,
                 Nombre = c.Nombre,
                 TaxId = c.TaxId,
                 LicensePlate = c.LicensePlate,
