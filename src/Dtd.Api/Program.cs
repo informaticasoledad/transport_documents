@@ -48,6 +48,17 @@ builder.Services.AddAuthorization(options =>
 });
 
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("Frontend", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:4200")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
+
 // API concerns.
 builder.Services.AddProblemDetails(opts =>
 {
@@ -83,7 +94,11 @@ if (builder.Configuration.GetValue("Database:AutoApplyMigrations", defaultValue:
 
 // Middleware order.
 app.UseExceptionHandler();
+
+app.UseCors("Frontend");
+
 app.UseAuthentication();
+
 app.UseAuthorization();
 
 app.UseSerilogRequestLogging();
