@@ -8,6 +8,13 @@ namespace Dtd.Domain.Conductores;
 public interface IConductorRepository
 {
     /// <summary>
+    /// Obtiene un conductor del catálogo por Id.
+    /// </summary>
+    Task<Conductor?> GetByIdAsync(
+        Guid conductorId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Devuelve el conductor si existe y está vinculado a la agencia indicada
     /// mediante <c>conductor_agencias</c>.
     /// Devuelve <c>null</c> si no existe o no está vinculado a esa agencia.
@@ -26,10 +33,19 @@ public interface IConductorRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Busca conductores del catálogo global con filtros y paginación.
+    /// </summary>
+    Task<(IReadOnlyList<Conductor> Items, int Total)> BuscarAsync(
+        string? texto,
+        bool? activo,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Obtiene los conductores por defecto configurados para una relación
     /// almacén-agencia.
-    /// Lee <c>almacen_agencia_conductores_defecto</c> y devuelve únicamente
-    /// conductores activos y vinculados a la agencia.
+    /// Devuelve únicamente conductores activos y vinculados a la agencia.
     /// </summary>
     Task<IReadOnlyList<Conductor>> ObtenerConductoresDefectoAsync(
         Guid almacenId,
@@ -43,4 +59,9 @@ public interface IConductorRepository
     Task AddAsync(
         Conductor conductor,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Elimina un conductor del catálogo.
+    /// </summary>
+    void Remove(Conductor conductor);
 }

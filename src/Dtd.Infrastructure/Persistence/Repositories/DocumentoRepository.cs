@@ -117,4 +117,13 @@ internal sealed class DocumentoRepository : IDocumentoRepository
         .AnyAsync(
             d => d.AgenciaId == agenciaId,
             cancellationToken);
+
+    public Task<bool> ExistePorConductorAsync(
+        Guid conductorId,
+        CancellationToken cancellationToken = default) =>
+        _dbContext.Set<ConductorAsignado>()
+            .AsNoTracking()
+            .AnyAsync(
+                c => c.ConductorCatalogId == conductorId,
+                cancellationToken);
 }

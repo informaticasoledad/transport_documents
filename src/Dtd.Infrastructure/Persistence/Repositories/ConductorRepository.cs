@@ -10,6 +10,14 @@ internal sealed class ConductorRepository : IConductorRepository
     public ConductorRepository(DtdDbContext dbContext) =>
         _dbContext = dbContext;
 
+    public Task<Conductor?> GetByIdAsync(
+        Guid conductorId,
+        CancellationToken cancellationToken = default) =>
+        _dbContext.Conductores
+            .FirstOrDefaultAsync(
+                c => c.Id == conductorId,
+                cancellationToken);
+
     public async Task<Conductor?> GetByAgenciaYIdAsync(
         Guid agenciaId,
         Guid conductorId,
@@ -18,8 +26,10 @@ internal sealed class ConductorRepository : IConductorRepository
             from ca in _dbContext.ConductorAgencias.AsNoTracking()
             where ca.AgenciaId == agenciaId
                && ca.ConductorId == conductorId
+
             join c in _dbContext.Conductores.AsNoTracking()
                 on ca.ConductorId equals c.Id
+
             select c
         ).FirstOrDefaultAsync(cancellationToken);
 
@@ -29,12 +39,55 @@ internal sealed class ConductorRepository : IConductorRepository
         await (
             from ca in _dbContext.ConductorAgencias.AsNoTracking()
             where ca.AgenciaId == agenciaId
+
             join c in _dbContext.Conductores.AsNoTracking()
                 on ca.ConductorId equals c.Id
+
             where c.Activo
+
             orderby c.Nombre
+
             select c
         ).ToListAsync(cancellationToken);
+
+    public async Task<(IReadOnlyList<Conductor> Items, int Total)> BuscarAsync(
+        string? texto,
+        bool? activo,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _dbContext.Conductores
+            .AsNoTracking()
+            .AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(texto))
+        {
+            var filtro = texto.Trim();
+
+            query = query.Where(c =>
+                c.Nombre.Contains(filtro) ||
+                (c.TaxId != null && c.TaxId.Contains(filtro)) ||
+                (c.LicensePlate != null && c.LicensePlate.Contains(filtro)));
+        }
+
+        if (activo.HasValue)
+        {
+            query = query.Where(c =>
+                c.Activo == activo.Value);
+        }
+
+        var total = await query.CountAsync(
+            cancellationToken);
+
+        var items = await query
+            .OrderBy(c => c.Nombre)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(cancellationToken);
+
+        return (items, total);
+    }
 
     public async Task<IReadOnlyList<Conductor>> ObtenerConductoresDefectoAsync(
         Guid almacenId,
@@ -77,7 +130,9 @@ internal sealed class ConductorRepository : IConductorRepository
                 on ca.ConductorId equals c.Id
 
             where c.Activo
+
             orderby c.Nombre
+
             select c
         ).ToListAsync(cancellationToken);
     }
@@ -89,5 +144,10 @@ internal sealed class ConductorRepository : IConductorRepository
         await _dbContext.Conductores.AddAsync(
             conductor,
             cancellationToken);
+    }
+
+    public void Remove(Conductor conductor)
+    {
+        _dbContext.Conductores.Remove(conductor);
     }
 }

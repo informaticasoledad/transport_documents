@@ -33,21 +33,12 @@ public interface IDocumentoRepository
     Task<bool> ExistePorAgenciaAsync(
         Guid agenciaId,
         CancellationToken cancellationToken = default);
-}
 
-/// <summary>
-/// Read-side filters for listing documents. <c>Empresa</c> es un filtro explícito (una empresa);
-/// <c>Empresas</c> restringe el listado a un conjunto (las empresas autorizadas del usuario, ya
-/// autorizadas). Ambos son opcionales y mutuamente compatibles (se aplican en AND).
-/// </summary>
-public sealed record DocumentoFiltro(
-    string? Empresa = null,
-    IReadOnlyCollection<string>? Empresas = null,
-    Guid? AlmacenId = null,
-    Guid? AgenciaId = null,
-    DateOnly? FechaDesde = null,
-    DateOnly? FechaHasta = null,
-    EstadoDocumento? Estado = null,
-    bool? Finalizado = null);
+    Task<bool> ExistePorConductorAsync(
+        Guid conductorId,
+        CancellationToken cancellationToken = default);
+
+
+}
 
 

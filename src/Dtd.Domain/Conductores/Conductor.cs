@@ -35,7 +35,6 @@ public sealed class Conductor : AggregateRoot<Guid>
     /// </summary>
     private Conductor()
     {
-       
         Nombre = string.Empty;
         Canal = null!;
         Language = "es";
@@ -64,7 +63,8 @@ public sealed class Conductor : AggregateRoot<Guid>
 
     /// <summary>
     /// Crea un conductor activo.
-    /// Trima los textos y valida la coherencia entre canal y datos de contacto.
+    /// Normaliza los textos y valida la coherencia
+    /// entre canal y datos de contacto.
     /// </summary>
     public static Conductor Crear(
         string nombre,
@@ -74,6 +74,71 @@ public sealed class Conductor : AggregateRoot<Guid>
         string? taxId = null,
         string? licensePlate = null,
         string language = "es")
+    {
+        ValidarDatos(
+            nombre,
+            canal,
+            movil,
+            email);
+
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            language = "es";
+        }
+
+        return new Conductor(
+            nombre.Trim(),
+            taxId?.Trim(),
+            licensePlate?.Trim(),
+            movil,
+            email,
+            canal,
+            language.Trim(),
+            activo: true);
+    }
+
+    /// <summary>
+    /// Modifica los datos del conductor.
+    /// No modifica su estado activo/inactivo.
+    /// </summary>
+    public void Modificar(
+        string nombre,
+        Canal canal,
+        Movil? movil,
+        Email? email,
+        string? taxId,
+        string? licensePlate,
+        string language)
+    {
+        ValidarDatos(
+            nombre,
+            canal,
+            movil,
+            email);
+
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            language = "es";
+        }
+
+        Nombre = nombre.Trim();
+        TaxId = taxId?.Trim();
+        LicensePlate = licensePlate?.Trim();
+        Movil = movil;
+        Email = email;
+        Canal = canal;
+        Language = language.Trim();
+    }
+
+    public void Activar() => Activo = true;
+
+    public void Desactivar() => Activo = false;
+
+    private static void ValidarDatos(
+        string nombre,
+        Canal canal,
+        Movil? movil,
+        Email? email)
     {
         if (string.IsNullOrWhiteSpace(nombre))
         {
@@ -97,24 +162,5 @@ public sealed class Conductor : AggregateRoot<Guid>
                 $"El canal '{canal.Valor}' requiere un móvil de contacto.",
                 nameof(movil));
         }
-
-        if (string.IsNullOrWhiteSpace(language))
-        {
-            language = "es";
-        }
-
-        return new Conductor(
-            nombre.Trim(),
-            taxId?.Trim(),
-            licensePlate?.Trim(),
-            movil,
-            email,
-            canal,
-            language.Trim(),
-            activo: true);
     }
-
-    public void Activar() => Activo = true;
-
-    public void Desactivar() => Activo = false;
 }
