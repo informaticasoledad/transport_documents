@@ -1,7 +1,6 @@
 using Dtd.Application.Almacenes;
 using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
@@ -89,7 +88,6 @@ public static class DependencyInjection
         services.AddScoped<IDocumentoRepository, DocumentoRepository>();
         services.AddScoped<IAgenciaRepository, AgenciaRepository>();
         services.AddScoped<IConductorRepository, ConductorRepository>();
-        services.AddScoped<IAgenciaBaseRepository, AgenciaBaseRepository>();
         services.AddScoped<ICcRepository, CcRepository>();
         services.AddScoped<IAlmacenRepository, AlmacenRepository>();
         services.AddScoped<IDocutenCallbackLogRepository, DocutenCallbackLogRepository>();

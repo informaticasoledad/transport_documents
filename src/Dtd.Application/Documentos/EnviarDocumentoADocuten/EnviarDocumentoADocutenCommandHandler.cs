@@ -120,13 +120,11 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 documento.AgenciaId,
                 cancellationToken);
 
-        if (agencia is null ||
-            agencia.Empresa != documento.Empresa)
+        if (agencia is null)
         {
             return Error.Failure(
                 "Agencia.NoEncontrada",
-                $"La agencia '{documento.AgenciaId}' de la empresa " +
-                $"'{documento.Empresa}' no existe en el catálogo. " +
+                $"La agencia '{documento.AgenciaId}' no existe en el catálogo. " +
                 "Sin ella no se puede construir el carrier del lote de Docuten.");
         }
 

@@ -8,10 +8,9 @@ using MediatR;
 namespace Dtd.Application.Almacenes.ListarCcsDefecto;
 
 /// <summary>
-/// Lista los CCs por defecto de una tupla (empresa, almacén, agencia)
+/// Lista los CCs por defecto de una combinación almacén/agencia
 /// para que el front los auto-adjunte al generar un documento.
-/// El back no los auto-adjunta; los añade el front vía
-/// <c>POST /documentos/{id}/ccs</c>.
+/// La empresa se utiliza para validar el ámbito del almacén.
 /// </summary>
 public sealed record ListarCcsDefectoQuery(
     string Empresa,
@@ -74,13 +73,11 @@ internal sealed class ListarCcsDefectoQueryHandler
             request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null || agencia.Empresa != empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
-                "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                "Agencia.NoEncontrada",
+                $"No existe la agencia '{request.AgenciaId}'.");
         }
 
         var disponible =
@@ -93,9 +90,8 @@ internal sealed class ListarCcsDefectoQueryHandler
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                $"La agencia '{agencia.Codigo}' no está disponible " +
+                $"para el almacén '{almacen.Codigo}'.");
         }
 
         var ccs =

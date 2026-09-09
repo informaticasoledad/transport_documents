@@ -1,7 +1,5 @@
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
-using Dtd.Domain.Templates;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

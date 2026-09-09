@@ -27,6 +27,27 @@ public sealed record DocumentoDto
     ////public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
     public bool EnvioDirecto { get; init; }
     public IReadOnlyList<EnvioDto> Envios { get; init; } = [];
+
+    public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
+}
+
+
+public sealed record DocumentoEventoDto
+{
+    public Guid Id { get; init; }
+
+    public DateTimeOffset Fecha { get; init; }
+
+    public string Tipo { get; init; } = string.Empty;
+
+    public string? EstadoAnterior { get; init; }
+    public string? EstadoNuevo { get; init; }
+
+    public string? Descripcion { get; init; }
+    public string? Origen { get; init; }
+    public string? Usuario { get; init; }
+
+    public Guid? EnvioId { get; init; }
 }
 
 public sealed record EnvioDto
@@ -87,14 +108,6 @@ public sealed record ExpedicionDto
     public Guid? EnvioId { get; init; }
 }
 
-public sealed record EventoDocumentoDto
-{
-    public Guid Id { get; init; }
-    public DateTimeOffset Momento { get; init; }
-    public string Tipo { get; init; } = string.Empty;
-    public int? EstadoHttp { get; init; }
-    public string? Mensaje { get; init; }
-}
 
 public sealed record ConductorDto
 {

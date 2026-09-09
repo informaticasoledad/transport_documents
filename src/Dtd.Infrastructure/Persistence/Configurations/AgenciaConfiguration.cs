@@ -9,17 +9,36 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
     public void Configure(EntityTypeBuilder<Agencia> builder)
     {
         builder.ToTable("agencias");
+
         builder.HasKey(x => x.Id);
 
-        builder.Property(x => x.Empresa).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Codigo).HasMaxLength(50).IsRequired();
-        builder.Property(x => x.Nombre).HasMaxLength(200).IsRequired();
-        builder.Property(x => x.Activa);
-        builder.Property(x => x.AgenciaQs).HasMaxLength(20);
-        // Marca de trasiegos directos al almacén destino (1 envío por destino) vs envío único a la base.
-        builder.Property(x => x.EnvioDirecto).IsRequired();
+        builder.Property(x => x.Codigo)
+            .HasMaxLength(50)
+            .IsRequired();
 
-        builder.HasIndex(x => new { x.Empresa, x.Codigo }).IsUnique();
+        builder.Property(x => x.Nombre)
+            .HasMaxLength(200)
+            .IsRequired();
+
+        builder.Property(x => x.Activa)
+            .IsRequired();
+
+        builder.Property(x => x.AgenciaQs)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.EnvioDirecto)
+            .IsRequired();
+
+        // El código de agencia es global.
+        builder.HasIndex(x => x.Codigo)
+            .IsUnique();
+
+        // Agencia es el aggregate root y contiene sus bases.
+        builder.HasMany(x => x.Bases)
+            .WithOne()
+            .HasForeignKey(x => x.AgenciaId)
+            .OnDelete(DeleteBehavior.Restrict);
+
         builder.Ignore(x => x.DomainEvents);
     }
 }

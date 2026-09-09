@@ -15,28 +15,32 @@ public static class ConductoresModule
     public static IEndpointRouteBuilder MapConductoresEndpoints(
         this IEndpointRouteBuilder app)
     {
-        var empresas = app
-            .MapGroup("/api/empresas")
+        var api = app.MapGroup("/api");
+
+        var conductores = api
+            .MapGroup("/agencias")
             .WithTags("Conductores");
 
         // Todos los conductores activos de una agencia.
-        empresas.MapGet(
-            "/{empresa}/agencias/{agenciaId:guid}/conductores",
+        conductores.MapGet(
+            "/{agenciaId:guid}/conductores",
             async (
-                string empresa,
                 Guid agenciaId,
                 IMediator mediator,
                 CancellationToken ct) =>
             {
                 var result = await mediator.Send(
                     new ListarConductoresQuery(
-                        empresa,
                         agenciaId),
                     ct);
 
                 return result.ToHttpResult(
                     list => Results.Ok(list));
             });
+
+        var empresas = api
+            .MapGroup("/empresas")
+            .WithTags("Conductores");
 
         // Conductores por defecto de almacén + agencia.
         empresas.MapGet(

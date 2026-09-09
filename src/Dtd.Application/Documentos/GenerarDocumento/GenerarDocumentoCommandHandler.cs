@@ -3,7 +3,6 @@ using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
 using Dtd.Application.Mapping;
 using Dtd.Application.Security;
-using Dtd.Domain.AgenciaBases;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
@@ -21,8 +20,6 @@ internal sealed class GenerarDocumentoCommandHandler
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
-    private readonly IAgenciaBaseRepository _agenciaBaseRepository;
-
     private readonly IDocumentReferenceGenerator _documentReferenceGenerator;
 
     private readonly IAccesoAlmacenService _accesoAlmacenService;
@@ -34,7 +31,6 @@ internal sealed class GenerarDocumentoCommandHandler
         IDocumentoRepository documentoRepository,
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
-        IAgenciaBaseRepository agenciaBaseRepository,
         IDocumentReferenceGenerator documentReferenceGenerator,
         IAccesoAlmacenService accesoAlmacenService,
         IUnitOfWork unitOfWork,
@@ -44,7 +40,6 @@ internal sealed class GenerarDocumentoCommandHandler
         _documentoRepository = documentoRepository;
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
-        _agenciaBaseRepository = agenciaBaseRepository;
         _documentReferenceGenerator = documentReferenceGenerator;
         _accesoAlmacenService = accesoAlmacenService;
         _unitOfWork = unitOfWork;
@@ -211,8 +206,11 @@ internal sealed class GenerarDocumentoCommandHandler
         return documento.Id;
     }
 
-    
-    private async Task<ErrorOr<(Almacen Almacen, Agencia Agencia)>>ObtenerConfiguracionAsync(GenerarDocumentoCommand request,CancellationToken cancellationToken)
+
+    private async Task<ErrorOr<(Almacen Almacen, Agencia Agencia)>>
+      ObtenerConfiguracionAsync(
+          GenerarDocumentoCommand request,
+          CancellationToken cancellationToken)
     {
         var almacen = await _almacenRepository.GetByIdAsync(
             request.AlmacenId,
@@ -231,13 +229,18 @@ internal sealed class GenerarDocumentoCommandHandler
             request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null ||
-            agencia.Empresa != request.Empresa)
+        if (agencia is null)
         {
             return Error.Validation(
                 "Agencia.NoConfigurada",
-                $"La agencia '{request.AgenciaId}' no existe " +
-                $"para la empresa '{request.Empresa}'.");
+                $"La agencia '{request.AgenciaId}' no existe.");
+        }
+
+        if (!agencia.Activa)
+        {
+            return Error.Validation(
+                "Agencia.Inactiva",
+                $"La agencia '{agencia.Codigo}' no está activa.");
         }
 
         var agenciaDisponible =
@@ -337,10 +340,10 @@ internal sealed class GenerarDocumentoCommandHandler
     }
 
     private async Task<ErrorOr<DestinoEnvio>>
-        ObtenerDestinoAgenciaAsync(
-            Almacen almacen,
-            Agencia agencia,
-            CancellationToken cancellationToken)
+     ObtenerDestinoAgenciaAsync(
+         Almacen almacen,
+         Agencia agencia,
+         CancellationToken cancellationToken)
     {
         var relacion = await _almacenRepository.GetRelacionAgenciaAsync(
             almacen.Id,
@@ -351,41 +354,44 @@ internal sealed class GenerarDocumentoCommandHandler
         {
             return Error.Validation(
                 "Documento.AgenciaBaseAgenciaNoConfigurado",
-                $"No está configurado el agencia base para el almacén " +
+                $"No está configurada la agencia base para el almacén " +
                 $"'{almacen.Codigo}' y la agencia '{agencia.Codigo}'.");
         }
 
-        var agenciaBase = await _agenciaBaseRepository.GetByIdAsync(
-            agenciaBaseId,
+        var agenciaConBases = await _agenciaRepository.GetByIdConBasesAsync(
+            agencia.Id,
             cancellationToken);
+
+        if (agenciaConBases is null)
+        {
+            return Error.Validation(
+                "Documento.AgenciaNoExiste",
+                $"La agencia '{agencia.Codigo}' no existe.");
+        }
+
+        var agenciaBase = agenciaConBases.Bases
+            .FirstOrDefault(b => b.Id == agenciaBaseId);
 
         if (agenciaBase is null)
         {
             return Error.Validation(
                 "Documento.AgenciaBaseAgenciaNoExiste",
-                $"El agencia base configurado para el almacén '{almacen.Codigo}' " +
-                $"y la agencia '{agencia.Codigo}' no existe.");
-        }
-
-        if (agenciaBase.Empresa != almacen.Empresa)
-        {
-            return Error.Validation(
-                "Documento.AgenciaBaseAgenciaOtraEmpresa",
-                $"El agencia base '{agenciaBase.Codigo}' no pertenece a la empresa '{almacen.Empresa}'.");
+                $"La agencia base configurada para el almacén '{almacen.Codigo}' " +
+                $"y la agencia '{agencia.Codigo}' no existe o no pertenece a esa agencia.");
         }
 
         if (!agenciaBase.Activo)
         {
             return Error.Validation(
-                "Documento.AgenciaBaseAgenciaInactivo",
-                $"El agencia base '{agenciaBase.Codigo}' no está activo.");
+                "Documento.AgenciaBaseAgenciaInactiva",
+                $"La agencia base '{agenciaBase.Codigo}' no está activa.");
         }
 
         if (!agenciaBase.TieneDireccionCompleta)
         {
             return Error.Validation(
                 "Documento.AgenciaBaseAgenciaSinDireccion",
-                $"El agencia base '{agenciaBase.Codigo}' no tiene dirección completa " +
+                $"La agencia base '{agenciaBase.Codigo}' no tiene dirección completa " +
                 $"para el almacén '{almacen.Codigo}' y la agencia '{agencia.Codigo}'.");
         }
 

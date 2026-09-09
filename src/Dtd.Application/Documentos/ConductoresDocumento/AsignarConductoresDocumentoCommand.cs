@@ -1,5 +1,6 @@
 using Dtd.Application.Almacenes;
 using Dtd.Domain.Agencias;
+using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
 using Dtd.Domain.Conductores;
 using Dtd.Domain.Documentos;
@@ -10,17 +11,11 @@ using MediatR;
 namespace Dtd.Application.Documentos.ConductoresDocumento;
 
 /// <summary>
-/// Asigna uno o varios conductores del catálogo de la agencia del documento a un documento en estado
-/// <c>Nuevo</c>. Cada conductor se identifica por su <c>Id</c> (Guid) del catálogo y se snapshotea vía
-/// <see cref="ConductorAsignado.CrearDesdeCatalogo"/>. El back verifica que cada conductor esté
-/// vinculado (M:N) a la agencia del documento. Idempotente por <c>ConductorCatalogId</c> (los Ids
-/// repetidos en la lista, o ya asignados, no duplican). <b>All-or-nothing</b>: si algún Id no existe,
-/// no está vinculado a la agencia o está inactivo, no se asigna ninguno.
+/// Asigna uno o varios conductores del catálogo de la agencia del documento
+/// a un documento en estado <c>Nuevo</c>.
+/// Cada conductor se identifica por su <c>Id</c> y se snapshotea mediante
+/// <see cref="ConductorAsignado.CrearDesdeCatalogo"/>.
 /// </summary>
-/// <returns>
-/// La lista de <see cref="ConductorDto"/> asignados
-/// (con su <c>Id</c> en el documento).
-/// </returns>
 public sealed record AsignarConductoresDocumentoCommand(
     Guid DocumentoId,
     IReadOnlyList<Guid> ConductoresId)
@@ -54,6 +49,7 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
         ErrorOr<IReadOnlyList<ConductorDto>>>
 {
     private readonly IDocumentoRepository _documentoRepository;
+    private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IConductorRepository _conductorRepository;
     private readonly IUnitOfWork _unitOfWork;
@@ -61,12 +57,14 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
 
     public AsignarConductoresDocumentoCommandHandler(
         IDocumentoRepository documentoRepository,
+        IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         IConductorRepository conductorRepository,
         IUnitOfWork unitOfWork,
         IAccesoAlmacenService accesoAlmacenService)
     {
         _documentoRepository = documentoRepository;
+        _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
         _conductorRepository = conductorRepository;
         _unitOfWork = unitOfWork;
@@ -99,23 +97,44 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
             return accesoAlmacen.Errors;
         }
 
-        // La agencia del documento se resuelve por Id (FK) para buscar
-        // los conductores en su catálogo.
+        var almacen = await _almacenRepository.GetByIdAsync(
+            documento.AlmacenId,
+            cancellationToken);
+
+        if (almacen is null ||
+            almacen.Empresa != documento.Empresa)
+        {
+            return Error.NotFound(
+                "Almacen.NoConfigurado",
+                $"El almacén '{documento.AlmacenId}' del documento " +
+                $"no existe para la empresa '{documento.Empresa}'.");
+        }
+
         var agencia = await _agenciaRepository.GetByIdAsync(
             documento.AgenciaId,
             cancellationToken);
 
-        if (agencia is null ||
-            agencia.Empresa != documento.Empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
                 "Agencia.NoEncontrada",
-                $"La agencia '{documento.AgenciaId}' de la empresa " +
-                $"'{documento.Empresa}' no existe en el catálogo.");
+                $"La agencia '{documento.AgenciaId}' del documento no existe.");
         }
 
-        // All-or-nothing: se resuelven y validan TODOS los conductores
-        // antes de mutar el agregado.
+        var agenciaDisponible =
+            await _almacenRepository.EsAgenciaDisponibleAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
+
+        if (!agenciaDisponible)
+        {
+            return Error.NotFound(
+                "Almacen.AgenciaNoDisponible",
+                $"La agencia '{agencia.Codigo}' no está disponible " +
+                $"para el almacén '{almacen.Codigo}'.");
+        }
+
         if (request.ConductoresId.Any(id => id == Guid.Empty))
         {
             return Error.Validation(

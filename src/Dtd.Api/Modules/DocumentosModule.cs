@@ -174,4 +174,4 @@ public sealed record AsignarConductoresRequest(IReadOnlyList<Guid> ConductoresId
 
 public sealed record AsignarCcsRequest(IReadOnlyList<Guid> CcsId);
 
-public sealed record AnularDocumentoRequest(string? Motivo);
+

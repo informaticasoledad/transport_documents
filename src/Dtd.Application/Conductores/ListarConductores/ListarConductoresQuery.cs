@@ -6,7 +6,6 @@ using MediatR;
 namespace Dtd.Application.Conductores.ListarConductores;
 
 public sealed record ListarConductoresQuery(
-    string Empresa,
     Guid AgenciaId)
     : IRequest<ErrorOr<IReadOnlyList<ConductorCatalogoDto>>>;
 
@@ -30,22 +29,21 @@ internal sealed class ListarConductoresQueryHandler
         ListarConductoresQuery request,
         CancellationToken cancellationToken)
     {
-        var empresa = request.Empresa.Trim();
-
         var agencia = await _agenciaRepository.GetByIdAsync(
             request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null || agencia.Empresa != empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
                 "Agencia.NoEncontrada",
-                $"La agencia '{request.AgenciaId}' de la empresa '{empresa}' no existe en el catálogo.");
+                $"La agencia '{request.AgenciaId}' no existe en el catálogo.");
         }
 
-        var conductores = await _conductorRepository.ListarPorAgenciaAsync(
-            agencia.Id,
-            cancellationToken);
+        var conductores =
+            await _conductorRepository.ListarPorAgenciaAsync(
+                agencia.Id,
+                cancellationToken);
 
         return conductores
             .Select(c => new ConductorCatalogoDto

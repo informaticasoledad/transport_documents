@@ -8,12 +8,12 @@ namespace Dtd.Application.Documentos.ListarEventosDocumento;
 
 public sealed record ListarEventosDocumentoQuery(
     Guid DocumentoId)
-    : IRequest<ErrorOr<IReadOnlyList<EventoDocumentoDto>>>;
+    : IRequest<ErrorOr<IReadOnlyList<DocumentoEventoDto>>>;
 
 internal sealed class ListarEventosDocumentoQueryHandler
     : IRequestHandler<
         ListarEventosDocumentoQuery,
-        ErrorOr<IReadOnlyList<EventoDocumentoDto>>>
+        ErrorOr<IReadOnlyList<DocumentoEventoDto>>>
 {
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
@@ -26,7 +26,7 @@ internal sealed class ListarEventosDocumentoQueryHandler
         _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<EventoDocumentoDto>>> Handle(
+    public async Task<ErrorOr<IReadOnlyList<DocumentoEventoDto>>> Handle(
         ListarEventosDocumentoQuery request,
         CancellationToken cancellationToken)
     {
@@ -53,7 +53,24 @@ internal sealed class ListarEventosDocumentoQueryHandler
             return accesoAlmacen.Errors;
         }
 
-        // TODO: revisar implementación real de eventos.
-        return new List<EventoDocumentoDto>();
+        var eventos =
+            await _documentoRepository.GetEventosAsync(
+                request.DocumentoId,
+                cancellationToken);
+
+        return eventos
+            .Select(x => new DocumentoEventoDto
+            {
+                Id = x.Id,
+                Fecha = x.Fecha,
+                Tipo = x.Tipo.ToString(),
+                EstadoAnterior = x.EstadoAnterior?.ToString(),
+                EstadoNuevo = x.EstadoNuevo?.ToString(),
+                Descripcion = x.Descripcion,
+                Origen = x.Origen,
+                Usuario = x.Usuario,
+                EnvioId = x.EnvioId
+            })
+            .ToList();
     }
 }

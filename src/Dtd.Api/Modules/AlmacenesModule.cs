@@ -2,12 +2,8 @@ using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
-using Dtd.Application.Almacenes.ListarConductoresDefecto;
-using Dtd.Application.Almacenes.ListarAgenciaBasesDefecto;
 using Dtd.Application.Ccs;
 using Dtd.Application.Ccs.ListarCcsPorAlmacen;
-using Dtd.Application.AgenciaBases;
-using Dtd.Application.AgenciaBases.ListarAgenciaBasesPorAlmacen;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -73,25 +69,7 @@ public static class AlmacenesModule
             });
 
         empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencia-bases",
-            async (
-                string empresa,
-                Guid almacenId,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarAgenciaBasesPorAlmacenQuery(
-                        empresa,
-                        almacenId),
-                    ct);
-
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
-
-        empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-bases-default",
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-base",
             async (
                 string empresa,
                 Guid almacenId,
@@ -100,39 +78,39 @@ public static class AlmacenesModule
                 CancellationToken ct) =>
             {
                 var result = await mediator.Send(
-                    new ListarAgenciaBasesDefectoQuery(
+                    new ObtenerAgenciaBaseDefectoQuery(
                         empresa,
                         almacenId,
                         agenciaId),
                     ct);
 
                 return result.ToHttpResult(
-                    list => Results.Ok(list));
+                    dto => Results.Ok(dto));
             });
 
         empresas.MapPost(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-bases-default",
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-base",
             async (
                 string empresa,
                 Guid almacenId,
                 Guid agenciaId,
-                [FromBody] EstablecerAgenciaBasesDefectoRequest req,
+                [FromBody] EstablecerAgenciaBaseRequest req,
                 IMediator mediator,
                 CancellationToken ct) =>
             {
                 var command =
-                    new EstablecerAgenciaBasesDefectoCommand(
+                    new EstablecerAgenciaBaseCommand(
                         empresa,
                         almacenId,
                         agenciaId,
-                        req.AgenciaBaseIds);
+                        req.AgenciaBaseId);
 
                 var result = await mediator.Send(
                     command,
                     ct);
 
                 return result.ToHttpResult(
-                    list => Results.Ok(list));
+                    dto => Results.Ok(dto));
             });
 
         empresas.MapPut(

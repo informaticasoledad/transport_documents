@@ -119,13 +119,25 @@ internal sealed class AsignarCcsDocumentoCommandHandler
                 documento.AgenciaId,
                 cancellationToken);
 
-        if (agencia is null ||
-            agencia.Empresa != documento.Empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
                 "Agencia.NoEncontrada",
-                $"La agencia '{documento.AgenciaId}' del documento " +
-                $"no existe para la empresa '{documento.Empresa}'.");
+                $"La agencia '{documento.AgenciaId}' del documento no existe.");
+        }
+
+        var agenciaDisponible =
+            await _almacenRepository.EsAgenciaDisponibleAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
+
+        if (!agenciaDisponible)
+        {
+            return Error.NotFound(
+                "Almacen.AgenciaNoDisponible",
+                $"La agencia '{agencia.Codigo}' no está disponible " +
+                $"para el almacén '{almacen.Codigo}'.");
         }
 
         if (request.CcsId.Any(id => id == Guid.Empty))

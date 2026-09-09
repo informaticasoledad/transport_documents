@@ -97,4 +97,24 @@ internal sealed class DocumentoRepository : IDocumentoRepository
             .OrderByDescending(d => d.FechaGeneracion)
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<DocumentoEvento>> GetEventosAsync(
+    Guid documentoId,
+    CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.DocumentoEventos
+            .AsNoTracking()
+            .Where(e => e.DocumentoId == documentoId)
+            .OrderByDescending(e => e.Fecha)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<bool> ExistePorAgenciaAsync(
+    Guid agenciaId,
+    CancellationToken cancellationToken = default) =>
+    _dbContext.Documentos
+        .AsNoTracking()
+        .AnyAsync(
+            d => d.AgenciaId == agenciaId,
+            cancellationToken);
 }

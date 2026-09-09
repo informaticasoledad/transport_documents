@@ -90,13 +90,11 @@ internal sealed class ListarExpedicionesDisponiblesQueryHandler
                 request.AgenciaId,
                 cancellationToken);
 
-        if (agencia is null ||
-            agencia.Empresa != empresa)
+        if (agencia is null)
         {
             return Error.Validation(
-                "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no existe " +
-                $"para la empresa '{empresa}'.");
+                "Agencia.NoEncontrada",
+                $"La agencia '{request.AgenciaId}' no existe.");
         }
 
         var agenciaDisponible =

@@ -1,54 +1,42 @@
-using Dtd.Application.Agencias;
+﻿using Dtd.Application.Agencias;
 using Dtd.Application.Almacenes;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
-using Dtd.Domain.Common;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Almacenes.EstablecerAgenciaBase;
+namespace Dtd.Application.Almacenes.ObtenerAgenciaBaseDefecto;
 
-public sealed record EstablecerAgenciaBaseCommand(
+public sealed record ObtenerAgenciaBaseDefectoQuery(
     string Empresa,
     Guid AlmacenId,
-    Guid AgenciaId,
-    Guid AgenciaBaseId)
-    : IRequest<ErrorOr<AgenciaBaseDto>>;
+    Guid AgenciaId)
+    : IRequest<ErrorOr<AgenciaBaseDto?>>;
 
-internal sealed class EstablecerAgenciaBaseCommandHandler
+internal sealed class ObtenerAgenciaBaseDefectoQueryHandler
     : IRequestHandler<
-        EstablecerAgenciaBaseCommand,
-        ErrorOr<AgenciaBaseDto>>
+        ObtenerAgenciaBaseDefectoQuery,
+        ErrorOr<AgenciaBaseDto?>>
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
-    private readonly IUnitOfWork _unitOfWork;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
 
-    public EstablecerAgenciaBaseCommandHandler(
+    public ObtenerAgenciaBaseDefectoQueryHandler(
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
-        IUnitOfWork unitOfWork,
         IAccesoAlmacenService accesoAlmacenService)
     {
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
-        _unitOfWork = unitOfWork;
         _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<AgenciaBaseDto>> Handle(
-        EstablecerAgenciaBaseCommand request,
+    public async Task<ErrorOr<AgenciaBaseDto?>> Handle(
+        ObtenerAgenciaBaseDefectoQuery request,
         CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
-
-        if (request.AgenciaBaseId == Guid.Empty)
-        {
-            return Error.Validation(
-                "AgenciaBase.IdRequerido",
-                "La agencia base es obligatoria.");
-        }
 
         var almacen = await _almacenRepository.GetByIdAsync(
             request.AlmacenId,
@@ -84,23 +72,8 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
                 $"No existe la agencia '{request.AgenciaId}'.");
         }
 
-        if (!agencia.Activa)
-        {
-            return Error.Validation(
-                "Agencia.Inactiva",
-                $"La agencia '{agencia.Codigo}' no está activa.");
-        }
-
-        if (agencia.EnvioDirecto)
-        {
-            return Error.Validation(
-                "AlmacenAgencia.AgenciaBaseNoPermitido",
-                $"La agencia '{agencia.Codigo}' agrupa por almacén destino " +
-                "y no admite agencia base.");
-        }
-
         var relacion =
-            await _almacenRepository.GetRelacionAgenciaParaActualizarAsync(
+            await _almacenRepository.GetRelacionAgenciaAsync(
                 almacen.Id,
                 agencia.Id,
                 cancellationToken);
@@ -109,41 +82,33 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                $"La agencia '{agencia.Codigo}' no está disponible " +
+                $"para el almacén '{almacen.Codigo}'.");
+        }
+
+        // Las agencias de envío directo no utilizan agencia base.
+        if (agencia.EnvioDirecto)
+        {
+            return (AgenciaBaseDto?)null;
+        }
+
+        // La relación existe, pero todavía no tiene base configurada.
+        if (relacion.AgenciaBaseId is not { } agenciaBaseId)
+        {
+            return (AgenciaBaseDto?)null;
         }
 
         var agenciaBase = agencia.Bases
-            .FirstOrDefault(x => x.Id == request.AgenciaBaseId);
+            .FirstOrDefault(x => x.Id == agenciaBaseId);
 
         if (agenciaBase is null)
         {
             return Error.NotFound(
                 "AgenciaBase.NoEncontrada",
-                $"No existe la base '{request.AgenciaBaseId}' " +
-                $"en la agencia '{agencia.Codigo}'.");
+                $"La base configurada para el almacén '{almacen.Codigo}' " +
+                $"y la agencia '{agencia.Codigo}' no existe " +
+                $"o no pertenece a esa agencia.");
         }
-
-        if (!agenciaBase.Activo)
-        {
-            return Error.Validation(
-                "AgenciaBase.Inactiva",
-                $"La base '{agenciaBase.Codigo}' no está activa.");
-        }
-
-        if (!agenciaBase.TieneDireccionCompleta)
-        {
-            return Error.Validation(
-                "AgenciaBase.SinDireccionBase",
-                $"La base '{agenciaBase.Codigo}' no tiene dirección completa " +
-                "para usarla como base.");
-        }
-
-        relacion.ConfigurarAgenciaBase(agenciaBase.Id);
-
-        await _unitOfWork.SaveChangesAsync(
-            cancellationToken);
 
         return ToDto(agenciaBase);
     }

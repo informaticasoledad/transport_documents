@@ -21,11 +21,11 @@ internal sealed class ListarConductoresDefaultQueryHandler
         ListarConductoresDefaultQuery request,
         CancellationToken cancellationToken)
     {
-        var conductores = await _conductorRepository.ObtenerConductoresDefectoAsync(
-            request.Empresa.Trim(),
-            request.AlmacenId,
-            request.AgenciaId,
-            cancellationToken);
+        var conductores =
+            await _conductorRepository.ObtenerConductoresDefectoAsync(
+                request.AlmacenId,
+                request.AgenciaId,
+                cancellationToken);
 
         return conductores
             .Select(c => new ConductorCatalogoDto

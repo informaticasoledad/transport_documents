@@ -81,13 +81,11 @@ internal sealed class EstablecerCcsDefectoCommandHandler
             request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null || agencia.Empresa != empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
-                "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                "Agencia.NoEncontrada",
+                $"No existe la agencia '{request.AgenciaId}'.");
         }
 
         var disponible =

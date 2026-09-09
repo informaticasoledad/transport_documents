@@ -1,33 +1,37 @@
 namespace Dtd.Domain.Conductores;
 
 /// <summary>
-/// Repository port for the <see cref="Conductor"/> reference aggregate
-/// (catálogo por empresa, vinculado M:N a agencias vía <c>conductor_agencias</c>).
+/// Repository port para el agregado de referencia <see cref="Conductor"/>.
+/// Los conductores forman un catálogo global y pueden estar vinculados
+/// M:N con agencias mediante <c>conductor_agencias</c>.
 /// </summary>
 public interface IConductorRepository
 {
     /// <summary>
-    /// Devuelve el conductor si existe Y está vinculado a la agencia dada
-    /// (join <c>conductor_agencias</c>), activo o no.
-    /// <c>null</c> si no existe o no está vinculado a esa agencia.
+    /// Devuelve el conductor si existe y está vinculado a la agencia indicada
+    /// mediante <c>conductor_agencias</c>.
+    /// Devuelve <c>null</c> si no existe o no está vinculado a esa agencia.
+    /// No filtra por <c>Activo</c>.
     /// </summary>
     Task<Conductor?> GetByAgenciaYIdAsync(
         Guid agenciaId,
         Guid conductorId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Lista los conductores activos vinculados a una agencia.
+    /// </summary>
     Task<IReadOnlyList<Conductor>> ListarPorAgenciaAsync(
         Guid agenciaId,
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Conductores por defecto de la tupla (empresa, almacén, agencia):
-    /// lee <c>almacen_agencia_conductores_defecto</c> y resuelve el catálogo
-    /// filtrando por activo y por vínculo con esa agencia.
-    /// Lista vacía si no hay defaults.
+    /// Obtiene los conductores por defecto configurados para una relación
+    /// almacén-agencia.
+    /// Lee <c>almacen_agencia_conductores_defecto</c> y devuelve únicamente
+    /// conductores activos y vinculados a la agencia.
     /// </summary>
     Task<IReadOnlyList<Conductor>> ObtenerConductoresDefectoAsync(
-        string empresa,
         Guid almacenId,
         Guid agenciaId,
         CancellationToken cancellationToken = default);

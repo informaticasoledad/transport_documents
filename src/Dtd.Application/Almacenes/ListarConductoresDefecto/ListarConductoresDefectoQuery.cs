@@ -8,12 +8,12 @@ using MediatR;
 namespace Dtd.Application.Almacenes.ListarConductoresDefecto;
 
 /// <summary>
-/// Lista los conductores por defecto de una tupla
-/// (empresa, almacén, agencia) para que el front los
-/// auto-adjunte al generar un documento para esa tupla.
-/// Pueden ser varios; sólo los activos.
-/// El back no los auto-adjunta: los añade el front vía
-/// POST /documentos/{id}/conductores.
+/// Lista los conductores por defecto de una combinación
+/// almacén/agencia para que el front los auto-adjunte al
+/// generar un documento.
+///
+/// La empresa se utiliza únicamente para validar el ámbito
+/// del almacén y el acceso del usuario.
 /// </summary>
 public sealed record ListarConductoresDefectoQuery(
     string Empresa,
@@ -49,7 +49,6 @@ internal sealed class ListarConductoresDefectoQueryHandler
     {
         var empresa = request.Empresa.Trim();
 
-        // El almacén debe existir.
         var almacen = await _almacenRepository.GetByIdAsync(
             request.AlmacenId,
             cancellationToken);
@@ -62,49 +61,44 @@ internal sealed class ListarConductoresDefectoQueryHandler
                 $"para la empresa '{empresa}'.");
         }
 
-        // El usuario debe tener acceso al almacén concreto.
-        var accesoAlmacen = await _accesoAlmacenService.ValidarAccesoAsync(
-            empresa,
-            almacen.Id,
-            cancellationToken);
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                empresa,
+                almacen.Id,
+                cancellationToken);
 
         if (accesoAlmacen.IsError)
         {
             return accesoAlmacen.Errors;
         }
 
-        // La agencia debe existir y pertenecer a la empresa.
         var agencia = await _agenciaRepository.GetByIdAsync(
             request.AgenciaId,
             cancellationToken);
 
-        if (agencia is null || agencia.Empresa != empresa)
+        if (agencia is null)
         {
             return Error.NotFound(
-                "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                "Agencia.NoEncontrada",
+                $"No existe la agencia '{request.AgenciaId}'.");
         }
 
-        // Además debe estar vinculada al almacén.
-        var disponible = await _almacenRepository.EsAgenciaDisponibleAsync(
-            almacen.Id,
-            agencia.Id,
-            cancellationToken);
+        var disponible =
+            await _almacenRepository.EsAgenciaDisponibleAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
 
         if (!disponible)
         {
             return Error.NotFound(
                 "Almacen.AgenciaNoDisponible",
-                $"La agencia '{request.AgenciaId}' no está disponible " +
-                $"para el almacén '{request.AlmacenId}' " +
-                $"(empresa '{empresa}').");
+                $"La agencia '{agencia.Codigo}' no está disponible " +
+                $"para el almacén '{almacen.Codigo}'.");
         }
 
         var conductores =
             await _conductorRepository.ObtenerConductoresDefectoAsync(
-                empresa,
                 almacen.Id,
                 agencia.Id,
                 cancellationToken);

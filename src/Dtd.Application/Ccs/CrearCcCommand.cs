@@ -201,13 +201,11 @@ internal sealed class CrearCcCommandHandler
                 agenciaIds,
                 cancellationToken);
 
-        if (agencias.Count != agenciaIds.Count ||
-            agencias.Any(a => a.Empresa != empresa))
+        if (agencias.Count != agenciaIds.Count)
         {
             return Error.NotFound(
                 "Cc.AgenciaNoExiste",
-                "Alguna de las agencias indicadas no existe " +
-                $"para la empresa '{empresa}'.");
+                "Alguna de las agencias indicadas no existe.");
         }
 
         foreach (var vinculo in vinculos.DistinctBy(

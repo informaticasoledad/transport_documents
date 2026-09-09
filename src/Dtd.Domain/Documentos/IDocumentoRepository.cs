@@ -10,6 +10,9 @@ public interface IDocumentoRepository
 {
     Task<DocumentoDigitalTransporte?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DocumentoEvento>> GetEventosAsync(Guid documentoId, CancellationToken cancellationToken = default);
+
+
     Task AddAsync(DocumentoDigitalTransporte documento, CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -25,6 +28,10 @@ public interface IDocumentoRepository
 
     Task<IReadOnlyList<DocumentoDigitalTransporte>> ListarAsync(
         DocumentoFiltro filtro,
+        CancellationToken cancellationToken = default);
+
+    Task<bool> ExistePorAgenciaAsync(
+        Guid agenciaId,
         CancellationToken cancellationToken = default);
 }
 
@@ -42,3 +49,5 @@ public sealed record DocumentoFiltro(
     DateOnly? FechaHasta = null,
     EstadoDocumento? Estado = null,
     bool? Finalizado = null);
+
+

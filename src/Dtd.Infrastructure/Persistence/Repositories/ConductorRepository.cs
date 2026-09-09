@@ -10,11 +10,6 @@ internal sealed class ConductorRepository : IConductorRepository
     public ConductorRepository(DtdDbContext dbContext) =>
         _dbContext = dbContext;
 
-    /// <summary>
-    /// Devuelve el conductor si existe Y está vinculado a <paramref name="agenciaId"/>
-    /// (join <c>conductor_agencias</c>), activo o no
-    /// (el caller distingue 404 vs <c>Inactivo</c>).
-    /// </summary>
     public async Task<Conductor?> GetByAgenciaYIdAsync(
         Guid agenciaId,
         Guid conductorId,
@@ -42,25 +37,16 @@ internal sealed class ConductorRepository : IConductorRepository
         ).ToListAsync(cancellationToken);
 
     public async Task<IReadOnlyList<Conductor>> ObtenerConductoresDefectoAsync(
-        string empresa,
         Guid almacenId,
         Guid agenciaId,
         CancellationToken cancellationToken = default)
     {
-        // Opcional pero recomendable:
-        // valida que almacén y agencia pertenezcan a la empresa indicada.
-        var relacionValida =
-            await (
-                from almacen in _dbContext.Almacenes.AsNoTracking()
-                where almacen.Id == almacenId
-                   && almacen.Empresa == empresa
-
-                from agencia in _dbContext.Agencias.AsNoTracking()
-                where agencia.Id == agenciaId
-                   && agencia.Empresa == empresa
-
-                select 1
-            ).AnyAsync(cancellationToken);
+        var relacionValida = await _dbContext.AlmacenAgencias
+            .AsNoTracking()
+            .AnyAsync(
+                x => x.AlmacenId == almacenId &&
+                     x.AgenciaId == agenciaId,
+                cancellationToken);
 
         if (!relacionValida)
         {
@@ -96,11 +82,6 @@ internal sealed class ConductorRepository : IConductorRepository
         ).ToListAsync(cancellationToken);
     }
 
-    /// <summary>
-    /// Persiste el conductor y sus vínculos iniciales con agencias
-    /// (filas de <c>conductor_agencias</c>).
-    /// No hace <c>SaveChanges</c>.
-    /// </summary>
     public async Task AddAsync(
         Conductor conductor,
         IReadOnlyCollection<Guid> agenciaIds,

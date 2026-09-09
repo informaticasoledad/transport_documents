@@ -3,39 +3,48 @@ using Dtd.Domain.Common;
 namespace Dtd.Domain.Agencias;
 
 /// <summary>
-/// Agregado de referencia para una agencia de transporte (carrier). Identificada por un código
-/// estable **por empresa** (clave natural <c>(empresa, codigo)</c>, igual que <c>Almacen</c> y los
-/// documentos), con el código QS externo opcional de la tabla legacy <c>AGENCIAS_QS</c>. El ERP la
-/// identifica por <c>carrierId</c> (= <c>codigo</c>, dentro de la empresa). Tiene catálogo de
-/// <see cref="Conductores.Conductor"/> (1:N) y se vincula a almacenes vía <c>almacen_agencias</c>.
+/// Agregado de referencia para una agencia de transporte (carrier).
+/// Se identifica por un código estable global y puede tener un código QS externo opcional
+/// procedente de la tabla legacy AGENCIAS_QS.
+/// 
+/// La agencia se vincula a almacenes mediante almacen_agencias y puede tener
+/// un catálogo de conductores y bases asociadas.
 /// </summary>
 public sealed class Agencia : AggregateRoot<Guid>
 {
-    public string Empresa { get; private set; }
     public string Codigo { get; private set; }
     public string Nombre { get; private set; }
     public bool Activa { get; private set; }
     public string? AgenciaQs { get; private set; }
 
-    /// <summary>Marca que indica que los trasiegos de esta agencia se envían <b>directos</b> al almacén
-    /// destino (1 envío por almacén destino, agrupando expediciones) en lugar de colapsar todos en un
-    /// único envío a la base del carrier. Cuando es <c>true</c>, el DDT no mezcla expediciones de cliente
-    /// con trasiegos (sólo trasiegos, agrupados por destino). Default <c>false</c>.</summary>
+    /// <summary>
+    /// Indica que los trasiegos de esta agencia se envían directamente al almacén destino
+    /// (1 envío por almacén destino, agrupando expediciones) en lugar de colapsarlos
+    /// en un único envío a la base del carrier.
+    /// </summary>
     public bool EnvioDirecto { get; private set; }
 
-    /// <summary>Usado por el ORM para materializar el agregado; no para código de aplicación.</summary>
+    private readonly List<AgenciaBase> _bases = [];
+
+    public IReadOnlyCollection<AgenciaBase> Bases => _bases.AsReadOnly();
+
+    /// <summary>
+    /// Usado por el ORM para materializar el agregado.
+    /// </summary>
     private Agencia()
     {
-        Empresa = string.Empty;
         Codigo = string.Empty;
         Nombre = string.Empty;
     }
 
     private Agencia(
-        string empresa, string codigo, string nombre, bool activa, string? agenciaQs, bool envioDirecto)
+        string codigo,
+        string nombre,
+        bool activa,
+        string? agenciaQs,
+        bool envioDirecto)
     {
         Id = Guid.NewGuid();
-        Empresa = empresa;
         Codigo = codigo;
         Nombre = nombre;
         Activa = activa;
@@ -43,27 +52,12 @@ public sealed class Agencia : AggregateRoot<Guid>
         EnvioDirecto = envioDirecto;
     }
 
-    /// <summary>
-    /// Crea una agencia activa. Normaliza la empresa a 3 dígitos y trima los textos. Lanza
-    /// <see cref="ArgumentException"/> si la empresa no es un id válido (1–999) o si
-    /// <paramref name="codigo"/>/<paramref name="nombre"/> son vacíos.
-    /// </summary>
-    /// <param name="envioDirecto">Si <c>true</c>, los trasiegos de esta agencia se envían directos al
-    /// almacén destino (1 envío por destino) en vez de colapsar en un envío único a la base. Default <c>false</c>.</param>
     public static Agencia Crear(
-    string empresa,
-    string codigo,
-    string nombre,
-    string? agenciaQs = null,
-    bool envioDirecto = false)
+        string codigo,
+        string nombre,
+        string? agenciaQs = null,
+        bool envioDirecto = false)
     {
-        if (string.IsNullOrWhiteSpace(empresa))
-        {
-            throw new ArgumentException(
-                "La empresa es obligatoria.",
-                nameof(empresa));
-        }
-
         if (string.IsNullOrWhiteSpace(codigo))
         {
             throw new ArgumentException(
@@ -79,7 +73,6 @@ public sealed class Agencia : AggregateRoot<Guid>
         }
 
         return new Agencia(
-            empresa.Trim(),
             codigo.Trim(),
             nombre.Trim(),
             activa: true,
@@ -88,8 +81,35 @@ public sealed class Agencia : AggregateRoot<Guid>
     }
 
     public void Desactivar() => Activa = false;
+
     public void Activar() => Activa = true;
 
-    /// <summary>Marca/desmarca la agencia como envío directo (trasiegos directos al almacén destino).</summary>
-    public void MarcarEnvioDirecto(bool envioDirecto) => EnvioDirecto = envioDirecto;
+    public void MarcarEnvioDirecto(bool envioDirecto) =>
+        EnvioDirecto = envioDirecto;
+
+    public void Modificar(
+        string codigo,
+        string nombre,
+        string? agenciaQs,
+        bool envioDirecto)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            throw new ArgumentException(
+                "El código de agencia es obligatorio.",
+                nameof(codigo));
+        }
+
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            throw new ArgumentException(
+                "El nombre de agencia es obligatorio.",
+                nameof(nombre));
+        }
+
+        Codigo = codigo.Trim();
+        Nombre = nombre.Trim();
+        AgenciaQs = agenciaQs?.Trim();
+        EnvioDirecto = envioDirecto;
+    }
 }
