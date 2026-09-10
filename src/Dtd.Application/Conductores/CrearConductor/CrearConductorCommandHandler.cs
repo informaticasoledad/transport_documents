@@ -23,9 +23,27 @@ internal sealed class CrearConductorCommandHandler
     }
 
     public async Task<ErrorOr<ConductorCatalogoDto>> Handle(
-        CrearConductorCommand request,
-        CancellationToken cancellationToken)
+    CrearConductorCommand request,
+    CancellationToken cancellationToken)
     {
+        var taxId = string.IsNullOrWhiteSpace(request.TaxId)
+            ? null
+            : request.TaxId.Trim();
+
+        if (taxId is not null)
+        {
+            var existe = await _conductorRepository.ExistsByTaxIdAsync(
+                taxId,
+                cancellationToken);
+
+            if (existe)
+            {
+                return Error.Conflict(
+                    "Conductor.TaxIdDuplicado",
+                    $"Ya existe un conductor con NIF '{taxId}'.");
+            }
+        }
+
         var movil = string.IsNullOrWhiteSpace(request.Movil)
             ? null
             : Movil.Create(request.Movil);
@@ -41,7 +59,7 @@ internal sealed class CrearConductorCommandHandler
             canal,
             movil,
             email,
-            request.TaxId?.Trim(),
+            taxId,
             request.LicensePlate?.Trim(),
             request.Language);
 
@@ -56,7 +74,7 @@ internal sealed class CrearConductorCommandHandler
     }
 
     internal static ConductorCatalogoDto ToDto(
-        Conductor conductor)
+    Conductor conductor)
     {
         return new ConductorCatalogoDto
         {

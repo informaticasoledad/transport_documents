@@ -1,7 +1,9 @@
+using Dtd.Application.Almacenes.CrearAlmacen;
 using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
+using Dtd.Application.Almacenes.ObtenerAlmacen;
 using Dtd.Application.Ccs;
 using Dtd.Application.Ccs.ListarCcsPorAlmacen;
 using MediatR;
@@ -21,6 +23,18 @@ public sealed record EstablecerCcsDefectoRequest(
 public sealed record EstablecerAgenciaBaseRequest(
     Guid AgenciaBaseId);
 
+
+public sealed record CrearAlmacenRequest(
+    string Codigo,
+    string Nombre,
+    string Direccion,
+    string CodigoPostal,
+    string Ciudad,
+    string CodigoPaisIso,
+    string? Email,
+    string? Telefono,
+    string TipoFirmaConsignor = "biometric");
+
 public static class AlmacenesModule
 {
     public static IServiceCollection AddAlmacenesModule(
@@ -39,16 +53,80 @@ public static class AlmacenesModule
             "/{empresa}/almacenes",
             async (
                 string empresa,
+                string? texto,
+                bool? activo,
+                int? page,
+                int? pageSize,
                 IMediator mediator,
                 CancellationToken ct) =>
             {
                 var result = await mediator.Send(
-                    new ListarAlmacenesQuery(empresa),
+                    new ListarAlmacenesQuery(
+                        empresa,
+                        texto,
+                        activo,
+                        page ?? 1,
+                        pageSize ?? 20),
                     ct);
 
                 return result.ToHttpResult(
-                    list => Results.Ok(list));
+                    dto => Results.Ok(dto));
             });
+
+        empresas.MapGet(
+            "/{empresa}/almacenes/{almacenId:guid}",
+            async (
+                string empresa,
+                Guid almacenId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new ObtenerAlmacenQuery(
+                        empresa,
+                        almacenId),
+                    ct);
+
+                return result.ToHttpResult(
+                    dto => Results.Ok(dto));
+            });
+
+        empresas.MapPost(
+            "/{empresa}/almacenes",
+            async (
+                string empresa,
+                [FromBody] CrearAlmacenRequest req,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new CrearAlmacenCommand(
+                        empresa,
+                        req.Codigo,
+                        req.Nombre,
+                        req.Direccion,
+                        req.CodigoPostal,
+                        req.Ciudad,
+                        req.CodigoPaisIso,
+                        req.Email,
+                        req.Telefono,
+                        req.TipoFirmaConsignor),
+                    ct);
+
+                return result.ToHttpResult(
+                    dto => Results.Created(
+                        $"/api/empresas/{empresa}/almacenes/{dto.Id}",
+                        dto));
+            });
+
+
+
+
+
+
+
+
+        // SEPARACION 
 
         empresas.MapGet(
             "/{empresa}/almacenes/{almacenId:guid}/agencias",

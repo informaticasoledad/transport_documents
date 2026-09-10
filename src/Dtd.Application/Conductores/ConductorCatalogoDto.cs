@@ -13,4 +13,6 @@ public sealed record ConductorCatalogoDto
     public string? Email { get; init; }
     public string? Movil { get; init; }
     public string Language { get; init; } = "es";
+
+    public bool Activo { get; init; }
 }

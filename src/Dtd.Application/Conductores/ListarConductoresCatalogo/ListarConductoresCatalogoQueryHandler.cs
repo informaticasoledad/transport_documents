@@ -44,7 +44,8 @@ internal sealed class ListarConductoresCatalogoQueryHandler
                 Channel = c.Canal.Valor,
                 Email = c.Email?.Valor,
                 Movil = c.Movil?.Valor,
-                Language = c.Language
+                Language = c.Language,
+                Activo = c.Activo
             })
             .ToList();
 

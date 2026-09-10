@@ -13,6 +13,12 @@ internal sealed class ConductorConfiguration
 
         builder.HasKey(x => x.Id);
 
+
+        builder
+            .HasIndex(x => x.TaxId)
+            .IsUnique();
+
+
         // Catálogo global de conductores.
         // La relación con agencias es M:N mediante conductor_agencias.
         builder.Property(x => x.Nombre)

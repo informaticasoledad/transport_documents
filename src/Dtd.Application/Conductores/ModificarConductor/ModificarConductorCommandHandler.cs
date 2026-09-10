@@ -1,4 +1,5 @@
-﻿using Dtd.Domain.Common;
+﻿using Dtd.Application.Conductores.CrearConductor;
+using Dtd.Domain.Common;
 using Dtd.Domain.Conductores;
 using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
@@ -23,8 +24,8 @@ internal sealed class ModificarConductorCommandHandler
     }
 
     public async Task<ErrorOr<ConductorCatalogoDto>> Handle(
-        ModificarConductorCommand request,
-        CancellationToken cancellationToken)
+      ModificarConductorCommand request,
+      CancellationToken cancellationToken)
     {
         var conductor = await _conductorRepository.GetByIdAsync(
             request.ConductorId,
@@ -37,17 +38,42 @@ internal sealed class ModificarConductorCommandHandler
                 $"No existe el conductor '{request.ConductorId}'.");
         }
 
-        var movil = Movil.Create(request.Movil);
-        var email = Email.Create(request.Email);
+        var taxId = string.IsNullOrWhiteSpace(request.TaxId)
+            ? null
+            : request.TaxId.Trim().ToUpperInvariant();
+
+        if (taxId is not null)
+        {
+            var existeOtro = await _conductorRepository.ExistsByTaxIdExceptIdAsync(
+                taxId,
+                request.ConductorId,
+                cancellationToken);
+
+            if (existeOtro)
+            {
+                return Error.Conflict(
+                    "Conductor.TaxIdDuplicado",
+                    $"Ya existe otro conductor con NIF '{taxId}'.");
+            }
+        }
+
+        var movil = string.IsNullOrWhiteSpace(request.Movil)
+            ? null
+            : Movil.Create(request.Movil);
+
+        var email = string.IsNullOrWhiteSpace(request.Email)
+            ? null
+            : Email.Create(request.Email);
+
         var canal = Canal.Create(request.Canal);
 
         conductor.Modificar(
-            request.Nombre,
+            request.Nombre.Trim(),
             canal,
             movil,
             email,
-            request.TaxId,
-            request.LicensePlate,
+            taxId,
+            request.LicensePlate?.Trim(),
             request.Language);
 
         if (request.Activo)
@@ -62,16 +88,6 @@ internal sealed class ModificarConductorCommandHandler
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);
 
-        return new ConductorCatalogoDto
-        {
-            Id = conductor.Id,
-            Nombre = conductor.Nombre,
-            TaxId = conductor.TaxId,
-            LicensePlate = conductor.LicensePlate,
-            Channel = conductor.Canal.Valor,
-            Email = conductor.Email?.Valor,
-            Movil = conductor.Movil?.Valor,
-            Language = conductor.Language
-        };
+        return CrearConductorCommandHandler.ToDto(conductor);
     }
 }

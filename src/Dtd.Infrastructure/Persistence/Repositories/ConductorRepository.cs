@@ -63,12 +63,12 @@ internal sealed class ConductorRepository : IConductorRepository
 
         if (!string.IsNullOrWhiteSpace(texto))
         {
-            var filtro = texto.Trim();
+            var filtro = $"%{texto.Trim()}%";
 
             query = query.Where(c =>
-                c.Nombre.Contains(filtro) ||
-                (c.TaxId != null && c.TaxId.Contains(filtro)) ||
-                (c.LicensePlate != null && c.LicensePlate.Contains(filtro)));
+                EF.Functions.ILike(c.Nombre, filtro) ||
+                (c.TaxId != null && EF.Functions.ILike(c.TaxId, filtro)) ||
+                (c.LicensePlate != null && EF.Functions.ILike(c.LicensePlate, filtro)));
         }
 
         if (activo.HasValue)
@@ -77,8 +77,7 @@ internal sealed class ConductorRepository : IConductorRepository
                 c.Activo == activo.Value);
         }
 
-        var total = await query.CountAsync(
-            cancellationToken);
+        var total = await query.CountAsync(cancellationToken);
 
         var items = await query
             .OrderBy(c => c.Nombre)
@@ -150,4 +149,24 @@ internal sealed class ConductorRepository : IConductorRepository
     {
         _dbContext.Conductores.Remove(conductor);
     }
+
+    public Task<bool> ExistsByTaxIdAsync(
+    string taxId,
+    CancellationToken cancellationToken = default) =>
+    _dbContext.Conductores
+        .AsNoTracking()
+        .AnyAsync(
+            c => c.TaxId == taxId,
+            cancellationToken);
+
+    public Task<bool> ExistsByTaxIdExceptIdAsync(
+        string taxId,
+        Guid conductorId,
+        CancellationToken cancellationToken = default) =>
+        _dbContext.Conductores
+            .AsNoTracking()
+            .AnyAsync(
+                c => c.TaxId == taxId &&
+                     c.Id != conductorId,
+                cancellationToken);
 }

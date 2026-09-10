@@ -83,12 +83,12 @@ internal sealed class AgenciaRepository : IAgenciaRepository
     }
 
     public async Task<(IReadOnlyList<Agencia> Items, int Total)> BuscarAsync(
-    string? texto,
-    bool? activa,
-    bool? envioDirecto,
-    int skip,
-    int take,
-    CancellationToken cancellationToken = default)
+      string? texto,
+      bool? activa,
+      bool? envioDirecto,
+      int skip,
+      int take,
+      CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Agencias
             .AsNoTracking()
@@ -96,11 +96,11 @@ internal sealed class AgenciaRepository : IAgenciaRepository
 
         if (!string.IsNullOrWhiteSpace(texto))
         {
-            var filtro = texto.Trim();
+            var filtro = $"%{texto.Trim()}%";
 
             query = query.Where(a =>
-                a.Codigo.Contains(filtro) ||
-                a.Nombre.Contains(filtro));
+                EF.Functions.ILike(a.Codigo, filtro) ||
+                EF.Functions.ILike(a.Nombre, filtro));
         }
 
         if (activa.HasValue)

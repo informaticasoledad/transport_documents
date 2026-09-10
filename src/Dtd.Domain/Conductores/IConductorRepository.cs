@@ -64,4 +64,14 @@ public interface IConductorRepository
     /// Elimina un conductor del catálogo.
     /// </summary>
     void Remove(Conductor conductor);
+
+    Task<bool> ExistsByTaxIdAsync(
+    string taxId,
+    CancellationToken cancellationToken = default);
+
+    Task<bool> ExistsByTaxIdExceptIdAsync(
+    string taxId,
+    Guid conductorId,
+    CancellationToken cancellationToken = default);
+
 }
