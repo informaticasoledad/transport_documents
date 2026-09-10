@@ -38,6 +38,10 @@ public interface IDocumentoRepository
         Guid conductorId,
         CancellationToken cancellationToken = default);
 
+    Task<bool> ExistenPorAlmacenAsync(
+    Guid almacenId,
+    CancellationToken cancellationToken = default);
+
 
 }
 

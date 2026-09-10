@@ -1,8 +1,10 @@
 using Dtd.Application.Almacenes.CrearAlmacen;
+using Dtd.Application.Almacenes.EliminarAlmacen;
 using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
+using Dtd.Application.Almacenes.ModificarAlmacen;
 using Dtd.Application.Almacenes.ObtenerAlmacen;
 using Dtd.Application.Ccs;
 using Dtd.Application.Ccs.ListarCcsPorAlmacen;
@@ -34,6 +36,17 @@ public sealed record CrearAlmacenRequest(
     string? Email,
     string? Telefono,
     string TipoFirmaConsignor = "biometric");
+
+public sealed record ModificarAlmacenRequest(
+    string Nombre,
+    string Direccion,
+    string CodigoPostal,
+    string Ciudad,
+    string CodigoPaisIso,
+    string? Email,
+    string? Telefono,
+    string TipoFirmaConsignor,
+    bool Activo);
 
 public static class AlmacenesModule
 {
@@ -120,11 +133,52 @@ public static class AlmacenesModule
             });
 
 
+        empresas.MapPut(
+    "/{empresa}/almacenes/{almacenId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        [FromBody] ModificarAlmacenRequest req,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new ModificarAlmacenCommand(
+                empresa,
+                almacenId,
+                req.Nombre,
+                req.Direccion,
+                req.CodigoPostal,
+                req.Ciudad,
+                req.CodigoPaisIso,
+                req.Email,
+                req.Telefono,
+                req.TipoFirmaConsignor,
+                req.Activo),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
 
 
+    empresas.MapDelete(
+    "/{empresa}/almacenes/{almacenId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new EliminarAlmacenCommand(
+                empresa,
+                almacenId),
+            ct);
 
-
-
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
 
         // SEPARACION 
 

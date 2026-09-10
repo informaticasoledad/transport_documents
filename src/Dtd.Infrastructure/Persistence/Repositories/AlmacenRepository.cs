@@ -187,4 +187,17 @@ internal sealed class AlmacenRepository : IAlmacenRepository
 
         return (items, total);
     }
+
+    public Task<Almacen?> GetByIdParaActualizarAsync(
+    Guid id,
+    CancellationToken cancellationToken = default) =>
+    _dbContext.Almacenes
+        .FirstOrDefaultAsync(
+            a => a.Id == id,
+            cancellationToken);
+
+    public void Remove(Almacen almacen)
+    {
+        _dbContext.Almacenes.Remove(almacen);
+    }
 }

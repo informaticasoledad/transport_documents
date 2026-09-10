@@ -129,4 +129,16 @@ public sealed class Almacen : AggregateRoot<Guid>
 
         TipoFirmaConsignor = valor;
     }
+
+    public void ModificarNombre(string nombre)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            throw new ArgumentException(
+                "El nombre del almacén es obligatorio.",
+                nameof(nombre));
+        }
+
+        Nombre = nombre.Trim();
+    }
 }

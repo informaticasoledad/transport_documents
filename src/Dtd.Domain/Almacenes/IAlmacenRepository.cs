@@ -14,6 +14,10 @@ public interface IAlmacenRepository
         Guid id,
         CancellationToken cancellationToken = default);
 
+        Task<Almacen?> GetByIdParaActualizarAsync(
+        Guid id,
+        CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Resuelve varios almacenes por Id en una sola consulta.
     /// No filtra por Activo.
@@ -84,4 +88,6 @@ public interface IAlmacenRepository
         string empresa,
         IReadOnlyCollection<string> codigos,
         CancellationToken cancellationToken);
+
+    void Remove(Almacen almacen);
 }
