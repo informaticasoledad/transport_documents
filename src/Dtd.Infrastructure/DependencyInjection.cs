@@ -7,6 +7,7 @@ using Dtd.Domain.Ccs;
 using Dtd.Domain.Common;
 using Dtd.Domain.Conductores;
 using Dtd.Domain.Documentos;
+using Dtd.Domain.Templates;
 using Dtd.Infrastructure.Configuration;
 using Dtd.Infrastructure.Gateways;
 using Dtd.Infrastructure.Persistence;
@@ -91,6 +92,7 @@ public static class DependencyInjection
         services.AddScoped<ICcRepository, CcRepository>();
         services.AddScoped<IAlmacenRepository, AlmacenRepository>();
         services.AddScoped<IDocutenCallbackLogRepository, DocutenCallbackLogRepository>();
+        services.AddScoped<ITemplateRepository, TemplateRepository>();
 
         services.AddScoped<IDocumentReferenceGenerator,DocumentReferenceGenerator>();
 

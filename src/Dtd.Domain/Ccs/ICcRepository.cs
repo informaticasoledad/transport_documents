@@ -1,3 +1,6 @@
+using Dtd.Domain.Agencias;
+using Dtd.Domain.Almacenes;
+
 namespace Dtd.Domain.Ccs;
 
 public readonly record struct CcVinculoAlmacenAgencia(
@@ -92,4 +95,25 @@ public interface ICcRepository
         Guid almacenId,
         Guid agenciaId,
         CancellationToken cancellationToken = default);
-    }
+
+    Task AgregarDefectoAsync(
+        Guid almacenId,
+        Guid agenciaId,
+        Guid ccId,
+        CancellationToken cancellationToken = default);
+
+    Task EliminarDefectoAsync(
+         Guid almacenId,
+         Guid agenciaId,
+         Guid ccId,
+         CancellationToken cancellationToken = default);
+
+    Task AgregarVinculoAsync(
+        Guid ccId,
+        Guid almacenId,
+        Guid agenciaId,
+        bool porDefecto,
+        CancellationToken cancellationToken = default);
+
+
+}

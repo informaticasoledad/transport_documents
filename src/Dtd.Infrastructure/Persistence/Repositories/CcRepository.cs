@@ -230,6 +230,58 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                         g.Any(x => x.PorDefecto)))
                 .ToList();
 
+        public async Task AgregarDefectoAsync(
+            Guid almacenId,
+            Guid agenciaId,
+            Guid ccId,
+            CancellationToken cancellationToken = default)
+        {
+            var relacion = await _dbContext.AlmacenAgenciaCcs
+                .SingleAsync(
+                    x =>
+                        x.AlmacenId == almacenId &&
+                        x.AgenciaId == agenciaId &&
+                        x.CcId == ccId,
+                    cancellationToken);
 
+            relacion.ConfigurarPorDefecto(true);
+        }
+
+
+        public async Task EliminarDefectoAsync(
+    Guid almacenId,
+    Guid agenciaId,
+    Guid ccId,
+    CancellationToken cancellationToken = default)
+        {
+            var relacion = await _dbContext.AlmacenAgenciaCcs
+                .SingleAsync(
+                    x =>
+                        x.AlmacenId == almacenId &&
+                        x.AgenciaId == agenciaId &&
+                        x.CcId == ccId,
+                    cancellationToken);
+
+            relacion.ConfigurarPorDefecto(false);
+        }
+
+
+        public async Task AgregarVinculoAsync(
+    Guid ccId,
+    Guid almacenId,
+    Guid agenciaId,
+    bool porDefecto,
+    CancellationToken cancellationToken = default)
+        {
+            await _dbContext.AlmacenAgenciaCcs.AddAsync(
+                AlmacenAgenciaCc.Crear(
+                    almacenId,
+                    agenciaId,
+                    ccId,
+                    porDefecto),
+                cancellationToken);
+        }
     }  
+
+
 }

@@ -7,11 +7,6 @@ using MediatR;
 
 namespace Dtd.Application.Almacenes.ObtenerAgenciaBaseDefecto;
 
-public sealed record ObtenerAgenciaBaseDefectoQuery(
-    string Empresa,
-    Guid AlmacenId,
-    Guid AgenciaId)
-    : IRequest<ErrorOr<AgenciaBaseDto?>>;
 
 internal sealed class ObtenerAgenciaBaseDefectoQueryHandler
     : IRequestHandler<

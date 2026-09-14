@@ -135,4 +135,18 @@ internal sealed class DocumentoRepository : IDocumentoRepository
             .AnyAsync(
                 d => d.AlmacenId == almacenId,
                 cancellationToken);
+
+    public Task<bool> ExistenPorAlmacenYAgenciaAsync(
+        Guid almacenId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.Documentos
+            .AsNoTracking()
+            .AnyAsync(
+                x =>
+                    x.AlmacenId == almacenId &&
+                    x.AgenciaId == agenciaId,
+                cancellationToken);
+    }
 }

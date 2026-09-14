@@ -41,7 +41,10 @@ public interface IDocumentoRepository
     Task<bool> ExistenPorAlmacenAsync(
     Guid almacenId,
     CancellationToken cancellationToken = default);
-
+    Task<bool> ExistenPorAlmacenYAgenciaAsync(
+    Guid almacenId,
+    Guid agenciaId,
+    CancellationToken cancellationToken = default);
 
 }
 

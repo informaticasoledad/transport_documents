@@ -94,7 +94,7 @@ internal sealed class AlmacenRepository : IAlmacenRepository
         CancellationToken cancellationToken = default)
     {
         return _dbContext.AlmacenAgencias
-            .AsNoTracking()
+            //.AsNoTracking()
             .Include(x => x.Template)
             .FirstOrDefaultAsync(
                 x =>
@@ -199,5 +199,19 @@ internal sealed class AlmacenRepository : IAlmacenRepository
     public void Remove(Almacen almacen)
     {
         _dbContext.Almacenes.Remove(almacen);
+    }
+
+    public async Task AgregarAgenciaAsync(
+    AlmacenAgencia relacion,
+    CancellationToken cancellationToken = default)
+    {
+        await _dbContext.AlmacenAgencias.AddAsync(
+            relacion,
+            cancellationToken);
+    }
+    public void EliminarAgencia(
+    AlmacenAgencia relacion)
+    {
+        _dbContext.AlmacenAgencias.Remove(relacion);
     }
 }

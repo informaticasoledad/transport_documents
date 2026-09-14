@@ -1,18 +1,20 @@
 using Dtd.Application.Almacenes.CrearAlmacen;
 using Dtd.Application.Almacenes.EliminarAlmacen;
+using Dtd.Application.Almacenes.EliminarAlmacenAgencia;
+using Dtd.Application.Almacenes.EliminarCcDefecto;
 using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
 using Dtd.Application.Almacenes.ModificarAlmacen;
+using Dtd.Application.Almacenes.ModificarAlmacenAgencia;
 using Dtd.Application.Almacenes.ObtenerAlmacen;
-using Dtd.Application.Ccs;
+using Dtd.Application.Almacenes.VincularAlmacenAgencia;
+using Dtd.Application.Almacenes.VincularAlmacenAgenciaCc;
+using Dtd.Application.Ccs.AgregarCcDefecto;
 using Dtd.Application.Ccs.ListarCcsPorAlmacen;
 using MediatR;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Dtd.Api.Modules;
 
@@ -47,6 +49,19 @@ public sealed record ModificarAlmacenRequest(
     string? Telefono,
     string TipoFirmaConsignor,
     bool Activo);
+
+public sealed record VincularAlmacenAgenciaCcRequest(
+    Guid CcId,
+    bool PorDefecto);
+
+public sealed record VincularAlmacenAgenciaRequest(
+    Guid AgenciaId,
+    Guid TemplateId,
+    Guid? AgenciaBaseId);
+
+public sealed record ModificarAlmacenAgenciaRequest(
+    Guid TemplateId,
+    Guid? AgenciaBaseId);
 
 public static class AlmacenesModule
 {
@@ -180,25 +195,26 @@ public static class AlmacenesModule
             _ => Results.NoContent());
     });
 
-        // SEPARACION 
 
-        empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias",
-            async (
-                string empresa,
-                Guid almacenId,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarAgenciasPorAlmacenQuery(
-                        empresa,
-                        almacenId),
-                    ct);
 
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
+    empresas.MapGet(
+        "/{empresa}/almacenes/{almacenId:guid}/agencias",
+        async (
+            string empresa,
+            Guid almacenId,
+            IMediator mediator,
+            CancellationToken ct) =>
+        {
+            var result = await mediator.Send(
+                new ListarAgenciasPorAlmacenQuery(
+                    empresa,
+                    almacenId),
+                ct);
+
+            return result.ToHttpResult(
+                list => Results.Ok(list));
+        });
+
 
         empresas.MapGet(
             "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-base",
@@ -220,30 +236,7 @@ public static class AlmacenesModule
                     dto => Results.Ok(dto));
             });
 
-        empresas.MapPost(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-base",
-            async (
-                string empresa,
-                Guid almacenId,
-                Guid agenciaId,
-                [FromBody] EstablecerAgenciaBaseRequest req,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var command =
-                    new EstablecerAgenciaBaseCommand(
-                        empresa,
-                        almacenId,
-                        agenciaId,
-                        req.AgenciaBaseId);
 
-                var result = await mediator.Send(
-                    command,
-                    ct);
-
-                return result.ToHttpResult(
-                    dto => Results.Ok(dto));
-            });
 
         empresas.MapPut(
             "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/agencia-base",
@@ -270,7 +263,8 @@ public static class AlmacenesModule
                     dto => Results.Ok(dto));
             });
 
-        empresas.MapGet(
+
+                empresas.MapGet(
             "/{empresa}/almacenes/{almacenId:guid}/ccs",
             async (
                 string empresa,
@@ -288,8 +282,145 @@ public static class AlmacenesModule
                     list => Results.Ok(list));
             });
 
+        empresas.MapPost(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        [FromBody] VincularAlmacenAgenciaCcRequest req,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new VincularAlmacenAgenciaCcCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                req.CcId,
+                req.PorDefecto),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
+
         empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs-default",
+         "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs-default",
+         async (
+             string empresa,
+             Guid almacenId,
+             Guid agenciaId,
+             IMediator mediator,
+             CancellationToken ct) =>
+         {
+             var result = await mediator.Send(
+                 new ListarCcsDefectoQuery(
+                     empresa,
+                     almacenId,
+                     agenciaId),
+                 ct);
+
+             return result.ToHttpResult(
+                 list => Results.Ok(list));
+         });
+
+    
+
+        empresas.MapPost(
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs-default/{ccId:guid}",
+            async (
+                string empresa,
+                Guid almacenId,
+                Guid agenciaId,
+                Guid ccId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new AgregarCcDefectoCommand(
+                        empresa,
+                        almacenId,
+                        agenciaId,
+                        ccId),
+                    ct);
+
+                return result.ToHttpResult(
+                    dto => Results.Ok(dto));
+            });
+
+
+        empresas.MapDelete(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs-default/{ccId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        Guid ccId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new EliminarCcDefectoCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                ccId),
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
+
+
+        empresas.MapPost(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias",
+    async (
+        string empresa,
+        Guid almacenId,
+        [FromBody] VincularAlmacenAgenciaRequest req,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new VincularAlmacenAgenciaCommand(
+                empresa,
+                almacenId,
+                req.AgenciaId,
+                req.TemplateId,
+                req.AgenciaBaseId),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
+
+        empresas.MapPut(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        [FromBody] ModificarAlmacenAgenciaRequest req,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new ModificarAlmacenAgenciaCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                req.TemplateId,
+                req.AgenciaBaseId),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
+
+
+        empresas.MapDelete(
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}",
             async (
                 string empresa,
                 Guid almacenId,
@@ -298,41 +429,17 @@ public static class AlmacenesModule
                 CancellationToken ct) =>
             {
                 var result = await mediator.Send(
-                    new ListarCcsDefectoQuery(
+                    new EliminarAlmacenAgenciaCommand(
                         empresa,
                         almacenId,
                         agenciaId),
                     ct);
 
                 return result.ToHttpResult(
-                    list => Results.Ok(list));
+                    _ => Results.NoContent());
             });
-
-        empresas.MapPost(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs-default",
-            async (
-                string empresa,
-                Guid almacenId,
-                Guid agenciaId,
-                [FromBody] EstablecerCcsDefectoRequest req,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var command =
-                    new EstablecerCcsDefectoCommand(
-                        empresa,
-                        almacenId,
-                        agenciaId,
-                        req.CcIds);
-
-                var result = await mediator.Send(
-                    command,
-                    ct);
-
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
-
         return app;
     }
+
+
 }

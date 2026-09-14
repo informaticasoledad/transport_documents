@@ -1,4 +1,5 @@
-using Dtd.Application.Almacenes;
+﻿using Dtd.Application.Almacenes;
+using Dtd.Application.Almacenes.EliminarCcDefecto;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
@@ -6,27 +7,12 @@ using Dtd.Domain.Common;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Ccs;
+namespace Dtd.Application.Ccs.EliminarCcDefecto;
 
-/// <summary>
-/// Sustituye los CCs por defecto de una tupla (empresa, almacén, agencia) por los indicados
-/// (replace de <c>almacen_agencia_ccs_defecto</c> para esa tupla).
-/// Una lista vacía limpia los defaults.
-/// <b>All-or-nothing:</b> antes de mutar valida que cada <c>ccId</c> exista y esté
-/// vinculado a ambos, almacén y agencia.
-/// </summary>
-/// <returns>La lista de <see cref="CcCatalogoDto"/> de los defaults efectivos.</returns>
-public sealed record EstablecerCcsDefectoCommand(
-    string Empresa,
-    Guid AlmacenId,
-    Guid AgenciaId,
-    IReadOnlyList<Guid> CcIds)
-    : IRequest<ErrorOr<IReadOnlyList<CcCatalogoDto>>>;
-
-internal sealed class EstablecerCcsDefectoCommandHandler
+internal sealed class EliminarCcDefectoCommandHandler
     : IRequestHandler<
-        EstablecerCcsDefectoCommand,
-        ErrorOr<IReadOnlyList<CcCatalogoDto>>>
+        EliminarCcDefectoCommand,
+        ErrorOr<Success>>
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
@@ -34,7 +20,7 @@ internal sealed class EstablecerCcsDefectoCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
 
-    public EstablecerCcsDefectoCommandHandler(
+    public EliminarCcDefectoCommandHandler(
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         ICcRepository ccRepository,
@@ -48,8 +34,8 @@ internal sealed class EstablecerCcsDefectoCommandHandler
         _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<CcCatalogoDto>>> Handle(
-        EstablecerCcsDefectoCommand request,
+    public async Task<ErrorOr<Success>> Handle(
+        EliminarCcDefectoCommand request,
         CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
@@ -103,48 +89,31 @@ internal sealed class EstablecerCcsDefectoCommandHandler
                 $"(empresa '{empresa}').");
         }
 
-        // All-or-nothing: valida todos los CCs antes de mutar.
-        var idsUnicos = request.CcIds
-            .Where(id => id != Guid.Empty)
-            .Distinct()
-            .ToList();
+        var cc =
+            await _ccRepository.GetByAlmacenYAgenciaEIdAsync(
+                almacen.Id,
+                agencia.Id,
+                request.CcId,
+                cancellationToken);
 
-        foreach (var id in idsUnicos)
+        if (cc is null)
         {
-            var cc =
-                await _ccRepository.GetByAlmacenYAgenciaEIdAsync(
-                    almacen.Id,
-                    agencia.Id,
-                    id,
-                    cancellationToken);
-
-            if (cc is null)
-            {
-                return Error.NotFound(
-                    "Cc.NoVinculado",
-                    $"El CC '{id}' no está vinculado al almacén " +
-                    $"'{request.AlmacenId}' y la agencia " +
-                    $"'{request.AgenciaId}'.");
-            }
+            return Error.NotFound(
+                "Cc.NoVinculado",
+                $"El CC '{request.CcId}' no está vinculado al almacén " +
+                $"'{request.AlmacenId}' y la agencia " +
+                $"'{request.AgenciaId}'.");
         }
 
-        await _ccRepository.SetDefectosAsync(
+        await _ccRepository.EliminarDefectoAsync(
             almacen.Id,
             agencia.Id,
-            idsUnicos,
+            cc.Id,
             cancellationToken);
 
         await _unitOfWork.SaveChangesAsync(
             cancellationToken);
 
-        var defaults =
-            await _ccRepository.ObtenerCcsDefectoAsync(
-                almacen.Id,
-                agencia.Id,
-                cancellationToken);
-
-        return defaults
-            .Select(CrearCcCommandHandler.ToDto)
-            .ToList();
+        return Result.Success;
     }
 }

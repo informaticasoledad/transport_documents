@@ -90,4 +90,11 @@ public interface IAlmacenRepository
         CancellationToken cancellationToken);
 
     void Remove(Almacen almacen);
+
+    Task AgregarAgenciaAsync(
+    AlmacenAgencia relacion,
+    CancellationToken cancellationToken = default);
+
+    void EliminarAgencia(
+    AlmacenAgencia relacion);
 }

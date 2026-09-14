@@ -13,3 +13,10 @@ public sealed record AlmacenDto(
     string? Email,
     string? Telefono);
 public sealed record AgenciaDto(Guid Id, string Codigo, string Nombre);
+
+
+public sealed record AlmacenAgenciaDto(
+    Guid AlmacenId,
+    Guid AgenciaId,
+    Guid TemplateId,
+    Guid? AgenciaBaseId);
