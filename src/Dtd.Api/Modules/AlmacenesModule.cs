@@ -13,6 +13,7 @@ using Dtd.Application.Almacenes.VincularAlmacenAgencia;
 using Dtd.Application.Almacenes.VincularAlmacenAgenciaCc;
 using Dtd.Application.Ccs.AgregarCcDefecto;
 using Dtd.Application.Ccs.ListarCcsPorAlmacen;
+using Dtd.Application.Conductores.ListarConductoresDefault;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -438,6 +439,30 @@ public static class AlmacenesModule
                 return result.ToHttpResult(
                     _ => Results.NoContent());
             });
+
+
+
+        // Conductores por defecto de almacén + agencia.
+        empresas.MapGet(
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/conductores-default",
+            async (
+                string empresa,
+                Guid almacenId,
+                Guid agenciaId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new ListarConductoresDefaultQuery(
+                        empresa,
+                        almacenId,
+                        agenciaId),
+                    ct);
+
+                return result.ToHttpResult(
+                    list => Results.Ok(list));
+            });
+
         return app;
     }
 

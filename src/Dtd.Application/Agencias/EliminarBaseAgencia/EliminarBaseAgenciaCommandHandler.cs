@@ -4,18 +4,18 @@ using Dtd.Domain.Documentos;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Agencias.EliminarAgencia;
+namespace Dtd.Application.Agencias.EliminarBaseAgencia;
 
-internal sealed class EliminarAgenciaCommandHandler
+internal sealed class EliminarBaseAgenciaCommandHandler
     : IRequestHandler<
-        EliminarAgenciaCommand,
+        EliminarBaseAgenciaCommand,
         ErrorOr<Deleted>>
 {
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IUnitOfWork _unitOfWork;
 
-    public EliminarAgenciaCommandHandler(
+    public EliminarBaseAgenciaCommandHandler(
         IAgenciaRepository agenciaRepository,
         IDocumentoRepository documentoRepository,
         IUnitOfWork unitOfWork)
@@ -26,7 +26,7 @@ internal sealed class EliminarAgenciaCommandHandler
     }
 
     public async Task<ErrorOr<Deleted>> Handle(
-        EliminarAgenciaCommand request,
+        EliminarBaseAgenciaCommand request,
         CancellationToken cancellationToken)
     {
         var agencia =
@@ -41,26 +41,18 @@ internal sealed class EliminarAgenciaCommandHandler
                 $"No existe la agencia '{request.AgenciaId}'.");
         }
 
-        if (agencia.Bases.Count > 0)
+        var baseAgencia = agencia.Bases
+            .FirstOrDefault(b => b.Id == request.BaseId);
+
+        if (baseAgencia is null)
         {
-            return Error.Conflict(
-                "Agencia.TieneBases",
-                "No se puede eliminar la agencia porque tiene bases asociadas.");
+            return Error.NotFound(
+                "AgenciaBase.NoEncontrada",
+                $"No existe la base '{request.BaseId}' en la agencia indicada.");
         }
 
-        var tieneDocumentos =
-            await _documentoRepository.ExistePorAgenciaAsync(
-                request.AgenciaId,
-                cancellationToken);
 
-        if (tieneDocumentos)
-        {
-            return Error.Conflict(
-                "Agencia.EnUso",
-                "No se puede eliminar la agencia porque tiene documentos asociados.");
-        }
-
-        _agenciaRepository.Remove(agencia);
+        agencia.EliminarBase(request.BaseId);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

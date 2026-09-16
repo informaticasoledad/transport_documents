@@ -13,6 +13,9 @@ internal sealed class AgenciaBaseConfiguration
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
+
         builder.Property(x => x.AgenciaId)
             .IsRequired();
 

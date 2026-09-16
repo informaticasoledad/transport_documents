@@ -1,4 +1,5 @@
 using Dtd.Domain.Common;
+using Dtd.Domain.Documentos.ValueObjects;
 
 namespace Dtd.Domain.Agencias;
 
@@ -111,5 +112,102 @@ public sealed class Agencia : AggregateRoot<Guid>
         Nombre = nombre.Trim();
         AgenciaQs = agenciaQs?.Trim();
         EnvioDirecto = envioDirecto;
+    }
+
+    public AgenciaBase AgregarBase(
+    string codigo,
+    string nombre,
+    Canal canal,
+    Movil? movil,
+    Email? email,
+    string? taxId = null,
+    string language = "es",
+    string? direccion = null,
+    string? codigoPostal = null,
+    string? municipio = null,
+    string? codigoPaisIso = null)
+    {
+        var codigoNormalizado = codigo.Trim();
+
+        if (_bases.Any(b =>
+            b.Codigo.Equals(
+                codigoNormalizado,
+                StringComparison.OrdinalIgnoreCase)))
+        {
+            throw new ArgumentException(
+                $"Ya existe una base con el código '{codigoNormalizado}'.",
+                nameof(codigo));
+        }
+
+        var baseAgencia = new AgenciaBase(
+            Id,
+            codigoNormalizado,
+            nombre,
+            canal,
+            movil,
+            email,
+            taxId,
+            language,
+            direccion,
+            codigoPostal,
+            municipio,
+            codigoPaisIso);
+
+        _bases.Add(baseAgencia);
+
+        return baseAgencia;
+    }
+
+    public AgenciaBase ModificarBase(
+    Guid baseId,
+    string nombre,
+    string? taxId,
+    Canal canal,
+    Movil? movil,
+    Email? email,
+    string language,
+    string? direccion = null,
+    string? codigoPostal = null,
+    string? municipio = null,
+    string? codigoPaisIso = null)
+    {
+        var baseAgencia = _bases
+            .FirstOrDefault(b => b.Id == baseId);
+
+        if (baseAgencia is null)
+        {
+            throw new ArgumentException(
+                "La base indicada no pertenece a la agencia.",
+                nameof(baseId));
+        }
+
+        baseAgencia.Actualizar(
+            nombre,
+            taxId,
+            canal,
+            movil,
+            email,
+            language,
+            direccion,
+            codigoPostal,
+            municipio,
+            codigoPaisIso);
+
+        return baseAgencia;
+    }
+
+    public void EliminarBase(Guid baseId)
+    {
+        var baseAgencia = _bases
+            .FirstOrDefault(b => b.Id == baseId);
+
+        if (baseAgencia is null)
+        {
+            throw new ArgumentException(
+                "La base indicada no pertenece a la agencia.",
+                nameof(baseId));
+        }
+
+        _bases.Remove(baseAgencia);
     }
 }

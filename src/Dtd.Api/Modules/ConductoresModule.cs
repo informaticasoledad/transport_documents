@@ -133,50 +133,6 @@ public static class ConductoresModule
                     _ => Results.NoContent());
             });
 
-        var agencias = api
-            .MapGroup("/agencias")
-            .WithTags("Conductores");
-
-        // Conductores activos vinculados a una agencia.
-        agencias.MapGet(
-            "/{agenciaId:guid}/conductores",
-            async (
-                Guid agenciaId,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarConductoresQuery(agenciaId),
-                    ct);
-
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
-
-        var empresas = api
-            .MapGroup("/empresas")
-            .WithTags("Conductores");
-
-        // Conductores por defecto de almacén + agencia.
-        empresas.MapGet(
-            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/conductores-default",
-            async (
-                string empresa,
-                Guid almacenId,
-                Guid agenciaId,
-                IMediator mediator,
-                CancellationToken ct) =>
-            {
-                var result = await mediator.Send(
-                    new ListarConductoresDefaultQuery(
-                        empresa,
-                        almacenId,
-                        agenciaId),
-                    ct);
-
-                return result.ToHttpResult(
-                    list => Results.Ok(list));
-            });
 
         return app;
     }
