@@ -38,6 +38,7 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
     {
         var empresa = request.Empresa.Trim();
 
+        // 1. Almacén
         var almacen = await _almacenRepository.GetByIdAsync(
             request.AlmacenId,
             cancellationToken);
@@ -61,6 +62,7 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
             return accesoAlmacen.Errors;
         }
 
+        // 2. Agencia + bases
         var agencia = await _agenciaRepository.GetByIdConBasesAsync(
             request.AgenciaId,
             cancellationToken);
@@ -72,6 +74,7 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
                 $"No existe la agencia '{request.AgenciaId}'.");
         }
 
+        // 3. Relación almacén-agencia
         var relacion =
             await _almacenRepository.GetRelacionAgenciaAsync(
                 almacen.Id,
@@ -86,6 +89,7 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
                 $"al almacén '{almacen.Codigo}'.");
         }
 
+        // 4. Template
         if (request.TemplateId == Guid.Empty)
         {
             return Error.Validation(
@@ -119,10 +123,12 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
                 $"El template '{request.TemplateId}' no está activo.");
         }
 
+        // 5. Agencia base según EnvioDirecto
         Guid? agenciaBaseId = request.AgenciaBaseId;
 
         if (agencia.EnvioDirecto)
         {
+            // En envío directo no debe existir base configurada.
             if (agenciaBaseId is not null &&
                 agenciaBaseId != Guid.Empty)
             {
@@ -136,6 +142,7 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
         }
         else
         {
+            // Si no es envío directo, la base es obligatoria.
             if (agenciaBaseId is null ||
                 agenciaBaseId == Guid.Empty)
             {
@@ -145,18 +152,20 @@ internal sealed class ModificarAlmacenAgenciaCommandHandler
                     "y requiere una base.");
             }
 
-            var baseValida = agencia.Bases
-                .Any(x => x.Id == agenciaBaseId.Value);
+            var baseValida = agencia.Bases.Any(x =>
+                x.Id == agenciaBaseId.Value &&
+                x.Activo);
 
             if (!baseValida)
             {
                 return Error.Validation(
                     "Almacen.AgenciaBaseNoValida",
-                    $"La base '{agenciaBaseId}' no pertenece " +
-                    $"a la agencia '{agencia.Codigo}'.");
+                    $"La base '{agenciaBaseId}' no pertenece a la agencia " +
+                    $"'{agencia.Codigo}' o no está activa.");
             }
         }
 
+        // 6. Aplicar cambios
         relacion.CambiarTemplate(template.Id);
         relacion.ConfigurarAgenciaBase(agenciaBaseId);
 

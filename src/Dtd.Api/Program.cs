@@ -80,6 +80,7 @@ builder.Services.AddAgenciasModule();
 builder.Services.AddConductoresModule();
 builder.Services.AddCcsModule();
 builder.Services.AddDocutenModule();
+builder.Services.AddTemplatesModule();
 
 var app = builder.Build();
 
@@ -120,5 +121,7 @@ app.MapAgenciasEndpoints();
 app.MapConductoresEndpoints();
 app.MapCcsEndpoints();
 app.MapDocutenEndpoints();
+app.MapTemplatesEndpoints();
+
 
 app.Run();
