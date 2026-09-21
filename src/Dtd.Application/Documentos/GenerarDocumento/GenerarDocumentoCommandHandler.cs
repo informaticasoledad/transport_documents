@@ -280,12 +280,11 @@ internal sealed class GenerarDocumentoCommandHandler
 
             if (expediciones.Count == 0)
             {
-                return Error.NotFound(
+                return Error.Validation(
                     "Documento.SinExpediciones",
                     "No existen expediciones en el ERP " +
                     "para el rango y agencia indicados.");
             }
-
             return ErrorOrFactory
                 .From<IReadOnlyList<ExpedicionErpDto>>(
                     expediciones);
