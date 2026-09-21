@@ -227,7 +227,6 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         }
 
         _envios.Add(envio);
-
         return Result.Success;
     }
 
