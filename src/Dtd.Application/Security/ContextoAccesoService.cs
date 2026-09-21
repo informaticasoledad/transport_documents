@@ -1,4 +1,5 @@
 ﻿using Dtd.Application.Almacenes;
+using Dtd.Application.Common.Security;
 using Dtd.Domain.Almacenes;
 using ErrorOr;
 using Microsoft.Extensions.Caching.Memory;
@@ -8,18 +9,18 @@ namespace Dtd.Application.Security;
 internal sealed class ContextoAccesoService : IContextoAccesoService
 {
     private readonly IUsuarioContexto _usuarioContexto;
-    private readonly IUsuarioAlmacenesProvider _usuarioAlmacenesProvider;
+    private readonly IUserPermissionService _userPermissionService;
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IMemoryCache _cache;
 
     public ContextoAccesoService(
         IUsuarioContexto usuarioContexto,
-        IUsuarioAlmacenesProvider usuarioAlmacenesProvider,
+        IUserPermissionService userPermissionService,
         IAlmacenRepository almacenRepository,
         IMemoryCache cache)
     {
         _usuarioContexto = usuarioContexto;
-        _usuarioAlmacenesProvider = usuarioAlmacenesProvider;
+        _userPermissionService = userPermissionService;
         _almacenRepository = almacenRepository;
         _cache = cache;
     }
@@ -47,15 +48,16 @@ internal sealed class ContextoAccesoService : IContextoAccesoService
         var empresaNormalizada = empresa.Trim();
         var cacheKey = $"acceso:{usuario.Id}:{empresaNormalizada}";
 
-        if (_cache.TryGetValue<ContextoAcceso>(cacheKey, out var contextoCacheado) &&
+        if (_cache.TryGetValue<ContextoAcceso>(
+                cacheKey,
+                out var contextoCacheado) &&
             contextoCacheado is not null)
         {
             return contextoCacheado.ToErrorOr();
         }
 
         var codigosPermitidos =
-            await _usuarioAlmacenesProvider.ObtenerAlmacenesPermitidosAsync(
-                usuario.Username,
+            await _userPermissionService.GetAllowedWarehousesAsync(
                 empresaNormalizada,
                 cancellationToken);
 
@@ -66,10 +68,11 @@ internal sealed class ContextoAccesoService : IContextoAccesoService
                 $"El usuario no tiene almacenes autorizados para la empresa '{empresaNormalizada}'.");
         }
 
-        var almacenes = await _almacenRepository.ObtenerPorCodigosAsync(
-            empresaNormalizada,
-            codigosPermitidos,
-            cancellationToken);
+        var almacenes =
+            await _almacenRepository.ObtenerPorCodigosAsync(
+                empresaNormalizada,
+                codigosPermitidos,
+                cancellationToken);
 
         var ids = almacenes
             .Select(a => a.Id)

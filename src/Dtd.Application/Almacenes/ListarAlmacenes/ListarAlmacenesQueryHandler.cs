@@ -10,14 +10,12 @@ internal sealed class ListarAlmacenesQueryHandler
         ErrorOr<AlmacenesPaginadosDto>>
 {
     private readonly IAlmacenRepository _almacenRepository;
-    private readonly IAccesoAlmacenService _accesoAlmacenService;
 
     public ListarAlmacenesQueryHandler(
-        IAlmacenRepository almacenRepository,
-        IAccesoAlmacenService accesoAlmacenService)
+        IAlmacenRepository almacenRepository
+    )   
     {
         _almacenRepository = almacenRepository;
-        _accesoAlmacenService = accesoAlmacenService;
     }
 
     public async Task<ErrorOr<AlmacenesPaginadosDto>> Handle(
@@ -37,35 +35,12 @@ internal sealed class ListarAlmacenesQueryHandler
             _ => request.PageSize
         };
 
-        var almacenesPermitidos =
-            await _accesoAlmacenService.ObtenerAlmacenesPermitidosAsync(
-                empresa,
-                cancellationToken);
-
-        if (almacenesPermitidos.IsError)
-        {
-            return almacenesPermitidos.Errors;
-        }
-
-        var idsPermitidos = almacenesPermitidos.Value;
-
-        if (idsPermitidos.Count == 0)
-        {
-            return new AlmacenesPaginadosDto
-            {
-                Items = [],
-                Total = 0,
-                Page = page,
-                PageSize = pageSize
-            };
-        }
-
         var skip = (page - 1) * pageSize;
 
         var (items, total) =
             await _almacenRepository.BuscarAsync(
                 empresa,
-                idsPermitidos,
+                null,
                 request.Texto,
                 request.Activo,
                 skip,

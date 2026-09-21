@@ -5,6 +5,7 @@ using Dtd.Application.Almacenes.EliminarCcDefecto;
 using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
+using Dtd.Application.Almacenes.ListarAlmacenesPermitidos;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
 using Dtd.Application.Almacenes.ModificarAlmacen;
 using Dtd.Application.Almacenes.ModificarAlmacenAgencia;
@@ -463,6 +464,20 @@ public static class AlmacenesModule
                     list => Results.Ok(list));
             });
 
+        empresas.MapGet(
+    "/{empresa}/almacenes/permitidos",
+    async (
+        string empresa,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new ListarAlmacenesPermitidosQuery(empresa),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
         return app;
     }
 

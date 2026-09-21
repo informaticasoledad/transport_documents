@@ -1,4 +1,5 @@
 using Dtd.Application.Almacenes;
+using Dtd.Application.Common.Security;
 using Dtd.Application.Documentos.Contracts;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.Agencias;
@@ -131,7 +132,16 @@ public static class DependencyInjection
                 .AddStandardResilienceHandler();
         }
 
-        services.AddScoped<IUsuarioAlmacenesProvider, MockUsuarioAlmacenesProvider>();
+        services.AddScoped<IUserPermissionService, UserPermissionService>();
+
+        services.AddMemoryCache();
+
+        services.AddHttpContextAccessor();
+
+        services.AddHttpClient<IUserPermissionService, UserPermissionService>(client =>
+        {
+            client.BaseAddress = new Uri("https://ws.gruposoledad.com/sga");
+        });
 
         return services;
     }

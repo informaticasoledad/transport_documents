@@ -141,24 +141,31 @@ internal sealed class AlmacenRepository : IAlmacenRepository
     }
 
     public async Task<(IReadOnlyList<Almacen> Items, int Total)> BuscarAsync(
-    string empresa,
-    IReadOnlyCollection<Guid> idsPermitidos,
-    string? texto,
-    bool? activo,
-    int skip,
-    int take,
-    CancellationToken cancellationToken = default)
+     string empresa,
+     IReadOnlyCollection<Guid>? idsPermitidos,
+     string? texto,
+     bool? activo,
+     int skip,
+     int take,
+     CancellationToken cancellationToken = default)
     {
-        if (idsPermitidos.Count == 0)
+        // Si se ha solicitado filtrar por permisos pero no hay ninguno,
+        // no debe devolverse ningún almacén.
+        if (idsPermitidos is not null && idsPermitidos.Count == 0)
         {
             return (Array.Empty<Almacen>(), 0);
         }
 
         var query = _dbContext.Almacenes
             .AsNoTracking()
-            .Where(a =>
-                a.Empresa == empresa &&
+            .Where(a => a.Empresa == empresa);
+
+        // null = sin filtro de permisos.
+        if (idsPermitidos is not null)
+        {
+            query = query.Where(a =>
                 idsPermitidos.Contains(a.Id));
+        }
 
         if (!string.IsNullOrWhiteSpace(texto))
         {
