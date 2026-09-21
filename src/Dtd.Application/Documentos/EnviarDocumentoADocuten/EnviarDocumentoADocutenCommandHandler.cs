@@ -172,9 +172,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 
         try
         {
-            envio = await _docutenGateway.EnviarAsync(
-                lote,
-                cancellationToken);
+            envio = await _docutenGateway.EnviarAsync(lote,  cancellationToken);
         }
         catch (Exception ex)
         {
@@ -191,16 +189,12 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 "Queda registrado el intento y el documento se puede reintentar.");
         }
 
-        documento.ConfirmarEnvioADocuten(
-            envio.LotId,
-            envio.Estado);
+        
+        documento.ConfirmarEnvioADocuten(envio.LotId, envio.Estado);
 
         foreach (var shipment in envio.Shipments)
         {
-            documento.ConfirmarEnvioPlataforma(
-                shipment.ShipmentReference ?? string.Empty,
-                shipment.ShipmentId,
-                shipment.ShipmentStatus);
+          documento.ConfirmarEnvioPlataforma(shipment.ShipmentReference ?? string.Empty, shipment.ShipmentId, shipment.ShipmentStatus);
         }
 
         await _unitOfWork.SaveChangesAsync(
@@ -208,7 +202,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 
         return new DocumentoEnviadoDto(
             documento.Id,
-            envio.LotId,
-            envio.Estado);
+            "loteId", //superojazo envio.LotId,
+            ""); //superojazo envio.Estado
     }
 }

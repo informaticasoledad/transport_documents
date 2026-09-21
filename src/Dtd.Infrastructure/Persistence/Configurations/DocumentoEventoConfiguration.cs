@@ -1,20 +1,18 @@
 ﻿using Dtd.Domain.Documentos;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-
-namespace Dtd.Infrastructure.Persistence.Configurations;
-
-internal sealed class DocumentoEventoConfiguration: IEntityTypeConfiguration<DocumentoEvento>
+internal sealed class DocumentoEventoConfiguration
+    : IEntityTypeConfiguration<DocumentoEvento>
 {
     public void Configure(EntityTypeBuilder<DocumentoEvento> builder)
     {
         builder.ToTable("documento_eventos");
 
         builder.HasKey(x => x.Id);
+
+        builder.Property(x => x.Id)
+            .ValueGeneratedNever();
 
         builder.Property(x => x.DocumentoId)
             .IsRequired();

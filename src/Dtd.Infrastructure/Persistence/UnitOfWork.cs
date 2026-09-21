@@ -1,5 +1,6 @@
 using Dtd.Application.Events;
 using Dtd.Domain.Common;
+using Dtd.Domain.Documentos;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,6 +21,7 @@ internal sealed class UnitOfWork : IUnitOfWork
         _mediator = mediator;
     }
 
+    
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var aggregates = _dbContext.ChangeTracker
@@ -34,7 +36,6 @@ internal sealed class UnitOfWork : IUnitOfWork
 
         return result;
     }
-
     private async Task DispatchDomainEventsAsync(IReadOnlyCollection<AggregateRoot<Guid>> aggregates, CancellationToken cancellationToken)
     {
         foreach (var aggregate in aggregates)
