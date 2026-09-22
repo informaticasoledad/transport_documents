@@ -4,15 +4,20 @@ using Dtd.Domain.Conductores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Dtd.Infrastructure.Persistence.Configurations;
-
 internal sealed class AlmacenAgenciaConductorDefectoConfiguration
     : IEntityTypeConfiguration<AlmacenAgenciaConductorDefecto>
 {
-    public void Configure(EntityTypeBuilder<AlmacenAgenciaConductorDefecto> builder)
+    public void Configure(
+        EntityTypeBuilder<AlmacenAgenciaConductorDefecto> builder)
     {
         builder.ToTable("almacen_agencia_conductores_defecto");
-        builder.HasKey(x => new { x.AlmacenId, x.AgenciaId, x.ConductorId });
+
+        builder.HasKey(x => new
+        {
+            x.AlmacenId,
+            x.AgenciaId,
+            x.ConductorId
+        });
 
         builder.HasOne<Almacen>()
             .WithMany()
@@ -29,7 +34,6 @@ internal sealed class AlmacenAgenciaConductorDefectoConfiguration
             .HasForeignKey(x => x.ConductorId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        // Índice sobre conductor_id para el delete en cascada.
         builder.HasIndex(x => x.ConductorId);
     }
 }

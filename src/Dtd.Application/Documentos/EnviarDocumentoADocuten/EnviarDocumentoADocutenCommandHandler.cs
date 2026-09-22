@@ -63,7 +63,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 "Documento.NoEncontrado",
                 $"No existe el documento '{request.DocumentoId}'.");
         }
-
+        /*
         var accesoAlmacen =
             await _accesoAlmacenService.ValidarAccesoAsync(
                 documento.Empresa,
@@ -73,7 +73,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         if (accesoAlmacen.IsError)
         {
             return accesoAlmacen.Errors;
-        }
+        }*/
 
         // Reglas de "listo para enviar" (única fuente de verdad en el agregado):
         // estado Nuevo, al menos una expedición, al menos un conductor

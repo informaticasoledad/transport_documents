@@ -1,12 +1,15 @@
+using Dtd.Application.Almacenes.AgregarConductorDefecto;
 using Dtd.Application.Almacenes.CrearAlmacen;
 using Dtd.Application.Almacenes.EliminarAlmacen;
 using Dtd.Application.Almacenes.EliminarAlmacenAgencia;
 using Dtd.Application.Almacenes.EliminarCcDefecto;
+using Dtd.Application.Almacenes.EliminarConductorDefecto;
 using Dtd.Application.Almacenes.EstablecerAgenciaBase;
 using Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 using Dtd.Application.Almacenes.ListarAlmacenes;
 using Dtd.Application.Almacenes.ListarAlmacenesPermitidos;
 using Dtd.Application.Almacenes.ListarCcsDefecto;
+using Dtd.Application.Almacenes.ListarCcsPorAlmacenAgencia;
 using Dtd.Application.Almacenes.ModificarAlmacen;
 using Dtd.Application.Almacenes.ModificarAlmacenAgencia;
 using Dtd.Application.Almacenes.ObtenerAlmacen;
@@ -265,7 +268,7 @@ public static class AlmacenesModule
                     dto => Results.Ok(dto));
             });
 
-
+        /*
                 empresas.MapGet(
             "/{empresa}/almacenes/{almacenId:guid}/ccs",
             async (
@@ -283,7 +286,7 @@ public static class AlmacenesModule
                 return result.ToHttpResult(
                     list => Results.Ok(list));
             });
-
+        */
         empresas.MapPost(
     "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs",
     async (
@@ -305,6 +308,27 @@ public static class AlmacenesModule
 
         return result.ToHttpResult(
             dto => Results.Ok(dto));
+    });
+
+
+        empresas.MapGet(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new ListarCcsPorAlmacenAgenciaQuery(
+                empresa,
+                almacenId,
+                agenciaId),
+            ct);
+
+        return result.ToHttpResult(
+            list => Results.Ok(list));
     });
 
         empresas.MapGet(
@@ -463,6 +487,51 @@ public static class AlmacenesModule
                 return result.ToHttpResult(
                     list => Results.Ok(list));
             });
+
+
+        empresas.MapPost(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/conductores-default/{conductorId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        Guid conductorId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new AgregarConductorDefectoCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                conductorId),
+            ct);
+
+        return result.ToHttpResult(
+            dto => Results.Ok(dto));
+    });
+
+        empresas.MapDelete(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/conductores-default/{conductorId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        Guid conductorId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new EliminarConductorDefectoCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                conductorId),
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
 
         empresas.MapGet(
     "/{empresa}/almacenes/permitidos",

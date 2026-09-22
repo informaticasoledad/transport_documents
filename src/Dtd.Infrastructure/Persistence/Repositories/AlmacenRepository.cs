@@ -1,5 +1,6 @@
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
+using Dtd.Domain.Ccs;
 using Microsoft.EntityFrameworkCore;
 
 namespace Dtd.Infrastructure.Persistence.Repositories;
@@ -94,8 +95,8 @@ internal sealed class AlmacenRepository : IAlmacenRepository
         CancellationToken cancellationToken = default)
     {
         return _dbContext.AlmacenAgencias
-            //.AsNoTracking()
             .Include(x => x.Template)
+            .Include(x => x.ConductoresDefecto)
             .FirstOrDefaultAsync(
                 x =>
                     x.AlmacenId == almacenId &&
@@ -220,5 +221,22 @@ internal sealed class AlmacenRepository : IAlmacenRepository
     AlmacenAgencia relacion)
     {
         _dbContext.AlmacenAgencias.Remove(relacion);
+    }
+
+    public async Task<IReadOnlyList<Cc>> ListarCcsPorAlmacenAgenciaAsync(
+    Guid almacenId,
+    Guid agenciaId,
+    CancellationToken cancellationToken = default)
+    {
+        return await (
+            from vinculo in _dbContext.AlmacenAgenciaCcs.AsNoTracking()
+            join cc in _dbContext.Ccs.AsNoTracking()
+                on vinculo.CcId equals cc.Id
+            where
+                vinculo.AlmacenId == almacenId &&
+                vinculo.AgenciaId == agenciaId
+            orderby cc.Nombre
+            select cc)
+            .ToListAsync(cancellationToken);
     }
 }

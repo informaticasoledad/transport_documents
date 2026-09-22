@@ -1,6 +1,4 @@
-﻿using Dtd.Application.Almacenes;
-using Dtd.Application.Common.Security;
-using Dtd.Domain.Almacenes;
+﻿using Dtd.Application.Common.Security;
 using ErrorOr;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -8,92 +6,126 @@ namespace Dtd.Application.Security;
 
 internal sealed class ContextoAccesoService : IContextoAccesoService
 {
+    private static readonly TimeSpan CacheDuration =
+        TimeSpan.FromMinutes(30);
+
     private readonly IUsuarioContexto _usuarioContexto;
-    private readonly IUserPermissionService _userPermissionService;
-    private readonly IAlmacenRepository _almacenRepository;
     private readonly IMemoryCache _cache;
 
     public ContextoAccesoService(
         IUsuarioContexto usuarioContexto,
-        IUserPermissionService userPermissionService,
-        IAlmacenRepository almacenRepository,
         IMemoryCache cache)
     {
         _usuarioContexto = usuarioContexto;
-        _userPermissionService = userPermissionService;
-        _almacenRepository = almacenRepository;
         _cache = cache;
     }
 
-    public async Task<ErrorOr<ContextoAcceso>> ObtenerAsync(
+    public Task<ErrorOr<ContextoAcceso>> ObtenerAsync(
         string empresa,
         CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(empresa))
         {
-            return Error.Validation(
-                "Empresa.Requerida",
-                "La empresa es obligatoria.");
+            return Task.FromResult<ErrorOr<ContextoAcceso>>(
+                Error.Validation(
+                    code: "Empresa.Requerida",
+                    description: "La empresa es obligatoria."));
         }
 
         var usuario = _usuarioContexto.Current;
 
         if (usuario is null)
         {
-            return Error.Unauthorized(
-                "Usuario.NoAutenticado",
-                "No se ha podido determinar el usuario autenticado.");
+            return Task.FromResult<ErrorOr<ContextoAcceso>>(
+                Error.Unauthorized(
+                    code: "Usuario.NoAutenticado",
+                    description: "No se ha podido determinar el usuario autenticado."));
         }
 
         var empresaNormalizada = empresa.Trim();
-        var cacheKey = $"acceso:{usuario.Id}:{empresaNormalizada}";
+
+        var cacheKey = GetCacheKey(
+            usuario.Id,
+            empresaNormalizada);
 
         if (_cache.TryGetValue<ContextoAcceso>(
                 cacheKey,
                 out var contextoCacheado) &&
             contextoCacheado is not null)
         {
-            return contextoCacheado.ToErrorOr();
+            return Task.FromResult(
+                contextoCacheado.ToErrorOr());
         }
 
-        var codigosPermitidos =
-            await _userPermissionService.GetAllowedWarehousesAsync(
-                empresaNormalizada,
-                cancellationToken);
+        return Task.FromResult<ErrorOr<ContextoAcceso>>(
+            Error.Unauthorized(
+                code: "Acceso.ContextoNoInicializado",
+                description:
+                    $"No se ha cargado el contexto de acceso para la empresa '{empresaNormalizada}'."));
+    }
 
-        if (codigosPermitidos.Count == 0)
+    public Task GuardarAsync(
+        ContextoAcceso contexto,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = _usuarioContexto.Current;
+
+        if (usuario is null)
         {
-            return Error.Forbidden(
-                "Almacen.SinAcceso",
-                $"El usuario no tiene almacenes autorizados para la empresa '{empresaNormalizada}'.");
+            return Task.CompletedTask;
         }
 
-        var almacenes =
-            await _almacenRepository.ObtenerPorCodigosAsync(
-                empresaNormalizada,
-                codigosPermitidos,
-                cancellationToken);
-
-        var ids = almacenes
-            .Select(a => a.Id)
-            .ToList();
-
-        if (ids.Count == 0)
+        if (string.IsNullOrWhiteSpace(contexto.Empresa))
         {
-            return Error.Forbidden(
-                "Almacen.SinAcceso",
-                $"No se han encontrado almacenes autorizados para la empresa '{empresaNormalizada}'.");
+            return Task.CompletedTask;
         }
 
-        var contexto = new ContextoAcceso(
-            empresaNormalizada,
-            ids);
+        var empresaNormalizada =
+            contexto.Empresa.Trim();
+
+        var cacheKey = GetCacheKey(
+            usuario.Id,
+            empresaNormalizada);
 
         _cache.Set(
             cacheKey,
             contexto,
-            TimeSpan.FromMinutes(30));
+            CacheDuration);
 
-        return contexto.ToErrorOr();
+        return Task.CompletedTask;
+    }
+
+    public Task EliminarAsync(
+        string empresa,
+        CancellationToken cancellationToken = default)
+    {
+        var usuario = _usuarioContexto.Current;
+
+        if (usuario is null)
+        {
+            return Task.CompletedTask;
+        }
+
+        if (string.IsNullOrWhiteSpace(empresa))
+        {
+            return Task.CompletedTask;
+        }
+
+        var empresaNormalizada = empresa.Trim();
+
+        var cacheKey = GetCacheKey(
+            usuario.Id,
+            empresaNormalizada);
+
+        _cache.Remove(cacheKey);
+
+        return Task.CompletedTask;
+    }
+
+    private static string GetCacheKey(
+        string usuarioId,
+        string empresa)
+    {
+        return $"acceso:{usuarioId}:{empresa}";
     }
 }

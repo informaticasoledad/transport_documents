@@ -5,12 +5,18 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Dtd.Infrastructure.Persistence.Configurations;
 
-internal sealed class AlmacenAgenciaConfiguration : IEntityTypeConfiguration<AlmacenAgencia>
+internal sealed class AlmacenAgenciaConfiguration
+    : IEntityTypeConfiguration<AlmacenAgencia>
 {
     public void Configure(EntityTypeBuilder<AlmacenAgencia> builder)
     {
         builder.ToTable("almacen_agencias");
-        builder.HasKey(x => new { x.AlmacenId, x.AgenciaId });
+
+        builder.HasKey(x => new
+        {
+            x.AlmacenId,
+            x.AgenciaId
+        });
 
         builder.HasOne<Almacen>()
             .WithMany()
@@ -39,5 +45,15 @@ internal sealed class AlmacenAgenciaConfiguration : IEntityTypeConfiguration<Alm
         builder.HasIndex(x => x.AgenciaId);
         builder.HasIndex(x => x.AgenciaBaseId);
         builder.HasIndex(x => x.TemplateId);
+
+        builder
+            .HasMany(x => x.ConductoresDefecto)
+            .WithOne()
+            .HasForeignKey(x => new
+            {
+                x.AlmacenId,
+                x.AgenciaId
+            })
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -1,4 +1,5 @@
 using Dtd.Domain.Agencias;
+using Dtd.Domain.Ccs;
 
 namespace Dtd.Domain.Almacenes;
 
@@ -97,4 +98,9 @@ public interface IAlmacenRepository
 
     void EliminarAgencia(
     AlmacenAgencia relacion);
+
+    Task<IReadOnlyList<Cc>> ListarCcsPorAlmacenAgenciaAsync(
+    Guid almacenId,
+    Guid agenciaId,
+    CancellationToken cancellationToken = default);
 }

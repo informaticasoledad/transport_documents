@@ -1,4 +1,5 @@
 ﻿using Dtd.Application.Common.Security;
+using Dtd.Application.Security;
 using Dtd.Domain.Almacenes;
 using ErrorOr;
 using MediatR;
@@ -12,13 +13,16 @@ internal sealed class ListarAlmacenesPermitidosQueryHandler
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IUserPermissionService _userPermissionService;
+    private readonly IContextoAccesoService _contextoAccesoService;
 
     public ListarAlmacenesPermitidosQueryHandler(
         IAlmacenRepository almacenRepository,
-        IUserPermissionService userPermissionService)
+        IUserPermissionService userPermissionService,
+        IContextoAccesoService contextoAccesoService)
     {
         _almacenRepository = almacenRepository;
         _userPermissionService = userPermissionService;
+        _contextoAccesoService = contextoAccesoService;
     }
 
     public async Task<ErrorOr<IReadOnlyCollection<AlmacenDto>>> Handle(
@@ -34,6 +38,12 @@ internal sealed class ListarAlmacenesPermitidosQueryHandler
 
         if (codigosPermitidos.Count == 0)
         {
+            await _contextoAccesoService.GuardarAsync(
+                new ContextoAcceso(
+                    empresa,
+                    Array.Empty<Guid>()),
+                cancellationToken);
+
             return Array.Empty<AlmacenDto>();
         }
 
@@ -45,10 +55,22 @@ internal sealed class ListarAlmacenesPermitidosQueryHandler
         var codigosPermitidosSet = codigosPermitidos
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-
-        var resultado = almacenes
+        var almacenesPermitidos = almacenes
             .Where(a => codigosPermitidosSet.Contains(a.Codigo))
             .OrderBy(a => a.Nombre)
+            .ToList();
+
+        var contexto = new ContextoAcceso(
+            empresa,
+            almacenesPermitidos
+                .Select(a => a.Id)
+                .ToList());
+
+        await _contextoAccesoService.GuardarAsync(
+            contexto,
+            cancellationToken);
+
+        var resultado = almacenesPermitidos
             .Select(a => new AlmacenDto(
                 a.Id,
                 a.Codigo,

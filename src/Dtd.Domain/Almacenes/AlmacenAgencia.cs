@@ -11,6 +11,9 @@ public sealed class AlmacenAgencia
 
     public Template Template { get; private set; } = null!;
 
+    public ICollection<AlmacenAgenciaConductorDefecto> ConductoresDefecto { get; set; }
+    = new List<AlmacenAgenciaConductorDefecto>();
+
     private AlmacenAgencia()
     {
     }

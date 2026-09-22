@@ -3,6 +3,7 @@ using Dtd.Infrastructure.Security;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Caching.Memory;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 internal sealed class UserPermissionService : IUserPermissionService
@@ -91,9 +92,9 @@ internal sealed class UserPermissionService : IUserPermissionService
     }
 
     private async Task<IReadOnlyCollection<string>> LoadWarehousesFromSgaAsync(
-        string empresa,
-        string username,
-        CancellationToken cancellationToken)
+    string empresa,
+    string username,
+    CancellationToken cancellationToken)
     {
         var legacyToken = GetLegacyToken();
 
@@ -118,11 +119,43 @@ internal sealed class UserPermissionService : IUserPermissionService
             request,
             cancellationToken);
 
+        var raw = await response.Content.ReadAsStringAsync(
+            cancellationToken);
+
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content
-            .ReadFromJsonAsync<SgaWarehouseResponse>(
-                cancellationToken: cancellationToken);
+        using var json = JsonDocument.Parse(raw);
+
+        var root = json.RootElement;
+
+        if (!root.TryGetProperty("result", out var resultElement) ||
+            !resultElement.TryGetInt32(out var resultCode))
+        {
+            throw new InvalidOperationException(
+                $"SGA ha devuelto una respuesta no válida al consultar almacenes. Body: {raw}");
+        }
+
+        if (resultCode != 0)
+        {
+            var mensaje = GetSgaErrorMessage(root);
+
+            if (resultCode == -99)
+            {
+                throw new UnauthorizedAccessException(
+                    mensaje);
+            }
+
+            throw new InvalidOperationException(
+                $"Error consultando almacenes permitidos en SGA. " +
+                $"Result={resultCode}. {mensaje}");
+        }
+
+        var result = JsonSerializer.Deserialize<SgaWarehouseResponse>(
+            raw,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
         if (result is null)
         {
@@ -130,21 +163,14 @@ internal sealed class UserPermissionService : IUserPermissionService
                 "El servicio SGA no ha devuelto una respuesta válida al consultar almacenes.");
         }
 
-        if (result.Result != 0)
-        {
-            throw new InvalidOperationException(
-                $"Error consultando almacenes permitidos en SGA. Result={result.Result}");
-        }
-
         return result.Value?.Rows
             .Select(r => r.Codigo.ToString())
             .ToList()
             ?? [];
     }
-
     private async Task<IReadOnlyCollection<string>> LoadCompaniesFromSgaAsync(
-        string username,
-        CancellationToken cancellationToken)
+    string username,
+    CancellationToken cancellationToken)
     {
         var legacyToken = GetLegacyToken();
 
@@ -161,11 +187,43 @@ internal sealed class UserPermissionService : IUserPermissionService
             request,
             cancellationToken);
 
+        var raw = await response.Content.ReadAsStringAsync(
+            cancellationToken);
+
         response.EnsureSuccessStatusCode();
 
-        var result = await response.Content
-            .ReadFromJsonAsync<SgaCompanyResponse>(
-                cancellationToken: cancellationToken);
+        using var json = JsonDocument.Parse(raw);
+
+        var root = json.RootElement;
+
+        if (!root.TryGetProperty("result", out var resultElement) ||
+            !resultElement.TryGetInt32(out var resultCode))
+        {
+            throw new InvalidOperationException(
+                $"SGA ha devuelto una respuesta no válida al consultar empresas. Body: {raw}");
+        }
+
+        if (resultCode != 0)
+        {
+            var mensaje = GetSgaErrorMessage(root);
+
+            if (resultCode == -99)
+            {
+                throw new UnauthorizedAccessException(
+                    mensaje);
+            }
+
+            throw new InvalidOperationException(
+                $"Error consultando empresas permitidas en SGA. " +
+                $"Result={resultCode}. {mensaje}");
+        }
+
+        var result = JsonSerializer.Deserialize<SgaCompanyResponse>(
+            raw,
+            new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
 
         if (result is null)
         {
@@ -173,31 +231,10 @@ internal sealed class UserPermissionService : IUserPermissionService
                 "El servicio SGA no ha devuelto una respuesta válida al consultar empresas.");
         }
 
-        if (result.Result != 0)
-        {
-            throw new InvalidOperationException(
-                $"Error consultando empresas permitidas en SGA. Result={result.Result}");
-        }
-
         return result.Value?.Rows
             .Select(r => r.Codigo.ToString("D3"))
             .ToList()
             ?? [];
-    }
-
-    private string GetUsername()
-    {
-        var httpContext = _httpContextAccessor.HttpContext
-            ?? throw new InvalidOperationException(
-                "No existe HttpContext.");
-
-        return
-            httpContext.User
-                .FindFirst("preferred_username")
-                ?.Value
-            ?? httpContext.User.Identity?.Name
-            ?? throw new UnauthorizedAccessException(
-                "Usuario no identificado.");
     }
 
     private string GetLegacyToken()
@@ -218,5 +255,37 @@ internal sealed class UserPermissionService : IUserPermissionService
         }
 
         return legacyToken;
+    }
+
+    private static string GetSgaErrorMessage(
+    JsonElement root)
+    {
+        if (!root.TryGetProperty("value", out var value))
+        {
+            return "SGA no ha proporcionado detalle del error.";
+        }
+
+        if (value.ValueKind == JsonValueKind.String)
+        {
+            return value.GetString()
+                ?? "SGA no ha proporcionado detalle del error.";
+        }
+
+        return value.GetRawText();
+    }
+
+    private string GetUsername()
+    {
+        var httpContext = _httpContextAccessor.HttpContext
+            ?? throw new InvalidOperationException(
+                "No existe HttpContext.");
+
+        return
+            httpContext.User
+                .FindFirst("preferred_username")
+                ?.Value
+            ?? httpContext.User.Identity?.Name
+            ?? throw new UnauthorizedAccessException(
+                "Usuario no identificado.");
     }
 }
