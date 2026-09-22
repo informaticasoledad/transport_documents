@@ -1,4 +1,3 @@
-using System.Net.Http;
 using Dtd.Application.Almacenes;
 using Dtd.Application.GatewayContracts;
 using Dtd.Application.Mapping;
@@ -19,7 +18,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 {
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IDocutenGateway _docutenGateway;
-    private readonly IEmpresaResolver _empresaResolver;
+    private readonly IEmpresaRepository _empresaRepository;
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly DocutenMappingOptions _docutenMappingOptions;
@@ -30,7 +29,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
     public EnviarDocumentoADocutenCommandHandler(
         IDocumentoRepository documentoRepository,
         IDocutenGateway docutenGateway,
-        IEmpresaResolver empresaResolver,
+        IEmpresaRepository empresaRepository,
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         DocutenMappingOptions docutenMappingOptions,
@@ -40,7 +39,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
     {
         _documentoRepository = documentoRepository;
         _docutenGateway = docutenGateway;
-        _empresaResolver = empresaResolver;
+        _empresaRepository = empresaRepository;
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
         _docutenMappingOptions = docutenMappingOptions;
@@ -87,7 +86,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         }
 
         var empresaConfig =
-            await _empresaResolver.ResolveAsync(
+            await _empresaRepository.GetByEmpresaAsync(
                 documento.Empresa,
                 cancellationToken);
 
@@ -172,14 +171,12 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 
         try
         {
-            envio = await _docutenGateway.EnviarAsync(lote,  cancellationToken);
+            envio = await _docutenGateway.EnviarAsync(
+                lote,
+                cancellationToken);
         }
         catch (Exception ex)
         {
-            var estadoHttp = ex is HttpRequestException hre
-                ? (int?)hre.StatusCode
-                : null;
-
             await _unitOfWork.SaveChangesAsync(
                 cancellationToken);
 
@@ -189,12 +186,16 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 "Queda registrado el intento y el documento se puede reintentar.");
         }
 
-        
-        documento.ConfirmarEnvioADocuten(envio.LotId, envio.Estado);
+        documento.ConfirmarEnvioADocuten(
+            envio.LotId,
+            envio.Estado);
 
         foreach (var shipment in envio.Shipments)
         {
-          documento.ConfirmarEnvioPlataforma(shipment.ShipmentReference ?? string.Empty, shipment.ShipmentId, shipment.ShipmentStatus);
+            documento.ConfirmarEnvioPlataforma(
+                shipment.ShipmentReference ?? string.Empty,
+                shipment.ShipmentId,
+                shipment.ShipmentStatus);
         }
 
         await _unitOfWork.SaveChangesAsync(
@@ -202,7 +203,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 
         return new DocumentoEnviadoDto(
             documento.Id,
-            "loteId", //superojazo envio.LotId,
-            ""); //superojazo envio.Estado
+            envio.LotId, 
+            envio.Estado);
     }
 }

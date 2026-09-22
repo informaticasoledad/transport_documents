@@ -102,11 +102,7 @@ public static class DependencyInjection
         services.AddMemoryCache();
         services.AddScoped<IEmpresaRepository, EmpresaRepository>();
         var erpOptions = configuration.GetSection("Erp").Get<ErpOptions>() ?? new ErpOptions();
-        services.AddScoped<IEmpresaResolver>(sp => new EmpresaResolver(
-            sp.GetRequiredService<IEmpresaRepository>(),
-            sp.GetRequiredService<IMemoryCache>(),
-            TimeSpan.FromMinutes(erpOptions.EndpointCacheMinutes)));
-
+        
         var erpUseMock = configuration.GetValue("Erp:UseMock", defaultValue: true);
         if (erpUseMock)
         {

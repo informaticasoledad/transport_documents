@@ -84,6 +84,7 @@ builder.Services.AddConductoresModule();
 builder.Services.AddCcsModule();
 builder.Services.AddDocutenModule();
 builder.Services.AddTemplatesModule();
+builder.Services.AddEmpresasModule();
 
 var app = builder.Build();
 
@@ -125,6 +126,6 @@ app.MapConductoresEndpoints();
 app.MapCcsEndpoints();
 app.MapDocutenEndpoints();
 app.MapTemplatesEndpoints();
-
+app.MapEmpresasEndpoints();
 
 app.Run();

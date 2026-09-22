@@ -11,10 +11,7 @@ internal sealed class EmpresaRepository : IEmpresaRepository
 
     public async Task<EmpresaConfig?> GetByEmpresaAsync(string empresa, CancellationToken cancellationToken = default)
     {
-        // Proyección EF totalmente traducible a SQL. La tabla `empresas` solo guarda lo que varía por
-        // empresa: su base_address. El resto del cliente OAuth2 (token_endpoint, client_id, scope,
-        // client_secret) es común a todas y va en appsettings (ErpOptions); el client_secret además se
-        // descifra a nivel app (Erp:ClientSecret_Enc → ErpOptions.ClientSecret).
+        
         var row = await _dbContext.Empresas.AsNoTracking()
             .Where(e => e.Id == empresa)
             .Select(e => new
@@ -32,5 +29,19 @@ internal sealed class EmpresaRepository : IEmpresaRepository
         }
 
         return new EmpresaConfig(row.Codigo, row.BaseAddress, row.TaxId, row.Nombre);
+    }
+
+    public async Task<IReadOnlyList<EmpresaConfig>> ListarAsync(
+    CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Empresas
+            .AsNoTracking()
+            .OrderBy(e => e.Nombre)
+            .Select(e => new EmpresaConfig(
+                e.Id,
+                e.BaseAddress,
+                e.TaxId,
+                e.Nombre))
+            .ToListAsync(cancellationToken);
     }
 }
