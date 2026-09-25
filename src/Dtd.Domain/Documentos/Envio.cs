@@ -11,6 +11,7 @@ public sealed class Envio : Entity<Guid>
 
     public int Bultos { get; private set; }
 
+    public decimal PesoTotal { get; private set; }
     public DestinoEnvio? Destino { get; private set; }
     public string? PlataformaEnvioId { get; private set; }
     public string? PlataformaEnvioEstado { get; private set; }
@@ -24,6 +25,7 @@ public sealed class Envio : Entity<Guid>
         int orden,
         string referencia,
         int bultos,
+        decimal pesoTotal,
         DestinoEnvio? destino)
     {
         if (orden < 1)
@@ -52,6 +54,7 @@ public sealed class Envio : Entity<Guid>
         Orden = orden;
         Referencia = referencia.Trim();
         Bultos = bultos;
+        PesoTotal = pesoTotal;
         Destino = destino;
     }
 
@@ -59,12 +62,14 @@ public sealed class Envio : Entity<Guid>
         int orden,
         string referencia,
         int bultos,
+        decimal pesoTotal,
         DestinoEnvio? destino)
     {
         return new Envio(
             orden,
             referencia,
             bultos,
+            pesoTotal,
             destino);
     }
 

@@ -37,6 +37,12 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public IReadOnlyCollection<DocumentoEvento> Eventos => _eventos;
 
+    public string? Matricula { get; private set; }
+
+    public string? Precinto { get; private set; }
+
+    public bool RequierePrecinto { get; private set; }
+
     public bool Finalizado { get; private set; }
 
     private DocumentoDigitalTransporte()
@@ -47,15 +53,17 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     }
 
     private DocumentoDigitalTransporte(
-        string empresa,
-        string referencia,
-        Guid almacenId,
-        Guid agenciaId,
-        OrigenDocumento origen,
-        RangoFechas rangoFechas,
-        TipoAgrupacionEnvio tipoAgrupacion,
-        string? usuarioGeneracionId,
-        DateTimeOffset fechaGeneracion)
+    string empresa,
+    string referencia,
+    Guid almacenId,
+    Guid agenciaId,
+    OrigenDocumento origen,
+    RangoFechas rangoFechas,
+    TipoAgrupacionEnvio tipoAgrupacion,
+    bool requierePrecinto,
+    string? precinto,
+    string? usuarioGeneracionId,
+    DateTimeOffset fechaGeneracion)
     {
         if (string.IsNullOrWhiteSpace(empresa))
         {
@@ -99,6 +107,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             ?? throw new ArgumentNullException(nameof(rangoFechas));
 
         TipoAgrupacion = tipoAgrupacion;
+        RequierePrecinto = requierePrecinto;
+        Precinto = precinto;
 
         UsuarioGeneracionId = usuarioGeneracionId;
         FechaGeneracion = fechaGeneracion;
@@ -107,18 +117,20 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     }
 
     public static ErrorOr<DocumentoDigitalTransporte> Generar(
-    string empresa,
-    string referencia,
-    Guid almacenId,
-    Guid agenciaId,
-    OrigenDocumento origen,
-    RangoFechas rangoFechas,
-    IReadOnlyCollection<Expedicion> expediciones,
-    TipoAgrupacionEnvio tipoAgrupacion,
-    DestinoEnvio? destinoAgencia,
-    IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen,
-    string? usuarioGeneracionId,
-    DateTimeOffset fechaGeneracion)
+        string empresa,
+        string referencia,
+        Guid almacenId,
+        Guid agenciaId,
+        OrigenDocumento origen,
+        RangoFechas rangoFechas,
+        IReadOnlyCollection<Expedicion> expediciones,
+        TipoAgrupacionEnvio tipoAgrupacion,
+        DestinoEnvio? destinoAgencia,
+        IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen,
+        bool requierePrecinto,
+        string? precinto,
+        string? usuarioGeneracionId,
+        DateTimeOffset fechaGeneracion)
     {
         ArgumentNullException.ThrowIfNull(expediciones);
         ArgumentNullException.ThrowIfNull(destinosAlmacen);
@@ -161,6 +173,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             origen,
             rangoFechas,
             tipoAgrupacion,
+            requierePrecinto,
+            precinto,
             usuarioGeneracionId,
             fechaGeneracion);
 
@@ -219,6 +233,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             orden: 1,
             referencia: GenerarReferenciaEnvio(1),
             bultos: _expediciones.Sum(e => e.Bultos),
+            pesoTotal: _expediciones.Sum(e => e.PesoTotal),
             destino: destinoAgencia);
 
         foreach (var expedicion in _expediciones)
@@ -291,6 +306,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
                 orden: orden,
                 referencia: GenerarReferenciaEnvio(orden),
                 bultos: grupo.Sum(e => e.Bultos),
+                pesoTotal: grupo.Sum(e => e.PesoTotal),
                 destino: destinosAlmacen[grupo.Key]);
 
             foreach (var expedicion in grupo)
@@ -326,6 +342,14 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         }
 
         _conductores.Add(conductor);
+
+        // Solo heredamos la matrícula del conductor
+        // si el documento todavía no tiene una.
+        if (string.IsNullOrWhiteSpace(Matricula) &&
+            !string.IsNullOrWhiteSpace(conductor.LicensePlate))
+        {
+            Matricula = conductor.LicensePlate.Trim();
+        }
     }
 
     public void RemoverConductor(
@@ -609,6 +633,20 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             envioId: envio.Id);
 
         return true;
+    }
+
+    public void CambiarMatricula(string? matricula)
+    {
+        AsegurarEstadoNuevo();
+
+        Matricula = NormalizarOpcional(matricula);
+    }
+
+    public void CambiarPrecinto(string? precinto)
+    {
+        AsegurarEstadoNuevo();
+
+        Precinto = NormalizarOpcional(precinto);
     }
 
     private void RecalcularEstadoDesdeEnviosPlataforma()

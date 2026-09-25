@@ -25,6 +25,8 @@ public sealed class Agencia : AggregateRoot<Guid>
     /// </summary>
     public bool EnvioDirecto { get; private set; }
 
+    public bool RequierePrecinto { get; private set; }
+
     private readonly List<AgenciaBase> _bases = [];
 
     public IReadOnlyCollection<AgenciaBase> Bases => _bases.AsReadOnly();
@@ -43,7 +45,8 @@ public sealed class Agencia : AggregateRoot<Guid>
         string nombre,
         bool activa,
         string? agenciaQs,
-        bool envioDirecto)
+        bool envioDirecto,
+        bool requirePrecinto)
     {
         Id = Guid.NewGuid();
         Codigo = codigo;
@@ -51,13 +54,15 @@ public sealed class Agencia : AggregateRoot<Guid>
         Activa = activa;
         AgenciaQs = agenciaQs;
         EnvioDirecto = envioDirecto;
+        RequierePrecinto = requirePrecinto;
     }
 
     public static Agencia Crear(
         string codigo,
         string nombre,
         string? agenciaQs = null,
-        bool envioDirecto = false)
+        bool envioDirecto = false, 
+        bool requirePrecinto = false)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -78,7 +83,8 @@ public sealed class Agencia : AggregateRoot<Guid>
             nombre.Trim(),
             activa: true,
             agenciaQs?.Trim(),
-            envioDirecto);
+            envioDirecto,
+            requirePrecinto);
     }
 
     public void Desactivar() => Activa = false;

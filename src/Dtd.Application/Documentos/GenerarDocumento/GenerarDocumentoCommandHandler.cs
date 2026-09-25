@@ -186,6 +186,8 @@ internal sealed class GenerarDocumentoCommandHandler
                 tipoAgrupacion: tipoAgrupacion,
                 destinoAgencia: destinoAgencia,
                 destinosAlmacen: destinosAlmacen,
+                requierePrecinto: agencia.RequierePrecinto == true,
+                precinto: request.Precinto,
                 usuarioGeneracionId: _usuarioContexto.Current?.Id,
                 fechaGeneracion: DateTimeOffset.UtcNow);
 

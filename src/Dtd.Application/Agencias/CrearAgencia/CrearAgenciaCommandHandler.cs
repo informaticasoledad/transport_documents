@@ -66,6 +66,7 @@ internal sealed class CrearAgenciaCommandHandler
             agencia.Nombre,
             agencia.Activa,
             agencia.AgenciaQs,
-            agencia.EnvioDirecto);
+            agencia.EnvioDirecto,
+            agencia.RequierePrecinto);
     }
 }

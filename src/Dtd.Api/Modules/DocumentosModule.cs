@@ -6,7 +6,6 @@ using Dtd.Application.Documentos.ListarDocumentos;
 using Dtd.Application.Documentos.ListarEventosDocumento;
 using Dtd.Application.Documentos.ListarExpedicionesDisponibles;
 using Dtd.Application.Documentos.ObtenerDocumento;
-using Dtd.Application.Documentos.SincronizarEstadoDocuten;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -27,11 +26,12 @@ public static class DocumentosModule
             CancellationToken ct) =>
         {
             var command = new GenerarDocumentoCommand(
-                req.Empresa,
-                req.AlmacenId,
-                req.AgenciaId,
-                req.FechaDesde,
-                req.FechaHasta);
+                 req.Empresa,
+                 req.AlmacenId,
+                 req.AgenciaId,
+                 req.FechaDesde,
+                 req.FechaHasta,
+                 req.Precinto);
 
             var result = await mediator.Send(command, ct);
             return result.ToHttpResult(id => Results.Created($"/api/documentos/{id}", new { id }));
@@ -168,7 +168,8 @@ public sealed record GenerarDocumentoRequest(
     Guid AlmacenId,
     Guid AgenciaId,
     DateOnly FechaDesde,
-    DateOnly FechaHasta);
+    DateOnly FechaHasta,
+    string? Precinto);
 
 public sealed record AsignarConductoresRequest(IReadOnlyList<Guid> ConductoresId);
 

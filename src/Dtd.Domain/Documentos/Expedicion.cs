@@ -55,6 +55,8 @@ public sealed class Expedicion : Entity<Guid>
     /// <summary>Nº de bultos, derivado de <c>expeditionDetails.Count</c> al ingerir la expedición.</summary>
     public int Bultos { get; private set; }
 
+    public decimal PesoTotal { get; private set; }
+
     /// <summary>El envío (shipment Docuten) al que pertenece esta expedición tras la agrupación del DDT
     /// (<see cref="DocumentoDigitalTransporte.ConstruirEnvios"/>). <c>null</c> hasta que se construyen los
     /// envíos (documentos preexistentes a la feature pueden quedar a <c>null</c>). FK a la tabla de envíos del documento.</summary>
@@ -79,7 +81,8 @@ public sealed class Expedicion : Entity<Guid>
         DateOnly fecha,
         string? cliente,
         DestinoExpedicion destino,
-        int bultos)
+        int bultos,
+        decimal pesoTotal)
     {
         if (string.IsNullOrWhiteSpace(erpId))
         {
@@ -112,6 +115,7 @@ public sealed class Expedicion : Entity<Guid>
         Cliente = cliente;
         Destino = destino ?? throw new ArgumentNullException(nameof(destino));
         Bultos = bultos;
+        PesoTotal = pesoTotal;
     }
 
     /// <summary>Factory used when materialising an expedition coming from the ERP.</summary>
@@ -126,9 +130,10 @@ public sealed class Expedicion : Entity<Guid>
         DateOnly fecha,
         string? cliente,
         DestinoExpedicion destino,
-        int bultos) =>
+        int bultos, 
+        decimal pesoTotal) =>
         new(erpId, documentNumber, expeditionCode, expeditionType, empresa, almacenId, agenciaId,
-            fecha, cliente, destino, bultos);
+            fecha, cliente, destino, bultos, pesoTotal);
 
     /// <summary>Vincula la expedición a su envío (shipment) tras la agrupación del DDT. Lo invoca
     /// <see cref="DocumentoDigitalTransporte.ConstruirEnvios"/>; no se debe llamar desde código de

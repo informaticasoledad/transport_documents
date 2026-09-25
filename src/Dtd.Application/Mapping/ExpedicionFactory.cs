@@ -9,11 +9,10 @@ namespace Dtd.Application.Mapping;
 /// </summary>
 public static class ExpedicionFactory
 {
-    /// <summary>Construye una <see cref="Expedicion"/> desde el DTO del ERP. El transportista NO se
-    /// asigna aquí: vive a nivel de documento y se resuelve en <c>confirmar</c>. Los bultos se derivan
-    /// del número de líneas de detalle (<c>expeditionDetails.Count</c>). El almacén y la agencia se
-    /// reciben como <c>Id</c> (Guid) —son los del documento, no del DTO del ERP— y se persisten como FK.</summary>
-    public static Expedicion ToDomain(this ExpedicionErpDto dto, Guid almacenId, Guid agenciaId)
+    public static Expedicion ToDomain(
+           this ExpedicionErpDto dto,
+           Guid almacenId,
+           Guid agenciaId)
     {
         var destino = DestinoExpedicion.Create(
             dto.ExpeditionDestination?.CountryIsoCode,
@@ -24,6 +23,12 @@ public static class ExpedicionFactory
             dto.ExpeditionDestination?.AddressName,
             dto.ExpeditionDestination?.AddressStreet,
             dto.ExpeditionDestination?.AddressPhone1);
+
+        var bultos = (int) dto.ExpeditionDetails
+            .Sum(x => x.ProductUnits);
+
+        var pesoTotal = dto.ExpeditionDetails
+            .Sum(x => x.TotalWeight);
 
         return Expedicion.CrearDesdeErp(
             dto.Id,
@@ -36,7 +41,8 @@ public static class ExpedicionFactory
             DateOnly.FromDateTime(dto.ExpeditionDate),
             dto.CustomerId,
             destino,
-            dto.ExpeditionDetails.Count);
+            bultos,
+            pesoTotal);
     }
 
     /// <summary>Construye el <see cref="OrigenDocumento"/> (común a todas las expediciones del DDT)

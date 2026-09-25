@@ -8,4 +8,6 @@ public sealed record GenerarDocumentoCommand(
     Guid AlmacenId,
     Guid AgenciaId,
     DateOnly FechaDesde,
-    DateOnly FechaHasta) : IRequest<ErrorOr<Guid>>;
+    DateOnly FechaHasta,
+    string? Precinto)
+    : IRequest<ErrorOr<Guid>>;

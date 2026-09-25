@@ -122,4 +122,12 @@ public sealed record ExpeditionDetailErpDto
 
     [JsonPropertyName("productUnits")]
     public decimal ProductUnits { get; init; }
+
+
+    [JsonPropertyName("productWeight")]
+    public decimal ProductWeight{ get; init; }
+
+
+    [JsonPropertyName("totalWeight")]
+    public decimal TotalWeight { get; init; }
 }

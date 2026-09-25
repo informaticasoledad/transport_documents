@@ -70,7 +70,9 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
             .Select(a => new AgenciaDto(
                 a.Id,
                 a.Codigo,
-                a.Nombre))
+                a.Nombre,
+                a.EnvioDirecto,
+                a.RequierePrecinto))
             .ToList();
     }
 }

@@ -59,7 +59,8 @@ internal sealed class ListarAgenciasQueryHandler
                 a.Nombre,
                 a.Activa,
                 a.AgenciaQs,
-                a.EnvioDirecto))
+                a.EnvioDirecto,
+                a.RequierePrecinto))
             .ToList();
 
         return new AgenciasPaginadasDto(

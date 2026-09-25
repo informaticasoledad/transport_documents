@@ -1,3 +1,5 @@
+using Dtd.Domain.Almacenes;
+
 namespace Dtd.Domain.Conductores;
 
 /// <summary>
@@ -73,5 +75,31 @@ public interface IConductorRepository
     string taxId,
     Guid conductorId,
     CancellationToken cancellationToken = default);
+
+    Task<bool> ExisteRelacionAgenciaAsync(
+    Guid conductorId,
+    Guid agenciaId,
+    CancellationToken cancellationToken = default);
+
+    Task AgregarRelacionAgenciaAsync(
+        ConductorAgencia relacion,
+        CancellationToken cancellationToken = default);
+
+    Task<ConductorAgencia?> ObtenerRelacionAgenciaAsync(
+        Guid conductorId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default);
+
+    void EliminarRelacionAgencia(
+        ConductorAgencia relacion);
+
+    Task<IReadOnlyList<AlmacenAgenciaConductorDefecto>>
+        ObtenerAsignacionesDefectoPorAgenciaConductorAsync(
+            Guid agenciaId,
+            Guid conductorId,
+            CancellationToken cancellationToken = default);
+
+    void EliminarAsignacionesDefecto(
+        IEnumerable<AlmacenAgenciaConductorDefecto> asignaciones);
 
 }

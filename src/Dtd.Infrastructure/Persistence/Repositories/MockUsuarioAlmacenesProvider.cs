@@ -19,7 +19,8 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                 "54",
                 "78",
                 "178",
-                "38"
+                "38",
+                "1",
             ];
 
             return Task.FromResult(almacenes);

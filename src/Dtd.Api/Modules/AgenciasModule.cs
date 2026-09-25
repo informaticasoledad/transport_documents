@@ -1,6 +1,7 @@
 using Dtd.Application.Agencias;
 using Dtd.Application.Agencias.CrearAgencia;
 using Dtd.Application.Agencias.CrearBaseAgencia;
+using Dtd.Application.Agencias.DesvincularConductor;
 using Dtd.Application.Agencias.EliminarAgencia;
 using Dtd.Application.Agencias.EliminarBaseAgencia;
 using Dtd.Application.Agencias.ListarAgenciaBases;
@@ -9,6 +10,7 @@ using Dtd.Application.Agencias.ModificarAgencia;
 using Dtd.Application.Agencias.ModificarBaseAgencia;
 using Dtd.Application.Agencias.ObtenerAgencia;
 using Dtd.Application.Agencias.ObtenerBaseAgencia;
+using Dtd.Application.Agencias.VincularConductor;
 using Dtd.Application.Conductores.ListarConductores;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
@@ -269,6 +271,42 @@ public static class AgenciasModule
                     baseAgencia => Results.Ok(baseAgencia));
             });
 
+        // Vincular conductor a agencia 
+        agencias.MapPost(
+            "/{agenciaId:guid}/conductores/{conductorId:guid}",
+            async (
+                Guid agenciaId,
+                Guid conductorId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new VincularConductorAgenciaCommand(
+                        agenciaId,
+                        conductorId),
+                    ct);
+
+                return result.ToHttpResult(
+                    _ => Results.NoContent());
+            });
+
+        agencias.MapDelete(
+    "/{agenciaId:guid}/conductores/{conductorId:guid}",
+    async (
+        Guid agenciaId,
+        Guid conductorId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new DesvincularConductorAgenciaCommand(
+                agenciaId,
+                conductorId),
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
         return app;
     }
 }

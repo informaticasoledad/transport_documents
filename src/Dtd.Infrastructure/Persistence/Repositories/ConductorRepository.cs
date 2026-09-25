@@ -1,3 +1,4 @@
+using Dtd.Domain.Almacenes;
 using Dtd.Domain.Conductores;
 using Microsoft.EntityFrameworkCore;
 
@@ -169,4 +170,65 @@ internal sealed class ConductorRepository : IConductorRepository
                 c => c.TaxId == taxId &&
                      c.Id != conductorId,
                 cancellationToken);
+
+    public Task<bool> ExisteRelacionAgenciaAsync(
+        Guid conductorId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.ConductorAgencias
+            .AnyAsync(
+                x =>
+                    x.ConductorId == conductorId &&
+                    x.AgenciaId == agenciaId,
+                cancellationToken);
+    }
+
+    public async Task AgregarRelacionAgenciaAsync(
+        ConductorAgencia relacion,
+        CancellationToken cancellationToken = default)
+    {
+        await _dbContext.ConductorAgencias.AddAsync(
+            relacion,
+            cancellationToken);
+    }
+
+    public Task<ConductorAgencia?> ObtenerRelacionAgenciaAsync(
+        Guid conductorId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default)
+    {
+        return _dbContext.ConductorAgencias
+            .FirstOrDefaultAsync(
+                x =>
+                    x.ConductorId == conductorId &&
+                    x.AgenciaId == agenciaId,
+                cancellationToken);
+    }
+
+    public void EliminarRelacionAgencia(
+        ConductorAgencia relacion)
+    {
+        _dbContext.ConductorAgencias.Remove(relacion);
+    }
+
+    public async Task<IReadOnlyList<AlmacenAgenciaConductorDefecto>>
+    ObtenerAsignacionesDefectoPorAgenciaConductorAsync(
+        Guid agenciaId,
+        Guid conductorId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AlmacenAgenciaConductoresDefecto
+            .Where(x =>
+                x.AgenciaId == agenciaId &&
+                x.ConductorId == conductorId)
+            .ToListAsync(cancellationToken);
+    }
+
+    public void EliminarAsignacionesDefecto(
+        IEnumerable<AlmacenAgenciaConductorDefecto> asignaciones)
+    {
+        _dbContext.AlmacenAgenciaConductoresDefecto
+            .RemoveRange(asignaciones);
+    }
 }

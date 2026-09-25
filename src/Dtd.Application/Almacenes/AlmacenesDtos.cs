@@ -12,7 +12,7 @@ public sealed record AlmacenDto(
     string? Pais,
     string? Email,
     string? Telefono);
-public sealed record AgenciaDto(Guid Id, string Codigo, string Nombre);
+public sealed record AgenciaDto(Guid Id, string Codigo, string Nombre, bool EnvioDirecto, bool RequierePrecinto);
 
 
 public sealed record AlmacenAgenciaDto(

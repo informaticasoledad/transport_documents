@@ -11,4 +11,5 @@ public sealed record AgenciaDto(
     string Nombre,
     bool Activa,
     string? AgenciaQs,
-    bool EnvioDirecto);
+    bool EnvioDirecto,
+    bool RequierePrecinto);
