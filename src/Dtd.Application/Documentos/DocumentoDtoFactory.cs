@@ -39,6 +39,8 @@ internal static class DocumentoDtoFactory
             //TotalExpediciones = documento.Expediciones.Count,
             //Expediciones = expediciones,
             EnvioDirecto = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorAlmacenDestino,
+            RequierePrecinto = documento.RequierePrecinto,
+            Precinto = documento.Precinto,
             Envios = documento.Envios
                 .OrderBy(e => e.Orden)
                 .Select(e => ToDto(e, expediciones))

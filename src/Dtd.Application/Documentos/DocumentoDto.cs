@@ -31,6 +31,10 @@ public sealed record DocumentoDto
     public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
 
     public string Referencia { get; private set; } = string.Empty;
+
+    public bool RequierePrecinto { get; init; }
+
+    public string? Precinto { get; init; }
     public bool Finalizado { get; init; }
 }
 
