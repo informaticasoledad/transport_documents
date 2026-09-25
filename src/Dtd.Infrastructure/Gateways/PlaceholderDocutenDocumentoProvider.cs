@@ -28,6 +28,7 @@ namespace Dtd.Infrastructure.Gateways
     Agencia agencia,
     Template template,
     IReadOnlyCollection<DocutenPartyDto> parties,
+    byte[] pdfEnvios,
     CancellationToken cancellationToken = default)
         {
             var builder = _builderResolver.Resolve(template.DocumentType);
@@ -52,6 +53,7 @@ namespace Dtd.Infrastructure.Gateways
                     Code = template.Code,
                     Values = values
                 },
+                Content = Convert.ToBase64String(pdfEnvios),
                 Signers = signers
             };
 

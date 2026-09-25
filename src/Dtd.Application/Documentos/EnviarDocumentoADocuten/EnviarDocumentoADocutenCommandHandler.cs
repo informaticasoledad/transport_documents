@@ -1,4 +1,6 @@
 using Dtd.Application.Almacenes;
+using Dtd.Application.Documentos.Mappers;
+using Dtd.Application.Documentos.Pdf;
 using Dtd.Application.GatewayContracts;
 using Dtd.Application.Mapping;
 using Dtd.Domain.Agencias;
@@ -26,6 +28,8 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
 
+    private readonly IEnviosPdfGenerator _enviosPdfGenerator;
+
     public EnviarDocumentoADocutenCommandHandler(
         IDocumentoRepository documentoRepository,
         IDocutenGateway docutenGateway,
@@ -35,7 +39,8 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         DocutenMappingOptions docutenMappingOptions,
         IDocutenDocumentoProvider docutenDocumentoProvider,
         IUnitOfWork unitOfWork,
-        IAccesoAlmacenService accesoAlmacenService)
+        IAccesoAlmacenService accesoAlmacenService,
+        IEnviosPdfGenerator enviosPdfGenerator)
     {
         _documentoRepository = documentoRepository;
         _docutenGateway = docutenGateway;
@@ -63,7 +68,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 "Documento.NoEncontrado",
                 $"No existe el documento '{request.DocumentoId}'.");
         }
-        /*
+        
         var accesoAlmacen =
             await _accesoAlmacenService.ValidarAccesoAsync(
                 documento.Empresa,
@@ -73,7 +78,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         if (accesoAlmacen.IsError)
         {
             return accesoAlmacen.Errors;
-        }*/
+        }
 
         // Reglas de "listo para enviar" (única fuente de verdad en el agregado):
         // estado Nuevo, al menos una expedición, al menos un conductor
@@ -158,11 +163,16 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 $"La plantilla '{almacenAgencia.Template.Code}' no está activa.");
         }
 
+         var pdfDto = DocumentoEnviosPdfMapper.Map(documento);
+
+        var pdfEnvios = _enviosPdfGenerator.Generate(pdfDto);
+
         var lote = await documento.ToDocutenLoteDto(
             empresaConfig,
             almacen,
             agencia,
             almacenAgencia.Template,
+            pdfEnvios,
             _docutenMappingOptions,
             _docutenDocumentoProvider,
             cancellationToken);

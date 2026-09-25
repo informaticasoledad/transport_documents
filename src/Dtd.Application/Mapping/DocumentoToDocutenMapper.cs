@@ -3,6 +3,7 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
+using Dtd.Domain.Empresas;
 using Dtd.Domain.Templates;
 
 namespace Dtd.Application.Mapping;
@@ -15,9 +16,10 @@ public static class DocumentoToDocutenMapper
         Almacen almacen,
         Agencia agencia,
         Template template,
+        byte[] pdfEnvios,
         DocutenMappingOptions options,
         IDocutenDocumentoProvider documentoProvider,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken)
     {
         var language = string.IsNullOrWhiteSpace(template.Language)
             ? string.IsNullOrWhiteSpace(options.DefaultLanguage)
@@ -63,6 +65,7 @@ public static class DocumentoToDocutenMapper
                 agencia,
                 template,
                 parties,
+                pdfEnvios,
                 cancellationToken);
 
             shipments.Add(new DocutenShipmentDto

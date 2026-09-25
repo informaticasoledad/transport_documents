@@ -1,6 +1,7 @@
 using Dtd.Application.Almacenes;
 using Dtd.Application.Common.Security;
 using Dtd.Application.Documentos.Contracts;
+using Dtd.Application.Documentos.Pdf;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
@@ -11,6 +12,7 @@ using Dtd.Domain.Documentos;
 using Dtd.Domain.Templates;
 using Dtd.Infrastructure.Configuration;
 using Dtd.Infrastructure.Gateways;
+using Dtd.Infrastructure.Pdf;
 using Dtd.Infrastructure.Persistence;
 using Dtd.Infrastructure.Persistence.Generators;
 using Dtd.Infrastructure.Persistence.Repositories;
@@ -94,6 +96,8 @@ public static class DependencyInjection
         services.AddScoped<IAlmacenRepository, AlmacenRepository>();
         services.AddScoped<IDocutenCallbackLogRepository, DocutenCallbackLogRepository>();
         services.AddScoped<ITemplateRepository, TemplateRepository>();
+
+        services.AddScoped<IEnviosPdfGenerator, EnviosPdfGenerator>();
 
         services.AddScoped<IDocumentReferenceGenerator,DocumentReferenceGenerator>();
 

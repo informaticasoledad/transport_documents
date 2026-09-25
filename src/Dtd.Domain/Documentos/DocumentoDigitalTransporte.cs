@@ -759,4 +759,60 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             usuario,
             envioId));
     }
+
+    public ErrorOr<Success> ValidarPuedeEliminarse()
+    {
+        if (Estado != EstadoDocumento.Nuevo)
+        {
+            return Error.Validation(
+                code: "Documento.NoPuedeEliminarse",
+                description:
+                    "Solo se pueden eliminar documentos en estado Nuevo.");
+        }
+
+        return Result.Success;
+    }
+
+    public ErrorOr<Success> EliminarEnvio(Guid envioId)
+    {
+        if (Estado != EstadoDocumento.Nuevo)
+        {
+            return Error.Validation(
+                code: "Documento.Envio.NoPuedeEliminarse",
+                description:
+                    "Solo se pueden eliminar envíos de documentos en estado Nuevo.");
+        }
+
+        var envio = _envios
+            .FirstOrDefault(e => e.Id == envioId);
+
+        if (envio is null)
+        {
+            return Error.NotFound(
+                code: "Documento.Envio.NotFound",
+                description:
+                    $"No existe el envío '{envioId}' en el documento.");
+        }
+
+        if (_envios.Count <= 1)
+        {
+            return Error.Validation(
+                code: "Documento.Envio.MinimoUno",
+                description:
+                    "El documento debe conservar al menos un envío.");
+        }
+
+        var expedicionesDelEnvio = _expediciones
+            .Where(e => e.EnvioId == envioId)
+            .ToList();
+
+        foreach (var expedicion in expedicionesDelEnvio)
+        {
+            _expediciones.Remove(expedicion);
+        }
+
+        _envios.Remove(envio);
+
+        return Result.Success;
+    }
 }

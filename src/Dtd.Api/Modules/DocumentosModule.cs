@@ -1,5 +1,7 @@
 using Dtd.Application.Documentos.CcsDocumento;
 using Dtd.Application.Documentos.ConductoresDocumento;
+using Dtd.Application.Documentos.EliminarDocumento;
+using Dtd.Application.Documentos.EliminarEnvio;
 using Dtd.Application.Documentos.EnviarDocumentoADocuten;
 using Dtd.Application.Documentos.GenerarDocumento;
 using Dtd.Application.Documentos.ListarDocumentos;
@@ -158,6 +160,37 @@ public static class DocumentosModule
             var result = await mediator.Send(query, ct);
             return result.ToHttpResult(list => Results.Ok(list));
         });
+
+        documentos.MapDelete("/{id:guid}", async (
+    Guid id,
+    IMediator mediator,
+    CancellationToken ct) =>
+        {
+            var result = await mediator.Send(
+                new EliminarDocumentoCommand(id),
+                ct);
+
+            return result.ToHttpResult(
+                _ => Results.NoContent());
+        });
+
+        documentos.MapDelete(
+    "/{id:guid}/envios/{envioId:guid}",
+    async (
+        Guid id,
+        Guid envioId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new EliminarEnvioCommand(
+                id,
+                envioId),
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
 
         return app;
     }

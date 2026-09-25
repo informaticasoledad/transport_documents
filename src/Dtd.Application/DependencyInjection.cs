@@ -6,6 +6,7 @@ using Dtd.Application.Templates;
 using FluentValidation;
 using Mapster;
 using MapsterMapper;
+using Dtd.Application;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 

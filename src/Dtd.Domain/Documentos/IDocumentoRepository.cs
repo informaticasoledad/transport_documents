@@ -46,6 +46,7 @@ public interface IDocumentoRepository
     Guid agenciaId,
     CancellationToken cancellationToken = default);
 
+    void Remove(DocumentoDigitalTransporte documento);
 }
 
 

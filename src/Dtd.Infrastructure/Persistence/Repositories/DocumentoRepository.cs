@@ -150,4 +150,9 @@ internal sealed class DocumentoRepository : IDocumentoRepository
                 cancellationToken);
     }
 
+    public void Remove(DocumentoDigitalTransporte documento)
+    {
+        _dbContext.Documentos.Remove(documento);
+    }
+
 }
