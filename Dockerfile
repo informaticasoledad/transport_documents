@@ -8,6 +8,7 @@ COPY src/Dtd.Domain/Dtd.Domain.csproj src/Dtd.Domain/
 COPY src/Dtd.Application/Dtd.Application.csproj src/Dtd.Application/
 COPY src/Dtd.Infrastructure/Dtd.Infrastructure.csproj src/Dtd.Infrastructure/
 COPY src/Dtd.Api/Dtd.Api.csproj src/Dtd.Api/
+COPY src/Dtd.Infrastructure.Tests/Dtd.Infrastructure.Tests.csproj src/Dtd.Infrastructure.Tests/
 RUN dotnet restore dtd.slnx
 
 # Copy the rest of the source and publish.
