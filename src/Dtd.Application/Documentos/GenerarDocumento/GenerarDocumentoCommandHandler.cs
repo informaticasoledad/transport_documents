@@ -21,7 +21,6 @@ internal sealed class GenerarDocumentoCommandHandler
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly IDocumentReferenceGenerator _documentReferenceGenerator;
-
     private readonly IAccesoAlmacenService _accesoAlmacenService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IUsuarioContexto _usuarioContexto;
@@ -50,10 +49,11 @@ internal sealed class GenerarDocumentoCommandHandler
         GenerarDocumentoCommand request,
         CancellationToken cancellationToken)
     {
-        var accesoAlmacen = await _accesoAlmacenService.ValidarAccesoAsync(
-            request.Empresa,
-            request.AlmacenId,
-            cancellationToken);
+        var accesoAlmacen =
+            await _accesoAlmacenService.ValidarAccesoAsync(
+                request.Empresa,
+                request.AlmacenId,
+                cancellationToken);
 
         if (accesoAlmacen.IsError)
         {
@@ -109,13 +109,13 @@ internal sealed class GenerarDocumentoCommandHandler
                 agencia.Id))
             .ToList();
 
-        var tipoAgrupacion = agencia.EnvioDirecto
-            ? TipoAgrupacionEnvio.PorAlmacenDestino
+        var tipoAgrupacion = agencia.EntregaEnDestino
+            ? TipoAgrupacionEnvio.PorDestino
             : TipoAgrupacionEnvio.UnicoPorAgencia;
 
         DestinoEnvio? destinoAgencia = null;
 
-        IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen =
+        IReadOnlyDictionary<string, DestinoEnvio> destinos =
             new Dictionary<string, DestinoEnvio>(
                 StringComparer.OrdinalIgnoreCase);
 
@@ -139,21 +139,20 @@ internal sealed class GenerarDocumentoCommandHandler
                     break;
                 }
 
-            case TipoAgrupacionEnvio.PorAlmacenDestino:
+            case TipoAgrupacionEnvio.PorDestino:
                 {
-                    var resultadoDestinosAlmacen =
-                        await ObtenerDestinosAlmacenAsync(
+                    var resultadoDestinos =
+                        await ObtenerDestinosAsync(
                             request.Empresa,
                             expediciones,
                             cancellationToken);
 
-                    if (resultadoDestinosAlmacen.IsError)
+                    if (resultadoDestinos.IsError)
                     {
-                        return resultadoDestinosAlmacen.Errors;
+                        return resultadoDestinos.Errors;
                     }
 
-                    destinosAlmacen =
-                        resultadoDestinosAlmacen.Value;
+                    destinos = resultadoDestinos.Value;
 
                     break;
                 }
@@ -167,8 +166,9 @@ internal sealed class GenerarDocumentoCommandHandler
         // De momento mantenemos el origen proporcionado por el ERP.
         var origen = nuevas[0].ToOrigen();
 
-        // Obtener referencia documento
-        var referencia = await _documentReferenceGenerator.GenerateAsync(
+        // Obtener referencia documento.
+        var referencia =
+            await _documentReferenceGenerator.GenerateAsync(
                 request.Empresa,
                 almacen.Codigo,
                 DateTime.Now,
@@ -185,7 +185,7 @@ internal sealed class GenerarDocumentoCommandHandler
                 expediciones: expediciones,
                 tipoAgrupacion: tipoAgrupacion,
                 destinoAgencia: destinoAgencia,
-                destinosAlmacen: destinosAlmacen,
+                destinos: destinos,
                 requierePrecinto: agencia.RequierePrecinto == true,
                 precinto: request.Precinto,
                 usuarioGeneracionId: _usuarioContexto.Current?.Id,
@@ -208,11 +208,11 @@ internal sealed class GenerarDocumentoCommandHandler
         return documento.Id;
     }
 
-
-    private async Task<ErrorOr<(Almacen Almacen, Agencia Agencia)>>
-      ObtenerConfiguracionAsync(
-          GenerarDocumentoCommand request,
-          CancellationToken cancellationToken)
+    private async Task<
+        ErrorOr<(Almacen Almacen, Agencia Agencia)>>
+        ObtenerConfiguracionAsync(
+            GenerarDocumentoCommand request,
+            CancellationToken cancellationToken)
     {
         var almacen = await _almacenRepository.GetByIdAsync(
             request.AlmacenId,
@@ -262,7 +262,8 @@ internal sealed class GenerarDocumentoCommandHandler
         return (almacen, agencia);
     }
 
-    private async Task<ErrorOr<IReadOnlyList<ExpedicionErpDto>>>
+    private async Task<
+        ErrorOr<IReadOnlyList<ExpedicionErpDto>>>
         ObtenerExpedicionesErpAsync(
             string empresa,
             Almacen almacen,
@@ -287,6 +288,7 @@ internal sealed class GenerarDocumentoCommandHandler
                     "No existen expediciones en el ERP " +
                     "para el rango y agencia indicados.");
             }
+
             return ErrorOrFactory
                 .From<IReadOnlyList<ExpedicionErpDto>>(
                     expediciones);
@@ -303,7 +305,8 @@ internal sealed class GenerarDocumentoCommandHandler
         }
     }
 
-    private async Task<ErrorOr<IReadOnlyList<ExpedicionErpDto>>>
+    private async Task<
+        ErrorOr<IReadOnlyList<ExpedicionErpDto>>>
         ObtenerExpedicionesNuevasAsync(
             string empresa,
             Almacen almacen,
@@ -341,15 +344,16 @@ internal sealed class GenerarDocumentoCommandHandler
     }
 
     private async Task<ErrorOr<DestinoEnvio>>
-     ObtenerDestinoAgenciaAsync(
-         Almacen almacen,
-         Agencia agencia,
-         CancellationToken cancellationToken)
+        ObtenerDestinoAgenciaAsync(
+            Almacen almacen,
+            Agencia agencia,
+            CancellationToken cancellationToken)
     {
-        var relacion = await _almacenRepository.GetRelacionAgenciaAsync(
-            almacen.Id,
-            agencia.Id,
-            cancellationToken);
+        var relacion =
+            await _almacenRepository.GetRelacionAgenciaAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
 
         if (relacion?.AgenciaBaseId is not { } agenciaBaseId)
         {
@@ -359,9 +363,10 @@ internal sealed class GenerarDocumentoCommandHandler
                 $"'{almacen.Codigo}' y la agencia '{agencia.Codigo}'.");
         }
 
-        var agenciaConBases = await _agenciaRepository.GetByIdConBasesAsync(
-            agencia.Id,
-            cancellationToken);
+        var agenciaConBases =
+            await _agenciaRepository.GetByIdConBasesAsync(
+                agencia.Id,
+                cancellationToken);
 
         if (agenciaConBases is null)
         {
@@ -377,8 +382,9 @@ internal sealed class GenerarDocumentoCommandHandler
         {
             return Error.Validation(
                 "Documento.AgenciaBaseAgenciaNoExiste",
-                $"La agencia base configurada para el almacén '{almacen.Codigo}' " +
-                $"y la agencia '{agencia.Codigo}' no existe o no pertenece a esa agencia.");
+                $"La agencia base configurada para el almacén " +
+                $"'{almacen.Codigo}' y la agencia '{agencia.Codigo}' " +
+                "no existe o no pertenece a esa agencia.");
         }
 
         if (!agenciaBase.Activo)
@@ -392,8 +398,9 @@ internal sealed class GenerarDocumentoCommandHandler
         {
             return Error.Validation(
                 "Documento.AgenciaBaseAgenciaSinDireccion",
-                $"La agencia base '{agenciaBase.Codigo}' no tiene dirección completa " +
-                $"para el almacén '{almacen.Codigo}' y la agencia '{agencia.Codigo}'.");
+                $"La agencia base '{agenciaBase.Codigo}' no tiene " +
+                $"dirección completa para el almacén " +
+                $"'{almacen.Codigo}' y la agencia '{agencia.Codigo}'.");
         }
 
         return new DestinoEnvio(
@@ -406,6 +413,90 @@ internal sealed class GenerarDocumentoCommandHandler
             agenciaBase.Movil?.Valor);
     }
 
+    /// <summary>
+    /// Resuelve todos los destinos reales de las expediciones.
+    /// Puede contener simultáneamente destinos de almacén y de cliente.
+    /// </summary>
+    private async Task<
+        ErrorOr<IReadOnlyDictionary<string, DestinoEnvio>>>
+        ObtenerDestinosAsync(
+            string empresa,
+            IReadOnlyCollection<Expedicion> expediciones,
+            CancellationToken cancellationToken)
+    {
+        var destinos = new Dictionary<string, DestinoEnvio>(
+            StringComparer.OrdinalIgnoreCase);
+
+        // Destinos correspondientes a trasiegos entre almacenes.
+        var expedicionesAlmacen = expediciones
+            .Where(e => e.EsDestinoAlmacen)
+            .ToList();
+
+        if (expedicionesAlmacen.Count > 0)
+        {
+            var resultadoAlmacenes =
+                await ObtenerDestinosAlmacenAsync(
+                    empresa,
+                    expedicionesAlmacen,
+                    cancellationToken);
+
+            if (resultadoAlmacenes.IsError)
+            {
+                return resultadoAlmacenes.Errors;
+            }
+
+            foreach (var destino in resultadoAlmacenes.Value)
+            {
+                destinos[destino.Key] = destino.Value;
+            }
+        }
+
+        // Destinos correspondientes a expediciones de cliente.
+        foreach (var expedicion in expediciones
+                     .Where(e => e.EsDestinoCliente))
+        {
+            var clave = expedicion.ObtenerClaveDestino();
+
+            // Varias expediciones pueden tener exactamente
+            // el mismo destino.
+            if (destinos.ContainsKey(clave))
+            {
+                continue;
+            }
+
+            var destino = expedicion.Destino;
+
+            if (string.IsNullOrWhiteSpace(destino.AddressName) ||
+                string.IsNullOrWhiteSpace(destino.AddressStreet) ||
+                string.IsNullOrWhiteSpace(destino.CodigoPostal) ||
+                string.IsNullOrWhiteSpace(destino.Municipio) ||
+                string.IsNullOrWhiteSpace(destino.Pais))
+            {
+                return Error.Validation(
+                    "Documento.DestinoClienteIncompleto",
+                    $"La expedición ERP '{expedicion.ErpId}' " +
+                    "no tiene una dirección de cliente completa.");
+            }
+
+            destinos[clave] = new DestinoEnvio(
+                expedicion.Cliente ?? expedicion.ErpId,
+                destino.AddressName,
+                destino.AddressStreet,
+                destino.CodigoPostal,
+                destino.Municipio,
+                destino.Pais,
+                destino.AddressPhone1);
+        }
+
+        return ErrorOrFactory
+            .From<IReadOnlyDictionary<string, DestinoEnvio>>(
+                destinos);
+    }
+
+    /// <summary>
+    /// Resuelve los destinos de almacén necesarios para
+    /// las expediciones de tipo trasiego.
+    /// </summary>
     private async Task<
         ErrorOr<IReadOnlyDictionary<string, DestinoEnvio>>>
         ObtenerDestinosAlmacenAsync(
@@ -415,6 +506,7 @@ internal sealed class GenerarDocumentoCommandHandler
     {
         var codigosDestino = expediciones
             .Where(e =>
+                e.EsDestinoAlmacen &&
                 !string.IsNullOrWhiteSpace(
                     e.Destino.AlmacenDestino))
             .Select(e =>
@@ -436,9 +528,13 @@ internal sealed class GenerarDocumentoCommandHandler
                 codigosDestino,
                 cancellationToken);
 
+        /*
+         * Es importante utilizar exactamente la misma clave
+         * que utiliza Expedicion.ObtenerClaveDestino().
+         */
         var destinos = almacenesDestino
             .ToDictionary(
-                a => a.Codigo,
+                a => ClaveDestinoEnvio.ParaAlmacen(a.Codigo),
                 a => CrearDestinoEnvio(a),
                 StringComparer.OrdinalIgnoreCase);
 
@@ -447,7 +543,8 @@ internal sealed class GenerarDocumentoCommandHandler
                 destinos);
     }
 
-    private static DestinoEnvio CrearDestinoEnvio(Almacen almacen)
+    private static DestinoEnvio CrearDestinoEnvio(
+        Almacen almacen)
     {
         return new DestinoEnvio(
             almacen.Codigo,

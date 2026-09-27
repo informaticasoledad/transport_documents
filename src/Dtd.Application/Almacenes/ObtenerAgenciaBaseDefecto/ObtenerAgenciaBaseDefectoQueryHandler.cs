@@ -81,8 +81,8 @@ internal sealed class ObtenerAgenciaBaseDefectoQueryHandler
                 $"para el almacén '{almacen.Codigo}'.");
         }
 
-        // Las agencias de envío directo no utilizan agencia base.
-        if (agencia.EnvioDirecto)
+        // Las agencias con entrega en destino no utilizan agencia base.
+        if (agencia.EntregaEnDestino)
         {
             return (AgenciaBaseDto?)null;
         }

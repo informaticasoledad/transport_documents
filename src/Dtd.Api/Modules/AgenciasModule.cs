@@ -42,7 +42,7 @@ public static class AgenciasModule
           async (
               string? texto,
               bool? activa,
-              bool? envioDirecto,
+              bool? entregaEnDestino,
               int? page,
               int? pageSize,
               IMediator mediator,
@@ -52,8 +52,8 @@ public static class AgenciasModule
                   new ListarAgenciasQuery(
                       texto,
                       activa,
-                      envioDirecto,
-                      page ?? 1,
+                      entregaEnDestino,
+                      page ?? 1,    
                       pageSize ?? 20),
                   ct);
 
@@ -89,7 +89,7 @@ public static class AgenciasModule
                     request.Codigo,
                     request.Nombre,
                     request.AgenciaQs,
-                    request.EnvioDirecto);
+                    request.EntregaEnDestino);
 
                 var result = await mediator.Send(command, ct);
 
@@ -114,7 +114,7 @@ public static class AgenciasModule
                     request.Nombre,
                     request.AgenciaQs,
                     request.Activa,
-                    request.EnvioDirecto);
+                    request.EntregaEnDestino);
 
                 var result = await mediator.Send(command, ct);
 
@@ -317,14 +317,14 @@ public sealed record CrearAgenciaRequest(
     string Codigo,
     string Nombre,
     string? AgenciaQs,
-    bool EnvioDirecto);
+    bool EntregaEnDestino);
 
 public sealed record ModificarAgenciaRequest(
     string Codigo,
     string Nombre,
     string? AgenciaQs,
     bool Activa,
-    bool EnvioDirecto);
+    bool EntregaEnDestino);
 
 public sealed record CrearBaseAgenciaRequest(
     string Codigo,

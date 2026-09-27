@@ -10,7 +10,7 @@ namespace Dtd.Application.Agencias.ListarAgencias;
 public sealed record ListarAgenciasQuery(
     string? Texto,
     bool? Activa,
-    bool? EnvioDirecto,
+    bool? EntregaEnDestino,
     int Page = 1,
     int PageSize = 20)
     : IRequest<ErrorOr<AgenciasPaginadasDto>>;
@@ -47,7 +47,7 @@ internal sealed class ListarAgenciasQueryHandler
             await _agenciaRepository.BuscarAsync(
                 request.Texto,
                 request.Activa,
-                request.EnvioDirecto,
+                request.EntregaEnDestino,
                 skip,
                 pageSize,
                 cancellationToken);
@@ -59,7 +59,7 @@ internal sealed class ListarAgenciasQueryHandler
                 a.Nombre,
                 a.Activa,
                 a.AgenciaQs,
-                a.EnvioDirecto,
+                a.EntregaEnDestino,
                 a.RequierePrecinto))
             .ToList();
 

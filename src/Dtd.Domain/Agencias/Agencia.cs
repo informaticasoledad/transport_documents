@@ -23,7 +23,7 @@ public sealed class Agencia : AggregateRoot<Guid>
     /// (1 envío por almacén destino, agrupando expediciones) en lugar de colapsarlos
     /// en un único envío a la base del carrier.
     /// </summary>
-    public bool EnvioDirecto { get; private set; }
+    public bool EntregaEnDestino { get; private set; }
 
     public bool RequierePrecinto { get; private set; }
 
@@ -45,24 +45,24 @@ public sealed class Agencia : AggregateRoot<Guid>
         string nombre,
         bool activa,
         string? agenciaQs,
-        bool envioDirecto,
-        bool requirePrecinto)
+        bool entregaEnDestino,
+        bool requierePrecinto)
     {
         Id = Guid.NewGuid();
         Codigo = codigo;
         Nombre = nombre;
         Activa = activa;
         AgenciaQs = agenciaQs;
-        EnvioDirecto = envioDirecto;
-        RequierePrecinto = requirePrecinto;
+        EntregaEnDestino = entregaEnDestino;
+        RequierePrecinto = requierePrecinto;
     }
 
     public static Agencia Crear(
         string codigo,
         string nombre,
         string? agenciaQs = null,
-        bool envioDirecto = false, 
-        bool requirePrecinto = false)
+        bool entregaEnDestino = false,
+        bool requierePrecinto = false)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -83,22 +83,22 @@ public sealed class Agencia : AggregateRoot<Guid>
             nombre.Trim(),
             activa: true,
             agenciaQs?.Trim(),
-            envioDirecto,
-            requirePrecinto);
+            entregaEnDestino,
+            requierePrecinto);
     }
 
     public void Desactivar() => Activa = false;
 
     public void Activar() => Activa = true;
 
-    public void MarcarEnvioDirecto(bool envioDirecto) =>
-        EnvioDirecto = envioDirecto;
+    public void MarcarEntregaEnDestino(bool entregaEnDestino) =>
+        EntregaEnDestino = entregaEnDestino;
 
     public void Modificar(
         string codigo,
         string nombre,
         string? agenciaQs,
-        bool envioDirecto)
+        bool entregaEnDestino)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -117,7 +117,7 @@ public sealed class Agencia : AggregateRoot<Guid>
         Codigo = codigo.Trim();
         Nombre = nombre.Trim();
         AgenciaQs = agenciaQs?.Trim();
-        EnvioDirecto = envioDirecto;
+        EntregaEnDestino = entregaEnDestino;
     }
 
     public AgenciaBase AgregarBase(

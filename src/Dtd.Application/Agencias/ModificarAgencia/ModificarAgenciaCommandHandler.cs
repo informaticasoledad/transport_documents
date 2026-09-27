@@ -62,7 +62,7 @@ internal sealed class ModificarAgenciaCommandHandler
                 codigo,
                 request.Nombre,
                 request.AgenciaQs,
-                request.EnvioDirecto);
+                request.EntregaEnDestino);
 
             if (request.Activa)
             {
@@ -88,7 +88,7 @@ internal sealed class ModificarAgenciaCommandHandler
             agencia.Nombre,
             agencia.Activa,
             agencia.AgenciaQs,
-            agencia.EnvioDirecto,
+            agencia.EntregaEnDestino,
             agencia.RequierePrecinto);
     }
 }

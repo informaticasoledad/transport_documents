@@ -115,17 +115,17 @@ internal sealed class VincularAlmacenAgenciaCommandHandler
                 $"El template '{request.TemplateId}' no está activo.");
         }
 
-        // 5. Agencia base según EnvioDirecto
+        // 5. Agencia base si no entrega en destino
         Guid? agenciaBaseId = request.AgenciaBaseId;
 
-        if (agencia.EnvioDirecto)
+        if (agencia.EntregaEnDestino)
         {
             if (agenciaBaseId is not null &&
                 agenciaBaseId != Guid.Empty)
             {
                 return Error.Validation(
                     "Almacen.AgenciaBaseNoPermitida",
-                    $"La agencia '{agencia.Codigo}' es de envío directo " +
+                    $"La agencia '{agencia.Codigo}' está configurada como entrega en destino " +
                     "y no puede tener una base configurada.");
             }
 

@@ -29,7 +29,7 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
         builder.Property(x => x.AgenciaQs)
             .HasMaxLength(20);
 
-        builder.Property(x => x.EnvioDirecto)
+        builder.Property(x => x.EntregaEnDestino)
             .IsRequired();
 
         // El código de agencia es global.

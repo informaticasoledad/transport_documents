@@ -10,9 +10,9 @@ namespace Dtd.Application.Mapping;
 public static class ExpedicionFactory
 {
     public static Expedicion ToDomain(
-           this ExpedicionErpDto dto,
-           Guid almacenId,
-           Guid agenciaId)
+        this ExpedicionErpDto dto,
+        Guid almacenId,
+        Guid agenciaId)
     {
         var destino = DestinoExpedicion.Create(
             dto.ExpeditionDestination?.CountryIsoCode,
@@ -24,17 +24,29 @@ public static class ExpedicionFactory
             dto.ExpeditionDestination?.AddressStreet,
             dto.ExpeditionDestination?.AddressPhone1);
 
-        var bultos = (int) dto.ExpeditionDetails
+        var bultos = (int)dto.ExpeditionDetails
             .Sum(x => x.ProductUnits);
 
         var pesoTotal = dto.ExpeditionDetails
             .Sum(x => x.TotalWeight);
 
+        var tipoExpedicion = dto.ExpeditionType switch
+        {
+            1 => TipoExpedicion.VentaCliente,
+            2 => TipoExpedicion.TrasiegoAlmacen,
+            3 => TipoExpedicion.TrasiegoAutomaticoAlmacen,
+            4 => TipoExpedicion.CustodiaCliente,
+            5 => TipoExpedicion.SalidaDepositoCliente,
+
+            _ => throw new InvalidOperationException(
+                $"Tipo de expedición ERP no soportado: {dto.ExpeditionType}.")
+        };
+
         return Expedicion.CrearDesdeErp(
             dto.Id,
             dto.DocumentNumber,
             dto.ExpeditionCode,
-            dto.ExpeditionType,
+            tipoExpedicion,
             dto.Empresa,
             almacenId,
             agenciaId,
@@ -45,11 +57,10 @@ public static class ExpedicionFactory
             pesoTotal);
     }
 
-    /// <summary>Construye el <see cref="OrigenDocumento"/> (común a todas las expediciones del DDT)
-    /// desde el <c>expeditionOrigin</c> del DTO del ERP.</summary>
     public static OrigenDocumento ToOrigen(this ExpedicionErpDto dto)
     {
         var o = dto.ExpeditionOrigin;
+
         return OrigenDocumento.Create(
             o?.Id ?? dto.OriginWarehouseId,
             o?.AddressName,

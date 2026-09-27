@@ -117,23 +117,23 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     }
 
     public static ErrorOr<DocumentoDigitalTransporte> Generar(
-        string empresa,
-        string referencia,
-        Guid almacenId,
-        Guid agenciaId,
-        OrigenDocumento origen,
-        RangoFechas rangoFechas,
-        IReadOnlyCollection<Expedicion> expediciones,
-        TipoAgrupacionEnvio tipoAgrupacion,
-        DestinoEnvio? destinoAgencia,
-        IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen,
-        bool requierePrecinto,
-        string? precinto,
-        string? usuarioGeneracionId,
-        DateTimeOffset fechaGeneracion)
+    string empresa,
+    string referencia,
+    Guid almacenId,
+    Guid agenciaId,
+    OrigenDocumento origen,
+    RangoFechas rangoFechas,
+    IReadOnlyCollection<Expedicion> expediciones,
+    TipoAgrupacionEnvio tipoAgrupacion,
+    DestinoEnvio? destinoAgencia,
+    IReadOnlyDictionary<string, DestinoEnvio> destinos,
+    bool requierePrecinto,
+    string? precinto,
+    string? usuarioGeneracionId,
+    DateTimeOffset fechaGeneracion)
     {
         ArgumentNullException.ThrowIfNull(expediciones);
-        ArgumentNullException.ThrowIfNull(destinosAlmacen);
+        ArgumentNullException.ThrowIfNull(destinos);
 
         if (string.IsNullOrWhiteSpace(referencia))
         {
@@ -182,13 +182,12 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         var resultadoEnvios = documento.GenerarEnvios(
             destinoAgencia,
-            destinosAlmacen);
+            destinos);
 
         if (resultadoEnvios.IsError)
         {
             return resultadoEnvios.Errors;
         }
-
 
         documento.RegistrarEvento(
             TipoEventoDocumento.Creado,
@@ -200,25 +199,23 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         return documento;
     }
-
     private ErrorOr<Success> GenerarEnvios(
     DestinoEnvio? destinoAgencia,
-    IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen)
+    IReadOnlyDictionary<string, DestinoEnvio> destinos)
     {
         return TipoAgrupacion switch
         {
             TipoAgrupacionEnvio.UnicoPorAgencia
                 => GenerarEnvioUnicoPorAgencia(destinoAgencia),
 
-            TipoAgrupacionEnvio.PorAlmacenDestino
-                => GenerarEnviosPorAlmacenDestino(destinosAlmacen),
+            TipoAgrupacionEnvio.PorDestino
+                => GenerarEnviosPorDestino(destinos),
 
             _ => Error.Validation(
                 "Documento.TipoAgrupacionNoSoportado",
                 $"El tipo de agrupación '{TipoAgrupacion}' no está soportado.")
         };
     }
-
     private ErrorOr<Success> GenerarEnvioUnicoPorAgencia(
     DestinoEnvio? destinoAgencia)
     {
@@ -245,69 +242,41 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         return Result.Success;
     }
 
-    private ErrorOr<Success> GenerarEnviosPorAlmacenDestino(
-        IReadOnlyDictionary<string, DestinoEnvio> destinosAlmacen)
+    private ErrorOr<Success> GenerarEnviosPorDestino(
+    IReadOnlyDictionary<string, DestinoEnvio> destinos)
     {
-        var expedicionCliente = _expediciones
-            .FirstOrDefault(
-                e => e.ExpeditionType == Expedicion.TipoCliente);
-
-        if (expedicionCliente is not null)
-        {
-            return Error.Validation(
-                "Documento.ExpedicionNoValidaParaDestinoAlmacen",
-                $"La expedición ERP '{expedicionCliente.ErpId}' " +
-                "no es un trasiego y no puede agruparse por almacén destino.");
-        }
-
-        var expedicionSinDestino = _expediciones
-            .FirstOrDefault(
-                e => string.IsNullOrWhiteSpace(
-                    e.Destino.AlmacenDestino));
-
-        if (expedicionSinDestino is not null)
-        {
-            return Error.Validation(
-                "Documento.AlmacenDestinoRequerido",
-                $"La expedición ERP '{expedicionSinDestino.ErpId}' " +
-                "no tiene almacén destino.");
-        }
-
-        var codigosDestino = _expediciones
-            .Select(e => e.Destino.AlmacenDestino!)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .OrderBy(codigo => codigo)
-            .ToList();
-
-        var almacenesNoConfigurados = codigosDestino
-            .Where(codigo =>
-                !destinosAlmacen.ContainsKey(codigo))
-            .ToList();
-
-        if (almacenesNoConfigurados.Count > 0)
-        {
-            return Error.Validation(
-                "Documento.AlmacenDestinoNoConfigurado",
-                $"Los siguientes almacenes destino no están configurados: " +
-                $"{string.Join(", ", almacenesNoConfigurados)}.");
-        }
-
         var grupos = _expediciones
             .GroupBy(
-                e => e.Destino.AlmacenDestino!,
+                e => e.ObtenerClaveDestino(),
                 StringComparer.OrdinalIgnoreCase)
-            .OrderBy(g => g.Key);
+            .OrderBy(g => g.Key)
+            .ToList();
+
+        var destinosNoConfigurados = grupos
+            .Where(g => !destinos.ContainsKey(g.Key))
+            .Select(g => g.Key)
+            .ToList();
+
+        if (destinosNoConfigurados.Count > 0)
+        {
+            return Error.Validation(
+                "Documento.DestinoNoConfigurado",
+                "No se ha podido resolver el destino de las siguientes expediciones: " +
+                $"{string.Join(", ", destinosNoConfigurados)}.");
+        }
 
         var orden = 1;
 
         foreach (var grupo in grupos)
         {
+            var destino = destinos[grupo.Key];
+
             var envio = Envio.Crear(
                 orden: orden,
                 referencia: GenerarReferenciaEnvio(orden),
                 bultos: grupo.Sum(e => e.Bultos),
                 pesoTotal: grupo.Sum(e => e.PesoTotal),
-                destino: destinosAlmacen[grupo.Key]);
+                destino: destino);
 
             foreach (var expedicion in grupo)
             {

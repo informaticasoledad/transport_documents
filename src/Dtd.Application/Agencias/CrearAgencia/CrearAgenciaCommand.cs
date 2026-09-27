@@ -7,5 +7,5 @@ public sealed record CrearAgenciaCommand(
     string Codigo,
     string Nombre,
     string? AgenciaQs,
-    bool EnvioDirecto)
+    bool EntregaEnDestino)
     : IRequest<ErrorOr<AgenciaDto>>;

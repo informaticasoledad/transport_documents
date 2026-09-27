@@ -38,7 +38,7 @@ internal sealed class ObtenerAgenciaQueryHandler
             agencia.Nombre,
             agencia.Activa,
             agencia.AgenciaQs,
-            agencia.EnvioDirecto,
+            agencia.EntregaEnDestino,
             agencia.RequierePrecinto);
     }
 }

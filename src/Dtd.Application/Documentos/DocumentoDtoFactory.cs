@@ -38,7 +38,8 @@ internal static class DocumentoDtoFactory
             FechaGeneracion = documento.FechaGeneracion,
             //TotalExpediciones = documento.Expediciones.Count,
             //Expediciones = expediciones,
-            EnvioDirecto = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorAlmacenDestino,
+            EntregaEnDestino = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorDestino,
+
             RequierePrecinto = documento.RequierePrecinto,
             Precinto = documento.Precinto,
             Envios = documento.Envios
@@ -104,7 +105,7 @@ internal static class DocumentoDtoFactory
             ErpId = expedicion.ErpId,
             DocumentNumber = expedicion.DocumentNumber,
             ExpeditionCode = expedicion.ExpeditionCode,
-            ExpeditionType = expedicion.ExpeditionType,
+            TipoExpedicion = expedicion.TipoExpedicion,
             Empresa = expedicion.Empresa,
             AlmacenId = expedicion.AlmacenId,
             AgenciaId = expedicion.AgenciaId,

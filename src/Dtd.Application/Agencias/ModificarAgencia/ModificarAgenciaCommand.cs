@@ -9,5 +9,5 @@ public sealed record ModificarAgenciaCommand(
     string Nombre,
     string? AgenciaQs,
     bool Activa,
-    bool EnvioDirecto)
+    bool EntregaEnDestino)
     : IRequest<ErrorOr<AgenciaDto>>;

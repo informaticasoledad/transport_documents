@@ -16,7 +16,7 @@ internal sealed class ExpedicionConfiguration : IEntityTypeConfiguration<Expedic
         builder.Property(x => x.ErpId).HasMaxLength(60).IsRequired();
         builder.Property(x => x.DocumentNumber).HasMaxLength(50);
         builder.Property(x => x.ExpeditionCode).HasMaxLength(50);
-        builder.Property(x => x.ExpeditionType);
+        builder.Property(x => x.TipoExpedicion).HasConversion<int>().IsRequired();
         builder.Property(x => x.Empresa).HasMaxLength(50).IsRequired();
         builder.Property(x => x.Fecha);
         builder.Property(x => x.Cliente).HasMaxLength(50);

@@ -26,14 +26,7 @@ public sealed class Expedicion : Entity<Guid>
     /// <summary>Código de expedición en el ERP (campo <c>expeditionCode</c>).</summary>
     public string? ExpeditionCode { get; private set; }
 
-    /// <summary>Tipo de expedición: 1 = entrega a cliente, 2 = transfer entre almacenes.</summary>
-    public int ExpeditionType { get; private set; }
-
-    /// <summary>Tipo de expedición del ERP: entrega a cliente (albarán).</summary>
-    public const int TipoCliente = 1;
-
-    /// <summary>Tipo de expedición del ERP: trasiego / transferencia entre almacenes.</summary>
-    public const int TipoTrasiego = 2;
+    public TipoExpedicion TipoExpedicion { get; private set; }
 
     /// <summary>La empresa a la que pertenece la expedición (columna multiempresa).</summary>
     public string Empresa { get; private set; }
@@ -62,6 +55,16 @@ public sealed class Expedicion : Entity<Guid>
     /// envíos (documentos preexistentes a la feature pueden quedar a <c>null</c>). FK a la tabla de envíos del documento.</summary>
     public Guid? EnvioId { get; private set; }
 
+    public bool EsDestinoCliente =>
+    TipoExpedicion is TipoExpedicion.VentaCliente
+        or TipoExpedicion.CustodiaCliente
+        or TipoExpedicion.SalidaDepositoCliente;
+
+    public bool EsDestinoAlmacen =>
+        TipoExpedicion is TipoExpedicion.TrasiegoAlmacen
+            or TipoExpedicion.TrasiegoAutomaticoAlmacen;
+
+
     /// <summary>Usado por el ORM para materializar la entidad; no para código de aplicación.</summary>
     private Expedicion()
     {
@@ -74,7 +77,7 @@ public sealed class Expedicion : Entity<Guid>
         string erpId,
         string? documentNumber,
         string? expeditionCode,
-        int expeditionType,
+        TipoExpedicion tipoExpedicion,
         string empresa,
         Guid almacenId,
         Guid agenciaId,
@@ -107,7 +110,7 @@ public sealed class Expedicion : Entity<Guid>
         ErpId = erpId.Trim();
         DocumentNumber = documentNumber;
         ExpeditionCode = expeditionCode;
-        ExpeditionType = expeditionType;
+        TipoExpedicion = tipoExpedicion;
         Empresa = empresa.Trim();
         AlmacenId = almacenId;
         AgenciaId = agenciaId;
@@ -123,7 +126,7 @@ public sealed class Expedicion : Entity<Guid>
         string erpId,
         string? documentNumber,
         string? expeditionCode,
-        int expeditionType,
+        TipoExpedicion tipoExpedicion,
         string empresa,
         Guid almacenId,
         Guid agenciaId,
@@ -132,7 +135,7 @@ public sealed class Expedicion : Entity<Guid>
         DestinoExpedicion destino,
         int bultos, 
         decimal pesoTotal) =>
-        new(erpId, documentNumber, expeditionCode, expeditionType, empresa, almacenId, agenciaId,
+        new(erpId, documentNumber, expeditionCode, tipoExpedicion, empresa, almacenId, agenciaId,
             fecha, cliente, destino, bultos, pesoTotal);
 
     /// <summary>Vincula la expedición a su envío (shipment) tras la agrupación del DDT. Lo invoca
@@ -146,5 +149,30 @@ public sealed class Expedicion : Entity<Guid>
         }
 
         EnvioId = envioId;
+    }
+
+    public string ObtenerClaveDestino()
+    {
+        if (EsDestinoAlmacen)
+        {
+            if (string.IsNullOrWhiteSpace(Destino.AlmacenDestino))
+            {
+                throw new InvalidOperationException(
+                    $"La expedición '{ErpId}' no tiene almacén destino.");
+            }
+
+            return ClaveDestinoEnvio.ParaAlmacen(
+                Destino.AlmacenDestino);
+        }
+
+        if (EsDestinoCliente)
+        {
+            return ClaveDestinoEnvio.ParaCliente(
+                Cliente,
+                Destino);
+        }
+
+        throw new InvalidOperationException(
+            $"Tipo de expedición '{TipoExpedicion}' no soportado.");
     }
 }

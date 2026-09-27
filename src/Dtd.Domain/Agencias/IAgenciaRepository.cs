@@ -63,7 +63,7 @@ public interface IAgenciaRepository
     Task<(IReadOnlyList<Agencia> Items, int Total)> BuscarAsync(
         string? texto,
         bool? activa,
-        bool? envioDirecto,
+        bool? entregaEnDestino,
         int skip,
         int take,
         CancellationToken cancellationToken = default);

@@ -71,7 +71,7 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
                 a.Id,
                 a.Codigo,
                 a.Nombre,
-                a.EnvioDirecto,
+                a.EntregaEnDestino,
                 a.RequierePrecinto))
             .ToList();
     }

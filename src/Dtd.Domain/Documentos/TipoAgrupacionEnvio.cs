@@ -7,6 +7,6 @@ namespace Dtd.Domain.Documentos
     public enum TipoAgrupacionEnvio
     {
         UnicoPorAgencia = 1,
-        PorAlmacenDestino = 2
+        PorDestino = 2
     }
 }

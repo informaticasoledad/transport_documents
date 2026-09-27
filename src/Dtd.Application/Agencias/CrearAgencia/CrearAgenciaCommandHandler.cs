@@ -44,7 +44,7 @@ internal sealed class CrearAgenciaCommandHandler
                 request.Codigo,
                 request.Nombre,
                 request.AgenciaQs,
-                request.EnvioDirecto);
+                request.EntregaEnDestino);
         }
         catch (ArgumentException ex)
         {
@@ -66,7 +66,7 @@ internal sealed class CrearAgenciaCommandHandler
             agencia.Nombre,
             agencia.Activa,
             agencia.AgenciaQs,
-            agencia.EnvioDirecto,
+            agencia.EntregaEnDestino,
             agencia.RequierePrecinto);
     }
 }

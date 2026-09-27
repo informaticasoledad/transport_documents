@@ -1,3 +1,5 @@
+using Dtd.Domain.Documentos;
+
 namespace Dtd.Application.Documentos;
 
 public sealed record DocumentoDto
@@ -25,7 +27,7 @@ public sealed record DocumentoDto
     /// /public int TotalExpediciones { get; init; }
     /// </summary>
     ////public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
-    public bool EnvioDirecto { get; init; }
+    public bool EntregaEnDestino { get; init; }
     public IReadOnlyList<EnvioDto> Envios { get; init; } = [];
 
     public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
@@ -100,7 +102,7 @@ public sealed record ExpedicionDto
     public string ErpId { get; init; } = string.Empty;
     public string? DocumentNumber { get; init; }
     public string? ExpeditionCode { get; init; }
-    public int ExpeditionType { get; init; }
+    public TipoExpedicion TipoExpedicion { get; init; }
     public string Empresa { get; init; } = string.Empty;
     public Guid AlmacenId { get; init; }
     public Guid AgenciaId { get; init; }

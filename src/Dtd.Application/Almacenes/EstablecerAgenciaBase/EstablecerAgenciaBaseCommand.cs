@@ -91,11 +91,11 @@ internal sealed class EstablecerAgenciaBaseCommandHandler
                 $"La agencia '{agencia.Codigo}' no está activa.");
         }
 
-        if (agencia.EnvioDirecto)
+        if (agencia.EntregaEnDestino)
         {
             return Error.Validation(
                 "AlmacenAgencia.AgenciaBaseNoPermitido",
-                $"La agencia '{agencia.Codigo}' agrupa por almacén destino " +
+                $"La agencia '{agencia.Codigo}' entrega en destino " +
                 "y no admite agencia base.");
         }
 

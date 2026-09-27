@@ -85,7 +85,7 @@ internal sealed class AgenciaRepository : IAgenciaRepository
     public async Task<(IReadOnlyList<Agencia> Items, int Total)> BuscarAsync(
       string? texto,
       bool? activa,
-      bool? envioDirecto,
+      bool? entregaEnDestino,
       int skip,
       int take,
       CancellationToken cancellationToken = default)
@@ -108,10 +108,12 @@ internal sealed class AgenciaRepository : IAgenciaRepository
             query = query.Where(a => a.Activa == activa.Value);
         }
 
-        if (envioDirecto.HasValue)
+        if (entregaEnDestino.HasValue)
         {
-            query = query.Where(a => a.EnvioDirecto == envioDirecto.Value);
+            query = query.Where(
+                a => a.EntregaEnDestino == entregaEnDestino.Value);
         }
+
 
         var total = await query.CountAsync(cancellationToken);
 
