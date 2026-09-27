@@ -864,6 +864,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         _expediciones.Remove(expedicion);
 
+
         var expedicionesRestantes = expedicionesEnvio
             .Where(e => e.ErpId != expedicionErpId)
             .ToList();
