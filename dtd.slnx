@@ -3,7 +3,7 @@
     <Project Path="src/Dtd.Api/Dtd.Api.csproj" />
     <Project Path="src/Dtd.Application/Dtd.Application.csproj" />
     <Project Path="src/Dtd.Domain/Dtd.Domain.csproj" />
+    <Project Path="src/Dtd.Infrastructure.Tests/Dtd.Infrastructure.Tests.csproj" />
     <Project Path="src/Dtd.Infrastructure/Dtd.Infrastructure.csproj" />
   </Folder>
-  <Project Path="src/Dtd.Infrastructure.Tests/Dtd.Infrastructure.Tests.csproj" />
 </Solution>
