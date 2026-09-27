@@ -815,4 +815,69 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         return Result.Success;
     }
+
+    public ErrorOr<Success> EliminarExpedicion(
+    Guid envioId,
+    string expedicionErpId)
+    {
+        if (Estado != EstadoDocumento.Nuevo)
+        {
+            return Error.Validation(
+                code: "Documento.Expedicion.NoPuedeEliminarse",
+                description:
+                    "Solo se pueden eliminar expediciones de documentos en estado Nuevo.");
+        }
+
+        var envio = _envios
+            .FirstOrDefault(e => e.Id == envioId);
+
+        if (envio is null)
+        {
+            return Error.NotFound(
+                code: "Documento.Envio.NotFound",
+                description:
+                    $"No existe el envío '{envioId}' en el documento.");
+        }
+
+        var expedicionesEnvio = _expediciones
+            .Where(e => e.EnvioId == envioId)
+            .ToList();
+
+        var expedicion = expedicionesEnvio
+            .FirstOrDefault(e => e.ErpId == expedicionErpId);
+
+        if (expedicion is null)
+        {
+            return Error.NotFound(
+                code: "Documento.Expedicion.NotFound",
+                description:
+                    $"No existe la expedición '{expedicionErpId}' en el envío '{envioId}'.");
+        }
+
+        if (expedicionesEnvio.Count <= 1)
+        {
+            return Error.Validation(
+                code: "Documento.Expedicion.MinimoUna",
+                description:
+                    "El envío debe conservar al menos una expedición.");
+        }
+
+        _expediciones.Remove(expedicion);
+
+        var expedicionesRestantes = expedicionesEnvio
+            .Where(e => e.ErpId != expedicionErpId)
+            .ToList();
+
+        var totalBultos = expedicionesRestantes
+            .Sum(e => e.Bultos);
+
+        var totalPeso = expedicionesRestantes
+            .Sum(e => e.PesoTotal);
+
+        envio.ActualizarTotales(
+            totalBultos,
+            totalPeso);
+
+        return Result.Success;
+    }
 }

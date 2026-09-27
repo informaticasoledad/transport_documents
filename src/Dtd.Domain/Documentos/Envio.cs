@@ -110,4 +110,12 @@ public sealed class Envio : Entity<Guid>
 
     private static string? NormalizarOpcional(string? valor) =>
         string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
+
+    public void ActualizarTotales(
+        int bultos,
+        decimal pesoTotal)
+    {
+        Bultos = bultos;
+        PesoTotal = pesoTotal;
+    }
 }
