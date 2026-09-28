@@ -6,20 +6,6 @@ namespace Dtd.Application.Documentos.Mappers;
 public static class DocumentoEnviosPdfMapper
 {
     public static DocumentoEnviosPdfDto Map(
-        DocumentoDigitalTransporte documento)
-    {
-        return new DocumentoEnviosPdfDto(
-            DocumentoId: documento.Id,
-            Empresa: documento.Empresa,
-            Referencia: documento.Referencia,
-            FechaCreacion: documento.FechaGeneracion.DateTime,
-            Envios: documento.Envios
-                .OrderBy(e => e.Orden)
-                .Select(envio => MapEnvio(documento, envio))
-                .ToList());
-    }
-
-    private static DocumentoEnvioPdfDto MapEnvio(
         DocumentoDigitalTransporte documento,
         Envio envio)
     {
@@ -35,7 +21,7 @@ public static class DocumentoEnviosPdfMapper
             .ThenBy(e => e.DocumentNumber)
             .ToList();
 
-        return new DocumentoEnvioPdfDto(
+        var envioDto = new DocumentoEnvioPdfDto(
             Referencia: envio.Referencia,
 
             Destino: envio.Destino.Nombre,
@@ -50,7 +36,18 @@ public static class DocumentoEnviosPdfMapper
             Expediciones: expediciones
                 .Select(MapExpedicion)
                 .ToList());
+
+        return new DocumentoEnviosPdfDto(
+            DocumentoId: documento.Id,
+            Empresa: documento.Empresa,
+            Referencia: documento.Referencia,
+            FechaCreacion: documento.FechaGeneracion.DateTime,
+            Envios:
+            [
+                envioDto
+            ]);
     }
+
     private static DocumentoExpedicionPdfDto MapExpedicion(
         Expedicion expedicion)
     {

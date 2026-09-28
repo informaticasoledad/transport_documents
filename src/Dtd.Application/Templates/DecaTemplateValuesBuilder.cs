@@ -3,11 +3,18 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
+using System.Globalization;
 
 namespace Dtd.Application.Templates;
 
 public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 {
+    private readonly DocutenMappingOptions _options;
+
+    public DecaTemplateValuesBuilder(DocutenMappingOptions options)
+    {
+        _options = options;
+    }
     public string DocumentType => "transport_control_document";
 
     public Dictionary<string, string> Build(
@@ -39,10 +46,9 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["LugarDestino"] =
                 BuildLugarDestino(destino),
 
-            ["NaturalezaMercancia"] = string.Empty,
+            ["NaturalezaMercancia"] = _options.DefaultGoodsDescription,
 
-            // Pendiente: incorporar peso real desde las expediciones.
-            ["PesoMercancía"] = string.Empty,
+            ["PesoMercancía"] = $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg",
 
             ["FechaTransporte"] =
                 BuildFechaTransporte(documento, envio),

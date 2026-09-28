@@ -15,6 +15,5 @@ public interface IDocutenDocumentoProvider
         Agencia agencia,
         Template template,
         IReadOnlyCollection<DocutenPartyDto> parties,
-        byte[] pdfEnvios,
         CancellationToken cancellationToken = default);
 }

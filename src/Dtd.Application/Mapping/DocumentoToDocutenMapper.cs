@@ -5,6 +5,7 @@ using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
 using Dtd.Domain.Empresas;
 using Dtd.Domain.Templates;
+using System.Globalization;
 
 namespace Dtd.Application.Mapping;
 
@@ -16,7 +17,7 @@ public static class DocumentoToDocutenMapper
         Almacen almacen,
         Agencia agencia,
         Template template,
-        byte[] pdfEnvios,
+        IReadOnlyDictionary<Guid, byte[]> pdfsPorEnvio,
         DocutenMappingOptions options,
         IDocutenDocumentoProvider documentoProvider,
         CancellationToken cancellationToken)
@@ -50,9 +51,9 @@ public static class DocumentoToDocutenMapper
                 language);
 
             var parties = new List<DocutenPartyDto>
-    {
-        consignor
-    };
+            {
+                consignor
+            };
 
             parties.AddRange(drivers);
             parties.AddRange(consignees);
@@ -65,8 +66,29 @@ public static class DocumentoToDocutenMapper
                 agencia,
                 template,
                 parties,
-                pdfEnvios,
                 cancellationToken);
+
+            if (!pdfsPorEnvio.TryGetValue(envio.Id, out var pdfEnvio))
+            {
+                throw new InvalidOperationException(
+                    $"No se ha proporcionado el PDF para el envío '{envio.Referencia}'.");
+            }
+
+            var documentoAlbaranes = new DocutenDocumentoDto
+            {
+                DocumentType = "delivery_note",
+                DocumentName = $"albaranes-{envio.Referencia}.pdf",
+                ExternalId = $"{envio.Referencia}-albaranes",
+                Signable = false,
+                Content = Convert.ToBase64String(pdfEnvio),
+
+                Signers = documentoDto.Signers?
+                    .Select(s => new DocutenSignerDto
+                    {
+                        Order = s.Order
+                    })
+                    .ToList()
+            };
 
             shipments.Add(new DocutenShipmentDto
             {
@@ -99,16 +121,18 @@ public static class DocumentoToDocutenMapper
                     new DocutenGoodsDto
                     {
                         Description = $"{envio.Bultos} bultos",
-                        CargoType = "paletizado",
-
-                        // TODO: pendiente incorporar el peso real de las expediciones.
-                        GrossMass = "0 kg",
-
+                        //CargoType = "paletizado",
+                        GrossMass =
+                            $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg",
                         DangerousGoods = false
                     }
                 ],
 
-                Documents = [documentoDto],
+                Documents =
+                [
+                    documentoDto,
+                    documentoAlbaranes
+                ],
 
                 Metadata =
                 [
@@ -213,10 +237,10 @@ public static class DocumentoToDocutenMapper
     }
 
     private static IReadOnlyList<DocutenPartyDto> BuildConsignees(
-     Envio envio,
-     IReadOnlyCollection<CcAsignado> ccs,
-     IReadOnlyList<DocutenPartyDto> drivers,
-     string language)
+        Envio envio,
+        IReadOnlyCollection<CcAsignado> ccs,
+        IReadOnlyList<DocutenPartyDto> drivers,
+        string language)
     {
         var destino = GetDestino(envio);
 
@@ -229,6 +253,7 @@ public static class DocumentoToDocutenMapper
             throw new InvalidOperationException(
                 $"El último conductor del envío '{envio.Referencia}' no tiene móvil.");
         }
+
         var entrega = new DocutenPartyDto
         {
             Name = destino.Nombre,

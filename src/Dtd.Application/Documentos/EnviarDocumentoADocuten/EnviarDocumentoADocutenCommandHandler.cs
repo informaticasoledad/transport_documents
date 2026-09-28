@@ -7,7 +7,6 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Common;
 using Dtd.Domain.Documentos;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
@@ -25,10 +24,9 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
     private readonly IAgenciaRepository _agenciaRepository;
     private readonly DocutenMappingOptions _docutenMappingOptions;
     private readonly IDocutenDocumentoProvider _docutenDocumentoProvider;
+    private readonly IEnviosPdfGenerator _enviosPdfGenerator;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
-
-    private readonly IEnviosPdfGenerator _enviosPdfGenerator;
 
     public EnviarDocumentoADocutenCommandHandler(
         IDocumentoRepository documentoRepository,
@@ -38,9 +36,9 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         IAgenciaRepository agenciaRepository,
         DocutenMappingOptions docutenMappingOptions,
         IDocutenDocumentoProvider docutenDocumentoProvider,
+        IEnviosPdfGenerator enviosPdfGenerator,
         IUnitOfWork unitOfWork,
-        IAccesoAlmacenService accesoAlmacenService,
-        IEnviosPdfGenerator enviosPdfGenerator)
+        IAccesoAlmacenService accesoAlmacenService)
     {
         _documentoRepository = documentoRepository;
         _docutenGateway = docutenGateway;
@@ -49,6 +47,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
         _agenciaRepository = agenciaRepository;
         _docutenMappingOptions = docutenMappingOptions;
         _docutenDocumentoProvider = docutenDocumentoProvider;
+        _enviosPdfGenerator = enviosPdfGenerator;
         _unitOfWork = unitOfWork;
         _accesoAlmacenService = accesoAlmacenService;
     }
@@ -68,7 +67,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 "Documento.NoEncontrado",
                 $"No existe el documento '{request.DocumentoId}'.");
         }
-        
+
         var accesoAlmacen =
             await _accesoAlmacenService.ValidarAccesoAsync(
                 documento.Empresa,
@@ -80,9 +79,6 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
             return accesoAlmacen.Errors;
         }
 
-        // Reglas de "listo para enviar" (única fuente de verdad en el agregado):
-        // estado Nuevo, al menos una expedición, al menos un conductor
-        // y canal coherente en todos.
         var validacion = documento.ValidarListoParaEnviar();
 
         if (validacion.IsError)
@@ -163,16 +159,26 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
                 $"La plantilla '{almacenAgencia.Template.Code}' no está activa.");
         }
 
-         var pdfDto = DocumentoEnviosPdfMapper.Map(documento);
+        // Generamos un PDF independiente para cada envío.
+        var pdfsPorEnvio = documento.Envios
+            .ToDictionary(
+                envio => envio.Id,
+                envio =>
+                {
+                    var pdfDto =
+                        DocumentoEnviosPdfMapper.Map(
+                            documento,
+                            envio);
 
-        var pdfEnvios = _enviosPdfGenerator.Generate(pdfDto);
+                    return _enviosPdfGenerator.Generate(pdfDto);
+                });
 
         var lote = await documento.ToDocutenLoteDto(
             empresaConfig,
             almacen,
             agencia,
             almacenAgencia.Template,
-            pdfEnvios,
+            pdfsPorEnvio,
             _docutenMappingOptions,
             _docutenDocumentoProvider,
             cancellationToken);
@@ -213,7 +219,7 @@ internal sealed class EnviarDocumentoADocutenCommandHandler
 
         return new DocumentoEnviadoDto(
             documento.Id,
-            envio.LotId, 
+            envio.LotId,
             envio.Estado);
     }
 }

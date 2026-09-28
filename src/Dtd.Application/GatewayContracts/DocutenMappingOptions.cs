@@ -14,4 +14,6 @@ public sealed class DocutenMappingOptions
 
     /// <summary>Idioma por defecto de los shipments/parties (Docuten <c>language</c>).</summary>
     public string DefaultLanguage { get; set; } = "es";
+
+    public string DefaultGoodsDescription { get; set; } = string.Empty;
 }

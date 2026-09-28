@@ -3,11 +3,18 @@ using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
 using Dtd.Domain.Documentos.ValueObjects;
+using System.Globalization;
 
 namespace Dtd.Application.Templates;
 
 public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 {
+    private readonly DocutenMappingOptions _options;
+
+    public EcmrTemplateValuesBuilder(DocutenMappingOptions options)
+    {
+        _options = options;
+    }
     public string DocumentType => "ecmr";
 
     public Dictionary<string, string> Build(
@@ -58,7 +65,8 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 
         AddMercancias(
             values,
-            envio);
+            envio,
+            _options.DefaultGoodsDescription);
 
         return values;
     }
@@ -146,19 +154,24 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     }
 
     private static void AddMercancias(
-        Dictionary<string, string> values,
-        Envio envio)
+    Dictionary<string, string> values,
+    Envio envio,
+    string goodsDescription)
     {
-        // Actualmente el dominio solo dispone del número de bultos.
-        // Peso, volumen, embalaje, descripción y código estadístico
-        // no están disponibles todavía.
-
         values["Marcas y numeros"] = string.Empty;
-        values["Numero bultos"] = envio.Bultos.ToString();
+
+        values["Numero bultos"] =
+            envio.Bultos.ToString();
+
         values["Embalaje"] = string.Empty;
-        values["Mercancia"] = string.Empty;
+
+        values["Mercancia"] = goodsDescription;
+
         values["Stats"] = string.Empty;
-        values["Peso bruto"] = string.Empty;
+
+        values["Peso bruto"] =
+            $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg";
+
         values["Volumen"] = string.Empty;
 
         for (var i = 2; i <= 6; i++)
