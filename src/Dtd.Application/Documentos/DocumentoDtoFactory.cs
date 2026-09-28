@@ -39,7 +39,7 @@ internal static class DocumentoDtoFactory
             //TotalExpediciones = documento.Expediciones.Count,
             //Expediciones = expediciones,
             EntregaEnDestino = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorDestino,
-
+            Matricula = documento.Matricula,
             RequierePrecinto = documento.RequierePrecinto,
             Precinto = documento.Precinto,
             Envios = documento.Envios
