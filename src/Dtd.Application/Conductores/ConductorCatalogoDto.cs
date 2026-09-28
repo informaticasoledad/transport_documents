@@ -9,6 +9,7 @@ public sealed record ConductorCatalogoDto
     public string Nombre { get; init; } = string.Empty;
     public string? TaxId { get; init; }
     public string? LicensePlate { get; init; }
+    public string? TrailerLicensePlate { get; init; }
     public string Channel { get; init; } = string.Empty;
     public string? Email { get; init; }
     public string? Movil { get; init; }

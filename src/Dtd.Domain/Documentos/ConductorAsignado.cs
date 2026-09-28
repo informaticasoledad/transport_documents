@@ -21,7 +21,10 @@ public sealed class ConductorAsignado : Entity<Guid>
 
     public string Nombre { get; private set; }
     public string? TaxId { get; private set; }
+
     public string? LicensePlate { get; private set; }
+    public string? TrailerLicensePlate { get; private set; }
+
     public Movil? Movil { get; private set; }
     public Email? Email { get; private set; }
     public Canal Canal { get; private set; }
@@ -42,6 +45,7 @@ public sealed class ConductorAsignado : Entity<Guid>
         string nombre,
         string? taxId,
         string? licensePlate,
+        string? trailerLicensePlate,
         Movil? movil,
         Email? email,
         Canal canal,
@@ -52,6 +56,7 @@ public sealed class ConductorAsignado : Entity<Guid>
         Nombre = nombre;
         TaxId = taxId;
         LicensePlate = licensePlate;
+        TrailerLicensePlate = trailerLicensePlate;
         Movil = movil;
         Email = email;
         Canal = canal;
@@ -71,6 +76,7 @@ public sealed class ConductorAsignado : Entity<Guid>
             conductor.Nombre,
             conductor.TaxId,
             conductor.LicensePlate,
+            conductor.TrailerLicensePlate,
             conductor.Movil,
             conductor.Email,
             conductor.Canal,

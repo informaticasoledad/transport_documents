@@ -11,6 +11,7 @@ public sealed record ModificarConductorCommand(
     string? Email,
     string? TaxId,
     string? LicensePlate,
+    string? TrailerLicensePlate,
     string Language,
     bool Activo)
     : IRequest<ErrorOr<ConductorCatalogoDto>>;

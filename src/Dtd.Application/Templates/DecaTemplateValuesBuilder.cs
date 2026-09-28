@@ -59,7 +59,7 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["MatriculaTractora"] =
                 BuildMatriculaTractora(documento),
 
-            ["MatriculaRemolque"] = string.Empty,
+            ["MatriculaRemolque"] = documento.MatriculaRemolque ?? string.Empty,
 
             ["Observaciones"] = string.Empty,
 

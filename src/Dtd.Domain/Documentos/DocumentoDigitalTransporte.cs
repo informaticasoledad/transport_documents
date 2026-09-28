@@ -39,6 +39,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public string? Matricula { get; private set; }
 
+    public string? MatriculaRemolque { get; private set; }
+
     public string? Precinto { get; private set; }
 
     public bool RequierePrecinto { get; private set; }
@@ -297,7 +299,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     }
 
     public void AsignarConductor(
-        ConductorAsignado conductor)
+    ConductorAsignado conductor)
     {
         ArgumentNullException.ThrowIfNull(conductor);
 
@@ -312,12 +314,19 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         _conductores.Add(conductor);
 
-        // Solo heredamos la matrícula del conductor
-        // si el documento todavía no tiene una.
+        // Valores por defecto procedentes del conductor.
+        // Solo se heredan si el documento todavía no los tiene.
         if (string.IsNullOrWhiteSpace(Matricula) &&
             !string.IsNullOrWhiteSpace(conductor.LicensePlate))
         {
             Matricula = conductor.LicensePlate.Trim();
+        }
+
+        if (string.IsNullOrWhiteSpace(MatriculaRemolque) &&
+            !string.IsNullOrWhiteSpace(conductor.TrailerLicensePlate))
+        {
+            MatriculaRemolque =
+                conductor.TrailerLicensePlate.Trim();
         }
     }
 
@@ -851,13 +860,17 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         return Result.Success;
     }
 
-    public void ModificarMatricula(string? matricula)
+    public void ModificarMatriculas(string? matricula, string? matriculaRemolque)
     {
         AsegurarEstadoNuevo();
 
         Matricula = string.IsNullOrWhiteSpace(matricula)
             ? null
             : matricula.Trim();
+
+        MatriculaRemolque = string.IsNullOrWhiteSpace(matriculaRemolque)
+            ? null
+            : matriculaRemolque.Trim();
     }
 
     public void ModificarPrecinto(string? precinto)

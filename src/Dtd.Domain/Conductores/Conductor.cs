@@ -24,6 +24,7 @@ public sealed class Conductor : AggregateRoot<Guid>
     public string Nombre { get; private set; }
     public string? TaxId { get; private set; }
     public string? LicensePlate { get; private set; }
+    public string? TrailerLicensePlate { get; private set; }
     public Movil? Movil { get; private set; }
     public Email? Email { get; private set; }
     public Canal Canal { get; private set; }
@@ -41,19 +42,21 @@ public sealed class Conductor : AggregateRoot<Guid>
     }
 
     private Conductor(
-        string nombre,
-        string? taxId,
-        string? licensePlate,
-        Movil? movil,
-        Email? email,
-        Canal canal,
-        string language,
-        bool activo)
+    string nombre,
+    string? taxId,
+    string? licensePlate,
+    string? trailerLicensePlate,
+    Movil? movil,
+    Email? email,
+    Canal canal,
+    string language,
+    bool activo)
     {
         Id = Guid.NewGuid();
         Nombre = nombre;
         TaxId = taxId;
-        LicensePlate = licensePlate;
+        LicensePlate = NormalizarOpcional(licensePlate);
+        TrailerLicensePlate = NormalizarOpcional(trailerLicensePlate);
         Movil = movil;
         Email = email;
         Canal = canal;
@@ -61,19 +64,15 @@ public sealed class Conductor : AggregateRoot<Guid>
         Activo = activo;
     }
 
-    /// <summary>
-    /// Crea un conductor activo.
-    /// Normaliza los textos y valida la coherencia
-    /// entre canal y datos de contacto.
-    /// </summary>
     public static Conductor Crear(
-        string nombre,
-        Canal canal,
-        Movil? movil,
-        Email? email,
-        string? taxId = null,
-        string? licensePlate = null,
-        string language = "es")
+    string nombre,
+    Canal canal,
+    Movil? movil,
+    Email? email,
+    string? taxId = null,
+    string? licensePlate = null,
+    string? trailerLicensePlate = null,
+    string language = "es")
     {
         ValidarDatos(
             nombre,
@@ -89,7 +88,8 @@ public sealed class Conductor : AggregateRoot<Guid>
         return new Conductor(
             nombre.Trim(),
             taxId?.Trim(),
-            licensePlate?.Trim(),
+            licensePlate,
+            trailerLicensePlate,
             movil,
             email,
             canal,
@@ -97,18 +97,15 @@ public sealed class Conductor : AggregateRoot<Guid>
             activo: true);
     }
 
-    /// <summary>
-    /// Modifica los datos del conductor.
-    /// No modifica su estado activo/inactivo.
-    /// </summary>
     public void Modificar(
-        string nombre,
-        Canal canal,
-        Movil? movil,
-        Email? email,
-        string? taxId,
-        string? licensePlate,
-        string language)
+    string nombre,
+    Canal canal,
+    Movil? movil,
+    Email? email,
+    string? taxId,
+    string? licensePlate,
+    string? trailerLicensePlate,
+    string language)
     {
         ValidarDatos(
             nombre,
@@ -123,12 +120,14 @@ public sealed class Conductor : AggregateRoot<Guid>
 
         Nombre = nombre.Trim();
         TaxId = taxId?.Trim();
-        LicensePlate = licensePlate?.Trim();
+        LicensePlate = NormalizarOpcional(licensePlate);
+        TrailerLicensePlate = NormalizarOpcional(trailerLicensePlate);
         Movil = movil;
         Email = email;
         Canal = canal;
         Language = language.Trim();
     }
+
 
     public void Activar() => Activo = true;
 
@@ -163,4 +162,9 @@ public sealed class Conductor : AggregateRoot<Guid>
                 nameof(movil));
         }
     }
+
+    private static string? NormalizarOpcional(string? valor) =>
+    string.IsNullOrWhiteSpace(valor)
+        ? null
+        : valor.Trim();
 }

@@ -23,8 +23,8 @@ internal sealed class CrearConductorCommandHandler
     }
 
     public async Task<ErrorOr<ConductorCatalogoDto>> Handle(
-    CrearConductorCommand request,
-    CancellationToken cancellationToken)
+        CrearConductorCommand request,
+        CancellationToken cancellationToken)
     {
         var taxId = string.IsNullOrWhiteSpace(request.TaxId)
             ? null
@@ -60,7 +60,8 @@ internal sealed class CrearConductorCommandHandler
             movil,
             email,
             taxId,
-            request.LicensePlate?.Trim(),
+            request.LicensePlate,
+            request.TrailerLicensePlate,
             request.Language);
 
         await _conductorRepository.AddAsync(
@@ -74,7 +75,7 @@ internal sealed class CrearConductorCommandHandler
     }
 
     internal static ConductorCatalogoDto ToDto(
-    Conductor conductor)
+        Conductor conductor)
     {
         return new ConductorCatalogoDto
         {
@@ -82,6 +83,7 @@ internal sealed class CrearConductorCommandHandler
             Nombre = conductor.Nombre,
             TaxId = conductor.TaxId,
             LicensePlate = conductor.LicensePlate,
+            TrailerLicensePlate = conductor.TrailerLicensePlate,
             Channel = conductor.Canal.Valor,
             Email = conductor.Email?.Valor,
             Movil = conductor.Movil?.Valor,

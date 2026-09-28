@@ -227,7 +227,8 @@ public static class DocumentosModule
             {
                 var command = new ModificarMatriculaDocumentoCommand(
                     documentoId,
-                    request.Matricula);
+                    request.Matricula,
+                    request.MatriculaRemolque);
 
                 var result = await mediator.Send(command, ct);
 
@@ -269,6 +270,9 @@ public sealed record AsignarConductoresRequest(IReadOnlyList<Guid> ConductoresId
 
 public sealed record AsignarCcsRequest(IReadOnlyList<Guid> CcsId);
 
-public sealed record ModificarMatriculaDocumentoRequest(string? Matricula);
+public sealed record ModificarMatriculaDocumentoRequest(
+    string? Matricula,
+    string? MatriculaRemolque);
+
 public sealed record ModificarPrecintoDocumentoRequest(string? Precinto);
 

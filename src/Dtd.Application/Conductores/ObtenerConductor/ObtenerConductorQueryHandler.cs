@@ -38,6 +38,7 @@ internal sealed class ObtenerConductorQueryHandler
             Nombre = conductor.Nombre,
             TaxId = conductor.TaxId,
             LicensePlate = conductor.LicensePlate,
+            TrailerLicensePlate = conductor.TrailerLicensePlate,
             Channel = conductor.Canal.Valor,
             Email = conductor.Email?.Valor,
             Movil = conductor.Movil?.Valor,

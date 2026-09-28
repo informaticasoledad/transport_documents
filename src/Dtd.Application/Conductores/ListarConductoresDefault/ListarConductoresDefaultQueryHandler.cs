@@ -34,6 +34,7 @@ internal sealed class ListarConductoresDefaultQueryHandler
                 Nombre = c.Nombre,
                 TaxId = c.TaxId,
                 LicensePlate = c.LicensePlate,
+                TrailerLicensePlate = c.TrailerLicensePlate,
                 Channel = c.Canal.Valor,
                 Email = c.Email?.Valor,
                 Movil = c.Movil?.Valor,

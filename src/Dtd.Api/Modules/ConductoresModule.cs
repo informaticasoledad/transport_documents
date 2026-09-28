@@ -81,6 +81,7 @@ public static class ConductoresModule
                     request.Email,
                     request.TaxId,
                     request.LicensePlate,
+                    request.TrailerLicensePlate,
                     request.Language);
 
                 var result = await mediator.Send(command, ct);
@@ -101,16 +102,16 @@ public static class ConductoresModule
                 CancellationToken ct) =>
             {
                 var command = new ModificarConductorCommand(
-                    conductorId,
-                    request.Nombre,
-                    request.Canal,
-                    request.Movil,
-                    request.Email,
-                    request.TaxId,
-                    request.LicensePlate,
-                    request.Language,
-                    request.Activo);
-
+                        conductorId,
+                        request.Nombre,
+                        request.Canal,
+                        request.Movil,
+                        request.Email,
+                        request.TaxId,
+                        request.LicensePlate,
+                        request.TrailerLicensePlate,
+                        request.Language,
+                        request.Activo);
                 var result = await mediator.Send(command, ct);
 
                 return result.ToHttpResult(
@@ -145,6 +146,7 @@ public sealed record CrearConductorRequest(
     string? Email,
     string? TaxId,
     string? LicensePlate,
+    string? TrailerLicensePlate,
     string Language);
 
 public sealed record ModificarConductorRequest(
@@ -154,5 +156,6 @@ public sealed record ModificarConductorRequest(
     string? Email,
     string? TaxId,
     string? LicensePlate,
+    string? TrailerLicensePlate,
     string Language,
     bool Activo);

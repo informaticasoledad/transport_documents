@@ -38,7 +38,9 @@ internal sealed class ModificarMatriculaDocumentoCommandHandler
 
         try
         {
-            documento.ModificarMatricula(request.Matricula);
+            documento.ModificarMatriculas(
+                request.Matricula,
+                request.MatriculaRemolque);
         }
         catch (InvalidOperationException ex)
         {

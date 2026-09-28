@@ -24,8 +24,8 @@ internal sealed class ModificarConductorCommandHandler
     }
 
     public async Task<ErrorOr<ConductorCatalogoDto>> Handle(
-      ModificarConductorCommand request,
-      CancellationToken cancellationToken)
+        ModificarConductorCommand request,
+        CancellationToken cancellationToken)
     {
         var conductor = await _conductorRepository.GetByIdAsync(
             request.ConductorId,
@@ -44,10 +44,11 @@ internal sealed class ModificarConductorCommandHandler
 
         if (taxId is not null)
         {
-            var existeOtro = await _conductorRepository.ExistsByTaxIdExceptIdAsync(
-                taxId,
-                request.ConductorId,
-                cancellationToken);
+            var existeOtro =
+                await _conductorRepository.ExistsByTaxIdExceptIdAsync(
+                    taxId,
+                    request.ConductorId,
+                    cancellationToken);
 
             if (existeOtro)
             {
@@ -73,7 +74,8 @@ internal sealed class ModificarConductorCommandHandler
             movil,
             email,
             taxId,
-            request.LicensePlate?.Trim(),
+            request.LicensePlate,
+            request.TrailerLicensePlate,
             request.Language);
 
         if (request.Activo)

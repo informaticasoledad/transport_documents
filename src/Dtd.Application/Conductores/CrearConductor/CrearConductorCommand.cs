@@ -9,5 +9,6 @@ public sealed record CrearConductorCommand(
     string? Email,
     string? TaxId,
     string? LicensePlate,
+    string? TrailerLicensePlate,
     string Language)
     : IRequest<ErrorOr<ConductorCatalogoDto>>;
