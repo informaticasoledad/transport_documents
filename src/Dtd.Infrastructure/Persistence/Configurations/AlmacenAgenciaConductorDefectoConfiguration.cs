@@ -29,10 +29,11 @@ internal sealed class AlmacenAgenciaConductorDefectoConfiguration
             .HasForeignKey(x => x.AgenciaId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Conductor>()
+        /*
+        builder.HasOne(x => x.Conductor)
             .WithMany()
             .HasForeignKey(x => x.ConductorId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Cascade);*/
 
         builder.HasIndex(x => x.ConductorId);
     }

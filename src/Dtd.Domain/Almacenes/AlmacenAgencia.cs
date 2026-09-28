@@ -1,3 +1,4 @@
+using Dtd.Domain.Agencias;
 using Dtd.Domain.Templates;
 
 namespace Dtd.Domain.Almacenes;
@@ -6,13 +7,19 @@ public sealed class AlmacenAgencia
 {
     public Guid AlmacenId { get; private set; }
     public Guid AgenciaId { get; private set; }
+    public Agencia Agencia { get; private set; } = null!;
+
     public Guid? AgenciaBaseId { get; private set; }
+    public AgenciaBase? AgenciaBase { get; private set; }
     public Guid TemplateId { get; private set; }
 
     public Template Template { get; private set; } = null!;
 
     public ICollection<AlmacenAgenciaConductorDefecto> ConductoresDefecto { get; set; }
     = new List<AlmacenAgenciaConductorDefecto>();
+
+    public ICollection<AlmacenAgenciaCc> Ccs { get; private set; }
+    = new List<AlmacenAgenciaCc>();
 
     private AlmacenAgencia()
     {

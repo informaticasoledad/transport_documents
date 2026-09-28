@@ -7,6 +7,7 @@ public sealed class AlmacenAgenciaCc
     public Guid AlmacenId { get; private set; }
     public Guid AgenciaId { get; private set; }
     public Guid CcId { get; private set; }
+    public Cc Cc { get; private set; } = null!;
     public bool PorDefecto { get; private set; }
 
     private AlmacenAgenciaCc()

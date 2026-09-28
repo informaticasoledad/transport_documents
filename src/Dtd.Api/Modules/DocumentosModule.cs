@@ -8,6 +8,8 @@ using Dtd.Application.Documentos.GenerarDocumento;
 using Dtd.Application.Documentos.ListarDocumentos;
 using Dtd.Application.Documentos.ListarEventosDocumento;
 using Dtd.Application.Documentos.ListarExpedicionesDisponibles;
+using Dtd.Application.Documentos.ModificarMatriculaDocumento;
+using Dtd.Application.Documentos.ModificarPrecintoDocumento;
 using Dtd.Application.Documentos.ObtenerDocumento;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -214,6 +216,43 @@ public static class DocumentosModule
             _ => Results.NoContent());
     });
 
+
+        documentos.MapPut(
+            "/{documentoId:guid}/matricula",
+            async (
+                Guid documentoId,
+                ModificarMatriculaDocumentoRequest request,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var command = new ModificarMatriculaDocumentoCommand(
+                    documentoId,
+                    request.Matricula);
+
+                var result = await mediator.Send(command, ct);
+
+                return result.ToHttpResult(
+                    _ => Results.NoContent());
+            });
+
+        documentos.MapPut(
+            "/{documentoId:guid}/precinto",
+            async (
+                Guid documentoId,
+                ModificarPrecintoDocumentoRequest request,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var command = new ModificarPrecintoDocumentoCommand(
+                    documentoId,
+                    request.Precinto);
+
+                var result = await mediator.Send(command, ct);
+
+                return result.ToHttpResult(
+                    _ => Results.NoContent());
+            });
+
         return app;
     }
 }
@@ -230,4 +269,6 @@ public sealed record AsignarConductoresRequest(IReadOnlyList<Guid> ConductoresId
 
 public sealed record AsignarCcsRequest(IReadOnlyList<Guid> CcsId);
 
+public sealed record ModificarMatriculaDocumentoRequest(string? Matricula);
+public sealed record ModificarPrecintoDocumentoRequest(string? Precinto);
 

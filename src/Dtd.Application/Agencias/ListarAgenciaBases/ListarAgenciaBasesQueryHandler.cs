@@ -43,9 +43,9 @@ internal sealed class ListarAgenciaBasesQueryHandler
                 x.CodigoPostal,
                 x.Municipio,
                 x.CodigoPaisIso,
-                x.Movil?.Valor,
+                //borrar x.Movil?.Valor,
                 x.Email?.Valor,
-                x.Canal.Valor,
+                //borrar x.Canal.Valor,
                 x.Language,
                 x.Activo))
             .ToList();

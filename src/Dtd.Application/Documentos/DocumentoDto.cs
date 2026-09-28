@@ -121,7 +121,6 @@ public sealed record ExpedicionDto
 public sealed record ConductorDto
 {
     public Guid Id { get; init; }
-    public string Codigo { get; init; } = string.Empty;
     public string Nombre { get; init; } = string.Empty;
     public string? TaxId { get; init; }
     public string? LicensePlate { get; init; }

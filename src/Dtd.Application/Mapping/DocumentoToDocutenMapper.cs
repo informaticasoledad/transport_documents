@@ -46,7 +46,7 @@ public static class DocumentoToDocutenMapper
             var consignees = BuildConsignees(
                 envio,
                 documento.Ccs,
-                drivers.Count,
+                drivers,
                 language);
 
             var parties = new List<DocutenPartyDto>
@@ -213,28 +213,30 @@ public static class DocumentoToDocutenMapper
     }
 
     private static IReadOnlyList<DocutenPartyDto> BuildConsignees(
-        Envio envio,
-        IReadOnlyCollection<CcAsignado> ccs,
-        int driversCount,
-        string language)
+     Envio envio,
+     IReadOnlyCollection<CcAsignado> ccs,
+     IReadOnlyList<DocutenPartyDto> drivers,
+     string language)
     {
         var destino = GetDestino(envio);
 
+        var ultimoConductor = drivers
+            .OrderBy(d => d.Order)
+            .Last();
 
+        if (string.IsNullOrWhiteSpace(ultimoConductor.Mobile))
+        {
+            throw new InvalidOperationException(
+                $"El último conductor del envío '{envio.Referencia}' no tiene móvil.");
+        }
         var entrega = new DocutenPartyDto
         {
             Name = destino.Nombre,
-            Order = 2 + driversCount,
-            SigningRole = string.IsNullOrWhiteSpace(destino.Telefono)
-                ? null
-                : "signer",
-            SignatureType = string.IsNullOrWhiteSpace(destino.Telefono)
-                ? null
-                : "biometric",
-            Channel = string.IsNullOrWhiteSpace(destino.Telefono)
-                ? null
-                : "sms",
-            Mobile = FormatE164(destino.Telefono),
+            Order = 2 + drivers.Count,
+            SigningRole = "signer",
+            SignatureType = "biometric",
+            Channel = "sms",
+            Mobile = ultimoConductor.Mobile,
             Language = language,
             Address = destino.Direccion,
             PostCode = destino.CodigoPostal,
@@ -246,7 +248,7 @@ public static class DocumentoToDocutenMapper
             .Select((c, i) => new DocutenPartyDto
             {
                 Name = c.Nombre,
-                Order = 3 + driversCount + i,
+                Order = 3 + drivers.Count + i,
                 SigningRole = "cc",
                 Channel = "email",
                 Email = c.Email?.Valor,

@@ -9,8 +9,8 @@ public sealed record AgenciaBaseDto(
     string? CodigoPostal,
     string? Municipio,
     string? CodigoPaisIso,
-    string? Movil,
-    string? Email,
-    string Canal,
+    //borrar string? Movil,
+    string? email,
+    //borrar string Canal,
     string Language,
     bool Activo);

@@ -103,4 +103,8 @@ public interface IAlmacenRepository
     Guid almacenId,
     Guid agenciaId,
     CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<AlmacenAgencia>> ListarRelacionesAgenciasAsync(
+    Guid almacenId,
+    CancellationToken cancellationToken = default);
 }

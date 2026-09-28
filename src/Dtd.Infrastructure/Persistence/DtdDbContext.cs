@@ -32,7 +32,6 @@ public sealed class DtdDbContext : DbContext
     public DbSet<AlmacenAgenciaConductorDefecto> AlmacenAgenciaConductoresDefecto => Set<AlmacenAgenciaConductorDefecto>();
     public DbSet<ConductorAgencia> ConductorAgencias => Set<ConductorAgencia>();
     public DbSet<AgenciaBase> AgenciaBases => Set<AgenciaBase>();
-    public DbSet<AlmacenAgenciaBaseDefecto> AlmacenAgenciaBasesDefecto => Set<AlmacenAgenciaBaseDefecto>();
     public DbSet<Cc> Ccs => Set<Cc>();
     public DbSet<AlmacenAgenciaCc> AlmacenAgenciaCcs => Set<AlmacenAgenciaCc>();
     public DbSet<Template> Templates => Set<Template>();

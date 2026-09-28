@@ -16,9 +16,9 @@ public sealed class AgenciaBase : Entity<Guid>
     public string? Municipio { get; private set; }
     public string? CodigoPaisIso { get; private set; }
 
-    public Movil? Movil { get; private set; }
+    //borrar public Movil? Movil { get; private set; }
     public Email? Email { get; private set; }
-    public Canal Canal { get; private set; }
+    //borrar public Canal Canal { get; private set; }
 
     public string Language { get; private set; }
 
@@ -28,7 +28,7 @@ public sealed class AgenciaBase : Entity<Guid>
     {
         Codigo = string.Empty;
         Nombre = string.Empty;
-        Canal = null!;
+        //borrar Canal = null!;
         Language = "es";
     }
 
@@ -83,9 +83,9 @@ public sealed class AgenciaBase : Entity<Guid>
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
 
-        Movil = movil;
+        //borrar Movil = movil;
         Email = email;
-        Canal = canal;
+        //borrar Canal = canal;
 
         Language = NormalizarLanguage(language);
 
@@ -123,8 +123,8 @@ public sealed class AgenciaBase : Entity<Guid>
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
 
-        Canal = canal;
-        Movil = movil;
+        //borrar Canal = canal;
+        //borrar Movil = movil;
         Email = email;
 
         Language = NormalizarLanguage(language);

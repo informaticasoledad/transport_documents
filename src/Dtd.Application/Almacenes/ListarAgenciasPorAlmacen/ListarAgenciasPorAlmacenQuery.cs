@@ -1,4 +1,7 @@
+using Dtd.Application.Agencias;
 using Dtd.Application.Almacenes;
+using Dtd.Application.Documentos;
+using Dtd.Application.Templates;
 using Dtd.Domain.Almacenes;
 using ErrorOr;
 using MediatR;
@@ -14,12 +17,12 @@ namespace Dtd.Application.Almacenes.ListarAgenciasPorAlmacen;
 public sealed record ListarAgenciasPorAlmacenQuery(
     string Empresa,
     Guid AlmacenId)
-    : IRequest<ErrorOr<IReadOnlyList<AgenciaDto>>>;
+    : IRequest<ErrorOr<IReadOnlyList<AlmacenAgenciaDetalleDto>>>;
 
 internal sealed class ListarAgenciasPorAlmacenQueryHandler
     : IRequestHandler<
         ListarAgenciasPorAlmacenQuery,
-        ErrorOr<IReadOnlyList<AgenciaDto>>>
+        ErrorOr<IReadOnlyList<AlmacenAgenciaDetalleDto>>>
 {
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
@@ -32,7 +35,7 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
         _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<AgenciaDto>>> Handle(
+    public async Task<ErrorOr<IReadOnlyList<AlmacenAgenciaDetalleDto>>> Handle(
         ListarAgenciasPorAlmacenQuery request,
         CancellationToken cancellationToken)
     {
@@ -61,18 +64,69 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
             return accesoAlmacen.Errors;
         }
 
-        var agencias =
-            await _almacenRepository.ListarAgenciasDisponiblesAsync(
+        var relaciones =
+            await _almacenRepository.ListarRelacionesAgenciasAsync(
                 almacen.Id,
                 cancellationToken);
 
-        return agencias
-            .Select(a => new AgenciaDto(
-                a.Id,
-                a.Codigo,
-                a.Nombre,
-                a.EntregaEnDestino,
-                a.RequierePrecinto))
-            .ToList();
+        return relaciones
+       .Select(r => new AlmacenAgenciaDetalleDto(
+           r.Agencia.Id,
+           r.Agencia.Codigo,
+           r.Agencia.Nombre,
+           r.Agencia.EntregaEnDestino,
+           r.Agencia.RequierePrecinto,
+
+           new TemplateDto(
+               r.Template.Id,
+               r.Template.Empresa,
+               r.Template.Code,
+               r.Template.DocumentType,
+               r.Template.Name,
+               r.Template.Language,
+               r.Template.Active),
+
+           r.AgenciaBase is null
+               ? null
+               : new AgenciaBaseDto(
+                   r.AgenciaBase.Id,
+                   r.AgenciaBase.Codigo,
+                   r.AgenciaBase.Nombre,
+                   r.AgenciaBase.TaxId,
+                   r.AgenciaBase.Direccion,
+                   r.AgenciaBase.CodigoPostal,
+                   r.AgenciaBase.Municipio,
+                   r.AgenciaBase.CodigoPaisIso,
+                   r.AgenciaBase.Email?.Valor,
+                   r.AgenciaBase.Language,
+                   r.AgenciaBase.Activo),
+
+           r.ConductoresDefecto
+               .Select(x => new ConductorDto
+               {
+                   Id = x.Conductor.Id,
+                   Nombre = x.Conductor.Nombre,
+                   TaxId = x.Conductor.TaxId,
+                   LicensePlate = x.Conductor.LicensePlate,
+                   Channel = x.Conductor.Canal.Valor,
+                   Email = x.Conductor.Email?.Valor,
+                   Movil = x.Conductor.Movil?.Valor,
+                   Language = x.Conductor.Language
+               })
+               .ToList(),
+
+           r.Ccs
+               .Where(x => x.PorDefecto)
+               .Select(x => new CcDto
+               {
+                   Id = x.Cc.Id,
+                   Codigo = x.Cc.Codigo,
+                   Nombre = x.Cc.Nombre,
+                   Email = x.Cc.Email?.Valor,
+                   Language = x.Cc.Language
+               })
+               .ToList()
+       ))
+       .ToList();
     }
 }

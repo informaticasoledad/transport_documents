@@ -98,9 +98,9 @@ internal sealed class ModificarBaseAgenciaCommandHandler
             baseAgencia.CodigoPostal,
             baseAgencia.Municipio,
             baseAgencia.CodigoPaisIso,
-            baseAgencia.Movil?.Valor,
+            //borrar baseAgencia.Movil?.Valor,
             baseAgencia.Email?.Valor,
-            baseAgencia.Canal.Valor,
+            //borrar baseAgencia.Canal.Valor,
             baseAgencia.Language,
             baseAgencia.Activo);
     }

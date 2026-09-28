@@ -49,12 +49,6 @@ internal sealed class AgenciaBaseConfiguration
         builder.Property(x => x.Activo)
             .IsRequired();
 
-        builder.OwnsOne(x => x.Movil, m =>
-        {
-            m.Property(v => v.Valor)
-                .HasColumnName("movil")
-                .HasMaxLength(20);
-        });
 
         builder.OwnsOne(x => x.Email, e =>
         {
@@ -63,13 +57,6 @@ internal sealed class AgenciaBaseConfiguration
                 .HasMaxLength(200);
         });
 
-        builder.OwnsOne(x => x.Canal, c =>
-        {
-            c.Property(v => v.Valor)
-                .HasColumnName("channel")
-                .HasMaxLength(10)
-                .IsRequired();
-        });
 
         builder.HasIndex(x => new
         {

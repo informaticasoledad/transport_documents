@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Dtd.Domain.Conductores;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -9,5 +10,7 @@ namespace Dtd.Domain.Almacenes
         public Guid AlmacenId { get; set; }
         public Guid AgenciaId { get; set; }
         public Guid ConductorId { get; set; }
+        public Conductor Conductor { get; set; } = null!;
     }
+    
 }

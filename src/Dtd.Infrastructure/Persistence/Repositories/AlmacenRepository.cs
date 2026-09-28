@@ -73,6 +73,25 @@ internal sealed class AlmacenRepository : IAlmacenRepository
         ).ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<AlmacenAgencia>> ListarRelacionesAgenciasAsync(
+       Guid almacenId,
+       CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AlmacenAgencias
+            .AsNoTracking()
+            .Include(x => x.Agencia)
+            .Include(x => x.Template)
+            .Include(x => x.AgenciaBase)
+            .Include(x => x.ConductoresDefecto)
+                .ThenInclude(x => x.Conductor)
+            .Include(x => x.Ccs)
+                .ThenInclude(x => x.Cc)
+            .Where(x =>
+                x.AlmacenId == almacenId &&
+                x.Agencia.Activa)
+            .OrderBy(x => x.Agencia.Nombre)
+            .ToListAsync(cancellationToken);
+    }
     public async Task<bool> EsAgenciaDisponibleAsync(
         Guid almacenId,
         Guid agenciaId,

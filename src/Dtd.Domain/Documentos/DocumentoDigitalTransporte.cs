@@ -850,4 +850,28 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         return Result.Success;
     }
+
+    public void ModificarMatricula(string? matricula)
+    {
+        AsegurarEstadoNuevo();
+
+        Matricula = string.IsNullOrWhiteSpace(matricula)
+            ? null
+            : matricula.Trim();
+    }
+
+    public void ModificarPrecinto(string? precinto)
+    {
+        AsegurarEstadoNuevo();
+
+        if (!RequierePrecinto)
+        {
+            throw new InvalidOperationException(
+                "El documento no requiere precinto.");
+        }
+
+        Precinto = string.IsNullOrWhiteSpace(precinto)
+            ? null
+            : precinto.Trim();
+    }
 }

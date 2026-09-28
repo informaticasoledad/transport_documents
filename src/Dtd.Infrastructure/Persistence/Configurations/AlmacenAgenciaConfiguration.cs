@@ -1,4 +1,3 @@
-using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -24,13 +23,13 @@ internal sealed class AlmacenAgenciaConfiguration
             .HasConstraintName("fk_almacen_agencias_almacenes")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<Agencia>()
+        builder.HasOne(x => x.Agencia)
             .WithMany()
             .HasForeignKey(x => x.AgenciaId)
             .HasConstraintName("fk_almacen_agencias_agencias")
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne<AgenciaBase>()
+        builder.HasOne(x => x.AgenciaBase)
             .WithMany()
             .HasForeignKey(x => x.AgenciaBaseId)
             .HasConstraintName("fk_almacen_agencias_agencia_bases")
