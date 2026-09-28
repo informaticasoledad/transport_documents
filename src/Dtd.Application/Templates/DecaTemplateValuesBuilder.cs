@@ -15,6 +15,7 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     {
         _options = options;
     }
+
     public string DocumentType => "transport_control_document";
 
     public Dictionary<string, string> Build(
@@ -46,9 +47,11 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["LugarDestino"] =
                 BuildLugarDestino(destino),
 
-            ["NaturalezaMercancia"] = _options.DefaultGoodsDescription,
+            ["NaturalezaMercancia"] =
+                _options.DefaultGoodsDescription,
 
-            ["PesoMercancía"] = $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg",
+            ["PesoMercancía"] =
+                $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg",
 
             ["FechaTransporte"] =
                 BuildFechaTransporte(documento, envio),
@@ -58,7 +61,14 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 
             ["MatriculaRemolque"] = string.Empty,
 
-            ["Observaciones"] = string.Empty
+            ["Observaciones"] = string.Empty,
+
+            // Información no obligatoria: destinatario / consignatario
+            ["Nombre_Destinatario"] =
+                destino.Nombre,
+
+            ["Domicilio_Destinatario"] =
+                BuildDomicilioDestinatario(destino)
         };
     }
 
@@ -85,6 +95,15 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     }
 
     private static string BuildLugarDestino(
+        DestinoEnvio destino)
+    {
+        return JoinLines(
+            destino.Direccion,
+            $"{destino.CodigoPostal} {destino.Ciudad}",
+            destino.CodigoPais);
+    }
+
+    private static string BuildDomicilioDestinatario(
         DestinoEnvio destino)
     {
         return JoinLines(
