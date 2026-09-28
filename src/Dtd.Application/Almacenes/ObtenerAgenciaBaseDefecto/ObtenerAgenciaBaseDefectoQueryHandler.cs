@@ -115,14 +115,11 @@ internal sealed class ObtenerAgenciaBaseDefectoQueryHandler
             agenciaBase.Id,
             agenciaBase.Codigo,
             agenciaBase.Nombre,
-            agenciaBase.TaxId,
             agenciaBase.Direccion,
             agenciaBase.CodigoPostal,
             agenciaBase.Municipio,
             agenciaBase.CodigoPaisIso,
-            //borrar agenciaBase.Movil?.Valor,
             agenciaBase.Email?.Valor,
-            //borrar agenciaBase.Canal.Valor,
             agenciaBase.Language,
             agenciaBase.Activo);
     }

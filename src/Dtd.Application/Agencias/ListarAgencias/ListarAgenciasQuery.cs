@@ -57,6 +57,7 @@ internal sealed class ListarAgenciasQueryHandler
                 a.Id,
                 a.Codigo,
                 a.Nombre,
+                a.IdentificadorFiscal,
                 a.Activa,
                 a.AgenciaQs,
                 a.EntregaEnDestino,

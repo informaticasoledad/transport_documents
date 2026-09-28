@@ -7,7 +7,7 @@ namespace Dtd.Domain.Agencias;
 /// Agregado de referencia para una agencia de transporte (carrier).
 /// Se identifica por un código estable global y puede tener un código QS externo opcional
 /// procedente de la tabla legacy AGENCIAS_QS.
-/// 
+///
 /// La agencia se vincula a almacenes mediante almacen_agencias y puede tener
 /// un catálogo de conductores y bases asociadas.
 /// </summary>
@@ -15,14 +15,11 @@ public sealed class Agencia : AggregateRoot<Guid>
 {
     public string Codigo { get; private set; }
     public string Nombre { get; private set; }
+    public string IdentificadorFiscal { get; private set; }
+
     public bool Activa { get; private set; }
     public string? AgenciaQs { get; private set; }
 
-    /// <summary>
-    /// Indica que los trasiegos de esta agencia se envían directamente al almacén destino
-    /// (1 envío por almacén destino, agrupando expediciones) en lugar de colapsarlos
-    /// en un único envío a la base del carrier.
-    /// </summary>
     public bool EntregaEnDestino { get; private set; }
 
     public bool RequierePrecinto { get; private set; }
@@ -38,19 +35,23 @@ public sealed class Agencia : AggregateRoot<Guid>
     {
         Codigo = string.Empty;
         Nombre = string.Empty;
+        IdentificadorFiscal = string.Empty;
     }
 
     private Agencia(
         string codigo,
         string nombre,
+        string identificadorFiscal,
         bool activa,
         string? agenciaQs,
         bool entregaEnDestino,
         bool requierePrecinto)
     {
         Id = Guid.NewGuid();
+
         Codigo = codigo;
         Nombre = nombre;
+        IdentificadorFiscal = identificadorFiscal;
         Activa = activa;
         AgenciaQs = agenciaQs;
         EntregaEnDestino = entregaEnDestino;
@@ -60,27 +61,20 @@ public sealed class Agencia : AggregateRoot<Guid>
     public static Agencia Crear(
         string codigo,
         string nombre,
+        string identificadorFiscal,
         string? agenciaQs = null,
         bool entregaEnDestino = false,
         bool requierePrecinto = false)
     {
-        if (string.IsNullOrWhiteSpace(codigo))
-        {
-            throw new ArgumentException(
-                "El código de agencia es obligatorio.",
-                nameof(codigo));
-        }
-
-        if (string.IsNullOrWhiteSpace(nombre))
-        {
-            throw new ArgumentException(
-                "El nombre de agencia es obligatorio.",
-                nameof(nombre));
-        }
+        ValidarDatos(
+            codigo,
+            nombre,
+            identificadorFiscal);
 
         return new Agencia(
             codigo.Trim(),
             nombre.Trim(),
+            identificadorFiscal.Trim(),
             activa: true,
             agenciaQs?.Trim(),
             entregaEnDestino,
@@ -97,42 +91,39 @@ public sealed class Agencia : AggregateRoot<Guid>
     public void Modificar(
         string codigo,
         string nombre,
+        string identificadorFiscal,
         string? agenciaQs,
         bool entregaEnDestino)
     {
-        if (string.IsNullOrWhiteSpace(codigo))
-        {
-            throw new ArgumentException(
-                "El código de agencia es obligatorio.",
-                nameof(codigo));
-        }
-
-        if (string.IsNullOrWhiteSpace(nombre))
-        {
-            throw new ArgumentException(
-                "El nombre de agencia es obligatorio.",
-                nameof(nombre));
-        }
+        ValidarDatos(
+            codigo,
+            nombre,
+            identificadorFiscal);
 
         Codigo = codigo.Trim();
         Nombre = nombre.Trim();
+        IdentificadorFiscal = identificadorFiscal.Trim();
         AgenciaQs = agenciaQs?.Trim();
         EntregaEnDestino = entregaEnDestino;
     }
 
     public AgenciaBase AgregarBase(
-    string codigo,
-    string nombre,
-    Canal canal,
-    Movil? movil,
-    Email? email,
-    string? taxId = null,
-    string language = "es",
-    string? direccion = null,
-    string? codigoPostal = null,
-    string? municipio = null,
-    string? codigoPaisIso = null)
+        string codigo,
+        string nombre,
+        Email? email,
+        string language = "es",
+        string? direccion = null,
+        string? codigoPostal = null,
+        string? municipio = null,
+        string? codigoPaisIso = null)
     {
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            throw new ArgumentException(
+                "El código de agencia base es obligatorio.",
+                nameof(codigo));
+        }
+
         var codigoNormalizado = codigo.Trim();
 
         if (_bases.Any(b =>
@@ -149,10 +140,7 @@ public sealed class Agencia : AggregateRoot<Guid>
             Id,
             codigoNormalizado,
             nombre,
-            canal,
-            movil,
             email,
-            taxId,
             language,
             direccion,
             codigoPostal,
@@ -165,17 +153,14 @@ public sealed class Agencia : AggregateRoot<Guid>
     }
 
     public AgenciaBase ModificarBase(
-    Guid baseId,
-    string nombre,
-    string? taxId,
-    Canal canal,
-    Movil? movil,
-    Email? email,
-    string language,
-    string? direccion = null,
-    string? codigoPostal = null,
-    string? municipio = null,
-    string? codigoPaisIso = null)
+        Guid baseId,
+        string nombre,
+        Email? email,
+        string language,
+        string? direccion = null,
+        string? codigoPostal = null,
+        string? municipio = null,
+        string? codigoPaisIso = null)
     {
         var baseAgencia = _bases
             .FirstOrDefault(b => b.Id == baseId);
@@ -189,9 +174,6 @@ public sealed class Agencia : AggregateRoot<Guid>
 
         baseAgencia.Actualizar(
             nombre,
-            taxId,
-            canal,
-            movil,
             email,
             language,
             direccion,
@@ -215,5 +197,32 @@ public sealed class Agencia : AggregateRoot<Guid>
         }
 
         _bases.Remove(baseAgencia);
+    }
+
+    private static void ValidarDatos(
+        string codigo,
+        string nombre,
+        string identificadorFiscal)
+    {
+        if (string.IsNullOrWhiteSpace(codigo))
+        {
+            throw new ArgumentException(
+                "El código de agencia es obligatorio.",
+                nameof(codigo));
+        }
+
+        if (string.IsNullOrWhiteSpace(nombre))
+        {
+            throw new ArgumentException(
+                "El nombre de agencia es obligatorio.",
+                nameof(nombre));
+        }
+
+        if (string.IsNullOrWhiteSpace(identificadorFiscal))
+        {
+            throw new ArgumentException(
+                "El identificador fiscal de la agencia es obligatorio.",
+                nameof(identificadorFiscal));
+        }
     }
 }

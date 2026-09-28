@@ -42,6 +42,11 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
             .IsRequired()
             .OnDelete(DeleteBehavior.ClientCascade);
 
+        builder.Property(x => x.IdentificadorFiscal)
+            .HasColumnName("identificador_fiscal")
+            .HasMaxLength(20)
+            .IsRequired();
+
         builder.Ignore(x => x.DomainEvents);
     }
 }

@@ -38,19 +38,10 @@ internal sealed class CrearBaseAgenciaCommandHandler
                 "La agencia indicada no existe.");
         }
 
-        Canal canal;
-        Movil? movil = null;
         Email? email = null;
 
         try
         {
-            canal = Canal.Create(request.Canal);
-
-            if (!string.IsNullOrWhiteSpace(request.Movil))
-            {
-                movil = Movil.Create(request.Movil);
-            }
-
             if (!string.IsNullOrWhiteSpace(request.Email))
             {
                 email = Email.Create(request.Email);
@@ -70,10 +61,7 @@ internal sealed class CrearBaseAgenciaCommandHandler
             baseAgencia = agencia.AgregarBase(
                 request.Codigo,
                 request.Nombre,
-                canal,
-                movil,
                 email,
-                request.TaxId,
                 request.Language,
                 request.Direccion,
                 request.CodigoPostal,
@@ -93,14 +81,11 @@ internal sealed class CrearBaseAgenciaCommandHandler
             baseAgencia.Id,
             baseAgencia.Codigo,
             baseAgencia.Nombre,
-            baseAgencia.TaxId,
             baseAgencia.Direccion,
             baseAgencia.CodigoPostal,
             baseAgencia.Municipio,
             baseAgencia.CodigoPaisIso,
-            //borrar baseAgencia.Movil?.Valor,
             baseAgencia.Email?.Valor,
-            //borrar baseAgencia.Canal.Valor,
             baseAgencia.Language,
             baseAgencia.Activo);
     }

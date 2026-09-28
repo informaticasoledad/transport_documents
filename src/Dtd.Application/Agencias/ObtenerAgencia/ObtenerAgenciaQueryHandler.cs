@@ -36,6 +36,7 @@ internal sealed class ObtenerAgenciaQueryHandler
             agencia.Id,
             agencia.Codigo,
             agencia.Nombre,
+            agencia.IdentificadorFiscal,
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,

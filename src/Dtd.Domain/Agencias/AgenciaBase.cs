@@ -9,17 +9,13 @@ public sealed class AgenciaBase : Entity<Guid>
 
     public string Codigo { get; private set; }
     public string Nombre { get; private set; }
-
-    public string? TaxId { get; private set; }
     public string? Direccion { get; private set; }
     public string? CodigoPostal { get; private set; }
     public string? Municipio { get; private set; }
     public string? CodigoPaisIso { get; private set; }
 
-    //borrar public Movil? Movil { get; private set; }
     public Email? Email { get; private set; }
-    //borrar public Canal Canal { get; private set; }
-
+    
     public string Language { get; private set; }
 
     public bool Activo { get; private set; }
@@ -28,7 +24,6 @@ public sealed class AgenciaBase : Entity<Guid>
     {
         Codigo = string.Empty;
         Nombre = string.Empty;
-        //borrar Canal = null!;
         Language = "es";
     }
 
@@ -36,10 +31,7 @@ public sealed class AgenciaBase : Entity<Guid>
         Guid agenciaId,
         string codigo,
         string nombre,
-        Canal canal,
-        Movil? movil,
         Email? email,
-        string? taxId = null,
         string language = "es",
         string? direccion = null,
         string? codigoPostal = null,
@@ -67,25 +59,19 @@ public sealed class AgenciaBase : Entity<Guid>
                 nameof(nombre));
         }
 
-        ArgumentNullException.ThrowIfNull(canal);
 
-        ValidarContacto(canal, movil, email);
-
+        
         Id = Guid.NewGuid();
         AgenciaId = agenciaId;
 
         Codigo = codigo.Trim();
         Nombre = nombre.Trim();
 
-        TaxId = NormalizarOpcional(taxId);
         Direccion = NormalizarOpcional(direccion);
         CodigoPostal = NormalizarOpcional(codigoPostal);
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
-
-        //borrar Movil = movil;
         Email = email;
-        //borrar Canal = canal;
 
         Language = NormalizarLanguage(language);
 
@@ -94,9 +80,6 @@ public sealed class AgenciaBase : Entity<Guid>
 
     internal void Actualizar(
         string nombre,
-        string? taxId,
-        Canal canal,
-        Movil? movil,
         Email? email,
         string language,
         string? direccion = null,
@@ -111,20 +94,14 @@ public sealed class AgenciaBase : Entity<Guid>
                 nameof(nombre));
         }
 
-        ArgumentNullException.ThrowIfNull(canal);
-
-        ValidarContacto(canal, movil, email);
-
+        
         Nombre = nombre.Trim();
 
-        TaxId = NormalizarOpcional(taxId);
         Direccion = NormalizarOpcional(direccion);
         CodigoPostal = NormalizarOpcional(codigoPostal);
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
 
-        //borrar Canal = canal;
-        //borrar Movil = movil;
         Email = email;
 
         Language = NormalizarLanguage(language);
@@ -140,25 +117,6 @@ public sealed class AgenciaBase : Entity<Guid>
         !string.IsNullOrWhiteSpace(Municipio) &&
         !string.IsNullOrWhiteSpace(CodigoPaisIso);
 
-    private static void ValidarContacto(
-        Canal canal,
-        Movil? movil,
-        Email? email)
-    {
-        if (canal.RequiereEmail && email is null)
-        {
-            throw new ArgumentException(
-                $"El canal '{canal.Valor}' requiere un email de contacto.",
-                nameof(email));
-        }
-
-        if (canal.RequiereMovil && movil is null)
-        {
-            throw new ArgumentException(
-                $"El canal '{canal.Valor}' requiere un móvil de contacto.",
-                nameof(movil));
-        }
-    }
 
     private static string NormalizarLanguage(string? language) =>
         string.IsNullOrWhiteSpace(language)

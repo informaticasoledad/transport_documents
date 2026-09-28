@@ -27,9 +27,6 @@ internal sealed class AgenciaBaseConfiguration
             .HasMaxLength(200)
             .IsRequired();
 
-        builder.Property(x => x.TaxId)
-            .HasMaxLength(30);
-
         builder.Property(x => x.Direccion)
             .HasMaxLength(300);
 

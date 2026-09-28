@@ -88,6 +88,7 @@ public static class AgenciasModule
                 var command = new CrearAgenciaCommand(
                     request.Codigo,
                     request.Nombre,
+                    request.IdentificadorFiscal,
                     request.AgenciaQs,
                     request.EntregaEnDestino);
 
@@ -112,6 +113,7 @@ public static class AgenciasModule
                     agenciaId,
                     request.Codigo,
                     request.Nombre,
+                    request.IdentificadorFiscal,
                     request.AgenciaQs,
                     request.Activa,
                     request.EntregaEnDestino);
@@ -316,12 +318,14 @@ public static class AgenciasModule
 public sealed record CrearAgenciaRequest(
     string Codigo,
     string Nombre,
+    string IdentificadorFiscal,
     string? AgenciaQs,
     bool EntregaEnDestino);
 
 public sealed record ModificarAgenciaRequest(
     string Codigo,
     string Nombre,
+    string IdentificadorFiscal,
     string? AgenciaQs,
     bool Activa,
     bool EntregaEnDestino);

@@ -9,6 +9,7 @@ public sealed record AgenciaDto(
     Guid Id,
     string Codigo,
     string Nombre,
+    string IdentificadorFiscal,
     bool Activa,
     string? AgenciaQs,
     bool EntregaEnDestino,

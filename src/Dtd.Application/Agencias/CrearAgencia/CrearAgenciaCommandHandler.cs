@@ -43,6 +43,7 @@ internal sealed class CrearAgenciaCommandHandler
             agencia = Agencia.Crear(
                 request.Codigo,
                 request.Nombre,
+                request.IdentificadorFiscal,
                 request.AgenciaQs,
                 request.EntregaEnDestino);
         }
@@ -64,6 +65,7 @@ internal sealed class CrearAgenciaCommandHandler
             agencia.Id,
             agencia.Codigo,
             agencia.Nombre,
+            agencia.IdentificadorFiscal,
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,

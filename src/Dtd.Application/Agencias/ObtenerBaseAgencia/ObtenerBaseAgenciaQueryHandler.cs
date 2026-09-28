@@ -47,14 +47,11 @@ internal sealed class ObtenerBaseAgenciaQueryHandler
             baseAgencia.Id,
             baseAgencia.Codigo,
             baseAgencia.Nombre,
-            baseAgencia.TaxId,
             baseAgencia.Direccion,
             baseAgencia.CodigoPostal,
             baseAgencia.Municipio,
             baseAgencia.CodigoPaisIso,
-            //borrar baseAgencia.Movil?.Valor,
             baseAgencia.Email?.Valor,
-            //borrar baseAgencia.Canal.Valor,
             baseAgencia.Language,
             baseAgencia.Activo);
     }

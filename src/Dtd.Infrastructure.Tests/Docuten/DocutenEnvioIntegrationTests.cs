@@ -96,14 +96,28 @@ public sealed class DocutenEnvioIntegrationTests
         Assert.NotNull(almacenAgencia);
         Assert.NotNull(almacenAgencia.Template);
 
-        // 6. Generamos PDF real
-        var pdfDto =
-            DocumentoEnviosPdfMapper.Map(documento);
+        // 6. Generamos un PDF por cada envío
+        var pdfsPorEnvio = documento.Envios
+            .ToDictionary(
+                envio => envio.Id,
+                envio =>
+                {
+                    var pdfDto =
+                        DocumentoEnviosPdfMapper.Map(
+                            documento,
+                            envio);
 
-        var pdfEnvios =
-            pdfGenerator.Generate(pdfDto);
+                    var pdf =
+                        pdfGenerator.Generate(pdfDto);
 
-        Assert.NotEmpty(pdfEnvios);
+                    Assert.NotEmpty(pdf);
+
+                    return pdf;
+                });
+
+        Assert.Equal(
+            documento.Envios.Count,
+            pdfsPorEnvio.Count);
 
         // 7. Construimos exactamente el lote que queremos probar
         var lote =
@@ -112,7 +126,7 @@ public sealed class DocutenEnvioIntegrationTests
                 almacen,
                 agencia,
                 almacenAgencia.Template,
-                pdfEnvios,
+                pdfsPorEnvio,
                 mappingOptions,
                 documentoProvider,
                 CancellationToken.None);
@@ -120,17 +134,39 @@ public sealed class DocutenEnvioIntegrationTests
         // Comprobaciones antes de enviar.
         Assert.NotEmpty(lote.Shipments);
 
+        Assert.Equal(
+            documento.Envios.Count,
+            lote.Shipments.Count);
+
         foreach (var shipment in lote.Shipments)
         {
             Assert.NotNull(shipment.Documents);
-            Assert.NotEmpty(shipment.Documents);
+            Assert.True(
+                shipment.Documents.Count >= 2);
 
-            var doc = shipment.Documents[0];
+            // Documento principal:
+            // se genera mediante template Docuten.
+            var principal = shipment.Documents[0];
 
-            // ESTA ES LA PRUEBA QUE NOS INTERESA:
-            // ambos campos deben ir informados.
-            Assert.NotNull(doc.Template);
-            Assert.False(string.IsNullOrWhiteSpace(doc.Content));
+            Assert.NotNull(principal.Template);
+            Assert.Null(principal.Content);
+            Assert.True(principal.Signable);
+
+            // Segundo documento:
+            // PDF de albaranes correspondiente al envío.
+            var albaranes = shipment.Documents[1];
+
+            Assert.Null(albaranes.Template);
+
+            Assert.False(
+                string.IsNullOrWhiteSpace(
+                    albaranes.Content));
+
+            Assert.False(albaranes.Signable);
+
+            Assert.Equal(
+                "delivery_note",
+                albaranes.DocumentType);
         }
 
         // 8. Envío REAL a Docuten
@@ -141,8 +177,10 @@ public sealed class DocutenEnvioIntegrationTests
 
         // 9. Ver qué responde Docuten
         Assert.NotNull(resultado);
+
         Assert.False(
-            string.IsNullOrWhiteSpace(resultado.LotId));
+            string.IsNullOrWhiteSpace(
+                resultado.LotId));
 
         Console.WriteLine(
             $"LotId: {resultado.LotId}");
@@ -159,12 +197,7 @@ public sealed class DocutenEnvioIntegrationTests
         }
 
         // IMPORTANTE:
-        // NO llamamos a:
-        //
-        // documento.ConfirmarEnvioADocuten(...)
-        // documento.ConfirmarEnvioPlataforma(...)
-        // unitOfWork.SaveChangesAsync(...)
-        //
+        // No confirmamos el envío en el dominio ni hacemos SaveChanges.
         // Por tanto la BBDD local no se modifica.
     }
 

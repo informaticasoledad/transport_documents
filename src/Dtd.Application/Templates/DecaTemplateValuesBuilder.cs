@@ -37,7 +37,7 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["Observaciones_cargador"] = string.Empty,
 
             ["Nombre_NIF_Domicilio_TransportistaEfectivo"] =
-                agencia.Nombre,
+                BuildTransportistaEfectivo(agencia),
 
             ["AutorizaciónCirculacion"] = string.Empty,
 
@@ -146,5 +146,13 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             values
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x!.Trim()));
+    }
+
+    private static string BuildTransportistaEfectivo(
+    Agencia agencia)
+    {
+        return JoinLines(
+            agencia.Nombre,
+            agencia.IdentificadorFiscal);
     }
 }

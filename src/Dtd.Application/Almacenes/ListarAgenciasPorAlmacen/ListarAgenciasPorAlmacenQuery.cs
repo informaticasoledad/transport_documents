@@ -92,7 +92,6 @@ internal sealed class ListarAgenciasPorAlmacenQueryHandler
                    r.AgenciaBase.Id,
                    r.AgenciaBase.Codigo,
                    r.AgenciaBase.Nombre,
-                   r.AgenciaBase.TaxId,
                    r.AgenciaBase.Direccion,
                    r.AgenciaBase.CodigoPostal,
                    r.AgenciaBase.Municipio,

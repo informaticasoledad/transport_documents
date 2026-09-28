@@ -61,6 +61,7 @@ internal sealed class ModificarAgenciaCommandHandler
             agencia.Modificar(
                 codigo,
                 request.Nombre,
+                request.IdentificadorFiscal,
                 request.AgenciaQs,
                 request.EntregaEnDestino);
 
@@ -86,6 +87,7 @@ internal sealed class ModificarAgenciaCommandHandler
             agencia.Id,
             agencia.Codigo,
             agencia.Nombre,
+            agencia.IdentificadorFiscal,
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,

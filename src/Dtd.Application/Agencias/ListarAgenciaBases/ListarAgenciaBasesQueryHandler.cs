@@ -38,14 +38,11 @@ internal sealed class ListarAgenciaBasesQueryHandler
                 x.Id,
                 x.Codigo,
                 x.Nombre,
-                x.TaxId,
                 x.Direccion,
                 x.CodigoPostal,
                 x.Municipio,
                 x.CodigoPaisIso,
-                //borrar x.Movil?.Valor,
                 x.Email?.Valor,
-                //borrar x.Canal.Valor,
                 x.Language,
                 x.Activo))
             .ToList();
