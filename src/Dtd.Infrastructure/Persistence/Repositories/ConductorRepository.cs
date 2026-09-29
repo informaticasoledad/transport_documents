@@ -1,3 +1,4 @@
+using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Conductores;
 using Microsoft.EntityFrameworkCore;
@@ -231,4 +232,19 @@ internal sealed class ConductorRepository : IConductorRepository
         _dbContext.AlmacenAgenciaConductoresDefecto
             .RemoveRange(asignaciones);
     }
+
+    public async Task<IReadOnlyList<Agencia>> ListarAgenciasAsync(
+    Guid conductorId,
+    CancellationToken cancellationToken = default) =>
+    await (
+        from ca in _dbContext.ConductorAgencias.AsNoTracking()
+        where ca.ConductorId == conductorId
+
+        join a in _dbContext.Agencias.AsNoTracking()
+            on ca.AgenciaId equals a.Id
+
+        orderby a.Nombre
+
+        select a
+    ).ToListAsync(cancellationToken);
 }

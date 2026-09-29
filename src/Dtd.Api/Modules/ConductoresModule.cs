@@ -1,5 +1,6 @@
 ﻿using Dtd.Application.Conductores.CrearConductor;
 using Dtd.Application.Conductores.EliminarConductor;
+using Dtd.Application.Conductores.ListarAgenciasPorConductor;
 using Dtd.Application.Conductores.ListarConductores;
 using Dtd.Application.Conductores.ListarConductoresCatalogo;
 using Dtd.Application.Conductores.ListarConductoresDefault;
@@ -134,6 +135,21 @@ public static class ConductoresModule
                     _ => Results.NoContent());
             });
 
+        // Obtener agencias asociadas al conductor.
+        conductores.MapGet(
+            "/{conductorId:guid}/agencias",
+            async (
+                Guid conductorId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new ListarAgenciasPorConductorQuery(conductorId),
+                    ct);
+
+                return result.ToHttpResult(
+                    response => Results.Ok(response));
+            });
 
         return app;
     }

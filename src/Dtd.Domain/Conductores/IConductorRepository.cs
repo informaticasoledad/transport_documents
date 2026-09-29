@@ -1,3 +1,4 @@
+using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 
 namespace Dtd.Domain.Conductores;
@@ -102,4 +103,10 @@ public interface IConductorRepository
     void EliminarAsignacionesDefecto(
         IEnumerable<AlmacenAgenciaConductorDefecto> asignaciones);
 
+
+
+    Task<IReadOnlyList<Agencia>> ListarAgenciasAsync(
+    Guid conductorId,
+    CancellationToken cancellationToken = default);
 }
+
