@@ -263,6 +263,7 @@ public static class DocumentoToDocutenMapper
             SignatureCollectedByDriver = true,
             Channel = "sms",
             Mobile = ultimoConductor.Mobile,
+            Email = ultimoConductor.Email,
             Language = language,
             Address = destino.Direccion,
             PostCode = destino.CodigoPostal,
@@ -270,6 +271,8 @@ public static class DocumentoToDocutenMapper
             CountryCode = destino.CodigoPais
         };
 
+
+           
         var copias = ccs
             .Select((c, i) => new DocutenPartyDto
             {
