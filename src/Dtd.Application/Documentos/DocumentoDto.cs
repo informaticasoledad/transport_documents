@@ -35,6 +35,7 @@ public sealed record DocumentoDto
     public string Referencia { get; private set; } = string.Empty;
 
     public string? Matricula { get; init; }
+    public string? MatriculaRemolque { get; init; }
     public bool RequierePrecinto { get; init; }
 
     public string? Precinto { get; init; }

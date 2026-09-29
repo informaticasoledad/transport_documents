@@ -40,6 +40,7 @@ internal static class DocumentoDtoFactory
             //Expediciones = expediciones,
             EntregaEnDestino = documento.TipoAgrupacion == TipoAgrupacionEnvio.PorDestino,
             Matricula = documento.Matricula,
+            MatriculaRemolque = documento.MatriculaRemolque,
             RequierePrecinto = documento.RequierePrecinto,
             Precinto = documento.Precinto,
             Envios = documento.Envios
