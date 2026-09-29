@@ -260,6 +260,7 @@ public static class DocumentoToDocutenMapper
             Order = 2 + drivers.Count,
             SigningRole = "signer",
             SignatureType = "biometric",
+            SignatureCollectedByDriver = true,
             Channel = "sms",
             Mobile = ultimoConductor.Mobile,
             Language = language,

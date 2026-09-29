@@ -67,6 +67,11 @@ public sealed record DocutenPartyDto
     // null = no firma y no se exige contacto. WhenWritingNull los omite en el wire.
     [JsonPropertyName("signing_role")] public string? SigningRole { get; init; }
     [JsonPropertyName("signature_type")] public string? SignatureType { get; init; }
+
+    [JsonPropertyName("signature_collected_by_driver")]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? SignatureCollectedByDriver { get; init; }
+
     [JsonPropertyName("channel")] public string? Channel { get; init; }
     [JsonPropertyName("email")] public string? Email { get; init; }
     [JsonPropertyName("mobile")] public string? Mobile { get; init; }
