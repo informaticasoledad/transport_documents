@@ -1,3 +1,5 @@
+using Dtd.Application.Common.Security;
+using Dtd.Application.Security;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Documentos;
@@ -13,15 +15,18 @@ internal sealed class ListarDocumentosQueryHandler
     private readonly IDocumentoRepository _documentoRepository;
     private readonly IAlmacenRepository _almacenRepository;
     private readonly IAgenciaRepository _agenciaRepository;
+    private readonly IContextoAccesoService _contextoAccesoService;
 
     public ListarDocumentosQueryHandler(
         IDocumentoRepository documentoRepository,
         IAlmacenRepository almacenRepository,
-        IAgenciaRepository agenciaRepository)
+        IAgenciaRepository agenciaRepository,
+        IContextoAccesoService contextoAccesoService)
     {
         _documentoRepository = documentoRepository;
         _almacenRepository = almacenRepository;
         _agenciaRepository = agenciaRepository;
+        _contextoAccesoService = contextoAccesoService;
     }
 
     public async Task<ErrorOr<IReadOnlyList<DocumentoDto>>> Handle(
@@ -39,6 +44,33 @@ internal sealed class ListarDocumentosQueryHandler
 
         var empresaFiltro = request.Empresa.Trim();
 
+        // Obtener almacenes autorizados del usuario.
+        var contextoResult = await _contextoAccesoService.ObtenerAsync(
+            empresaFiltro);
+
+        if (contextoResult.IsError)
+            return contextoResult.Errors;
+
+        var almacenesPermitidos = contextoResult.Value.AlmacenesIds
+            .Distinct()
+            .ToArray();
+
+        // Si solicita un almacén concreto, validar permiso.
+        if (request.AlmacenId.HasValue &&
+            !almacenesPermitidos.Contains(request.AlmacenId.Value))
+        {
+            return Error.Forbidden(
+                "Acceso.AlmacenNoPermitido",
+                "El usuario no tiene permiso sobre el almacén solicitado.");
+        }
+
+        // Sin permisos, no hay documentos que mostrar.
+        if (almacenesPermitidos.Length == 0)
+        {
+            return new List<DocumentoDto>();
+        }
+
+        // Una única consulta al repositorio.
         var filtro = new DocumentoFiltro(
             Empresa: empresaFiltro,
             AlmacenId: request.AlmacenId,
@@ -46,7 +78,8 @@ internal sealed class ListarDocumentosQueryHandler
             FechaDesde: request.FechaDesde,
             FechaHasta: request.FechaHasta,
             Estado: estado,
-            Finalizado: request.Finalizado);
+            Finalizado: request.Finalizado,
+            AlmacenesPermitidos: almacenesPermitidos);
 
         var documentos = await _documentoRepository.ListarAsync(
             filtro,

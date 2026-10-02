@@ -28,6 +28,10 @@ public sealed record DocumentoDto
     /// </summary>
     ////public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
     public bool EntregaEnDestino { get; init; }
+
+    public int TotalBultos { get; init; }
+    public decimal TotalPeso { get; init; }
+
     public IReadOnlyList<EnvioDto> Envios { get; init; } = [];
 
     public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
@@ -69,6 +73,7 @@ public sealed record EnvioDto
     public string? PlataformaEnvioId { get; init; }
     public string? PlataformaEnvioEstado { get; init; }
     public int Bultos { get; init; }
+    public decimal PesoTotal { get; init; }
     public bool EsDirecto { get; init; }
     public DestinoEnvioDto? Destino { get; init; }
     public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];

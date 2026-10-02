@@ -46,8 +46,8 @@ internal sealed class DocumentoRepository : IDocumentoRepository
     }
 
     public async Task<IReadOnlyList<DocumentoDigitalTransporte>> ListarAsync(
-    DocumentoFiltro filtro,
-    CancellationToken cancellationToken = default)
+      DocumentoFiltro filtro,
+      CancellationToken cancellationToken = default)
     {
         var query = _dbContext.Documentos
             .Include(d => d.Expediciones)
@@ -63,6 +63,20 @@ internal sealed class DocumentoRepository : IDocumentoRepository
             query = query.Where(d => empresas.Contains(d.Empresa));
         }
 
+        // Restricción por almacenes autorizados del usuario.
+        // Una colección vacía NO debe devolver todos los documentos.
+        if (filtro.AlmacenesPermitidos is { } almacenesPermitidos)
+        {
+            if (almacenesPermitidos.Count == 0)
+                return [];
+
+            var idsPermitidos = almacenesPermitidos.ToArray();
+
+            query = query.Where(d =>
+                idsPermitidos.Contains(d.AlmacenId));
+        }
+
+        // Filtro opcional por almacén concreto.
         if (filtro.AlmacenId is { } almacenId)
         {
             query = query.Where(d => d.AlmacenId == almacenId);

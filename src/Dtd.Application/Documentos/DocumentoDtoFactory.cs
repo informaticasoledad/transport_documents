@@ -16,6 +16,7 @@ internal static class DocumentoDtoFactory
             .Select(ToDto)
             .ToList();
 
+
         return new DocumentoDto
         {
             Id = documento.Id,
@@ -43,6 +44,11 @@ internal static class DocumentoDtoFactory
             MatriculaRemolque = documento.MatriculaRemolque,
             RequierePrecinto = documento.RequierePrecinto,
             Precinto = documento.Precinto,
+
+            TotalBultos = documento.Expediciones.Sum(e => e.Bultos),
+            TotalPeso = documento.Expediciones.Sum(e => e.PesoTotal),
+
+
             Envios = documento.Envios
                 .OrderBy(e => e.Orden)
                 .Select(e => ToDto(e, expediciones))
@@ -60,6 +66,7 @@ internal static class DocumentoDtoFactory
             PlataformaEnvioId = envio.PlataformaEnvioId,
             PlataformaEnvioEstado = envio.PlataformaEnvioEstado,
             Bultos = envio.Bultos,
+            PesoTotal = envio.PesoTotal,
             EsDirecto = expediciones.Any(e => e.EnvioId == envio.Id && !string.IsNullOrWhiteSpace(e.AlmacenDestino)),
             Destino = envio.Destino is null ? null : ToDto(envio.Destino),
             Expediciones = expediciones

@@ -8,5 +8,5 @@ public sealed record DocumentoFiltro(
     DateOnly? FechaDesde = null,
     DateOnly? FechaHasta = null,
     EstadoDocumento? Estado = null,
-    bool? Finalizado = null);
-
+    bool? Finalizado = null,
+    IReadOnlyCollection<Guid>? AlmacenesPermitidos = null);

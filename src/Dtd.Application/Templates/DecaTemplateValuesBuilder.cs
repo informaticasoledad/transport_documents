@@ -47,8 +47,10 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["LugarDestino"] =
                 BuildLugarDestino(destino),
 
+            //["NaturalezaMercancia"] =
+            //_options.DefaultGoodsDescription,
             ["NaturalezaMercancia"] =
-                _options.DefaultGoodsDescription,
+                BuildNaturalezaMercancia(documento, envio),
 
             ["PesoMercancía"] =
                 $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg",
@@ -154,5 +156,16 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
         return JoinLines(
             agencia.Nombre,
             agencia.IdentificadorFiscal);
+    }
+
+    private string BuildNaturalezaMercancia(
+    DocumentoDigitalTransporte documento,
+    Envio envio)
+    {
+        var totalBultos = documento.Expediciones
+            .Where(x => x.EnvioId == envio.Id)
+            .Sum(x => x.Bultos);
+
+        return $"{_options.DefaultGoodsDescription} - {totalBultos} bultos";
     }
 }
