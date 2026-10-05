@@ -27,7 +27,7 @@ spec:
             - name: ERPAUTH_MASTER_KEY
               value: 2KtlatXUbHPOvbrP0Pin3HfmFc35QAy4OLX6/IUgm6A=
             - name: Docuten__TokenId
-              value: d4d3f67f-bba4-4a89-8362-0fb898db01b9
+              value: 53436c9f-19e3-4f10-bd73-d7ac1510fd91
           ports:
             - name: web
               containerPort: 8080
