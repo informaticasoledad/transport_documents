@@ -8,7 +8,7 @@ namespace Dtd.Application.Almacenes.ListarCcsPorAlmacenAgencia;
 internal sealed class ListarCcsPorAlmacenAgenciaQueryHandler
     : IRequestHandler<
         ListarCcsPorAlmacenAgenciaQuery,
-        ErrorOr<IReadOnlyList<CcCatalogoDto>>>
+        ErrorOr<IReadOnlyList<CcAlmacenAgenciaDto>>>
 {
     private readonly IAlmacenRepository _almacenRepository;
 
@@ -18,7 +18,7 @@ internal sealed class ListarCcsPorAlmacenAgenciaQueryHandler
         _almacenRepository = almacenRepository;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<CcCatalogoDto>>> Handle(
+    public async Task<ErrorOr<IReadOnlyList<CcAlmacenAgenciaDto>>> Handle(
         ListarCcsPorAlmacenAgenciaQuery request,
         CancellationToken cancellationToken)
     {
@@ -52,24 +52,22 @@ internal sealed class ListarCcsPorAlmacenAgenciaQueryHandler
                 description: "La agencia no está vinculada al almacén.");
         }
 
-
         var ccs = await _almacenRepository.ListarCcsPorAlmacenAgenciaAsync(
             request.AlmacenId,
             request.AgenciaId,
             cancellationToken);
 
-        var result = ccs
-            .Select(cc => new CcCatalogoDto
-            {
-                Id = cc.Id,
-                Codigo = cc.Codigo,
-                Nombre = cc.Nombre,
-                Email = cc.Email.ToString(),
-                Language = cc.Language,
-                Activo = cc.Activo
-            })
+        IReadOnlyList<CcAlmacenAgenciaDto> result = ccs
+            .Select(vinculo => new CcAlmacenAgenciaDto(
+                vinculo.Cc.Id,
+                vinculo.Cc.Codigo,
+                vinculo.Cc.Nombre,
+                vinculo.Cc.Email.ToString(),
+                vinculo.Cc.Language,
+                vinculo.Cc.Activo,
+                vinculo.PorDefecto))
             .ToList();
 
-        return result;
+        return ErrorOrFactory.From<IReadOnlyList<CcAlmacenAgenciaDto>>(result);
     }
 }

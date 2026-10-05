@@ -23,4 +23,10 @@ public interface IDocutenGateway
     /// Usado por la anulación forzada desde el front cuando el documento ya fue enviado.
     /// </summary>
     Task CancelarAsync(string lotId, string reason, CancellationToken cancellationToken = default);
+
+
+
+    Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(
+        string shipmentId,
+        CancellationToken cancellationToken = default);
 }

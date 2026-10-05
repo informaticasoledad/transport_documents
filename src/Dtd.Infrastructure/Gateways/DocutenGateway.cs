@@ -260,6 +260,196 @@ internal sealed class DocutenGateway : IDocutenGateway
 
         return order.First(o => o.Order == minOrder).Status;
     }
+    /*
+    public async Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(
+    string shipmentId,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(shipmentId))
+        {
+            throw new ArgumentException(
+                "El shipmentId de Docuten es obligatorio.",
+                nameof(shipmentId));
+        }
+
+        var path =
+            $"api/v1/shipments/{Uri.EscapeDataString(shipmentId)}/documents/download?include=all";
+
+        using var request = new HttpRequestMessage(
+            HttpMethod.Get,
+            path);
+
+        // Este endpoint devuelve contenido binario.
+        // No necesitamos forzar application/json.
+        request.Headers.Accept.Clear();
+        request.Headers.Accept.Add(
+            new MediaTypeWithQualityHeaderValue("application/pdf"));
+
+        using var response = await _httpClient.SendAsync(
+            request,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await ReadErrorBodyAsync(
+                response,
+                cancellationToken);
+
+            throw new DocutenGatewayException(
+                (int)response.StatusCode,
+                body);
+        }
+
+        var content = await response.Content
+            .ReadAsByteArrayAsync(cancellationToken);
+
+        if (content.Length == 0)
+        {
+            throw new InvalidOperationException(
+                $"Docuten devolvió un documento vacío para el shipment '{shipmentId}'.");
+        }
+
+        var contentType =
+            response.Content.Headers.ContentType?.MediaType
+            ?? "application/pdf";
+
+        var fileName =
+            response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+
+        fileName = fileName?.Trim('"');
+
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            fileName = $"docuten-{shipmentId}.pdf";
+        }
+
+        _logger.LogInformation(
+            "Documento Docuten descargado. ShipmentId: {ShipmentId}, ContentType: {ContentType}, Bytes: {Length}",
+            shipmentId,
+            contentType,
+            content.Length);
+
+        return new DocutenDocumentDownload(
+            content,
+            contentType,
+            fileName);
+    }*/
+    /*
+    public async Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(
+    string shipmentId,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(shipmentId))
+        {
+            throw new ArgumentException(
+                "El shipmentId de Docuten es obligatorio.",
+                nameof(shipmentId));
+        }
+
+        var path =
+            $"api/v1/shipments/{Uri.EscapeDataString(shipmentId)}/documents/download?include=all";
+
+        using var response = await _httpClient.GetAsync(
+            path,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await ReadErrorBodyAsync(
+                response,
+                cancellationToken);
+
+            _logger.LogError(
+                "Error descargando PDF Docuten. Status: {Status}. Body: {Body}",
+                (int)response.StatusCode,
+                body);
+
+            throw new DocutenGatewayException(
+                (int)response.StatusCode,
+                body);
+        }
+
+        var content = await response.Content
+            .ReadAsByteArrayAsync(cancellationToken);
+
+        var contentType =
+            response.Content.Headers.ContentType?.MediaType
+            ?? "application/pdf";
+
+        var fileName =
+            response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+
+        fileName = fileName?.Trim('"');
+
+        return new DocutenDocumentDownload(
+            content,
+            contentType,
+            string.IsNullOrWhiteSpace(fileName)
+                ? $"docuten-{shipmentId}.pdf"
+                : fileName);
+    }*/
+
+    public async Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(
+    string shipmentId,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(shipmentId))
+        {
+            throw new ArgumentException(
+                "El shipmentId de Docuten es obligatorio.",
+                nameof(shipmentId));
+        }
+
+        var path =
+            $"api/v1/shipments/{Uri.EscapeDataString(shipmentId)}/documents/download?include=all";
+
+        using var response = await _httpClient.GetAsync(
+            path,
+            HttpCompletionOption.ResponseHeadersRead,
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var body = await ReadErrorBodyAsync(
+                response,
+                cancellationToken);
+
+            _logger.LogError(
+                "Error descargando PDF Docuten. Status: {Status}. Body: {Body}",
+                (int)response.StatusCode,
+                body);
+
+            throw new DocutenGatewayException(
+                (int)response.StatusCode,
+                body);
+        }
+
+        var content = await response.Content
+            .ReadAsByteArrayAsync(cancellationToken);
+
+        var contentType =
+            response.Content.Headers.ContentType?.MediaType
+            ?? "application/pdf";
+
+        var fileName =
+            response.Content.Headers.ContentDisposition?.FileNameStar
+            ?? response.Content.Headers.ContentDisposition?.FileName;
+
+        fileName = fileName?.Trim('"');
+
+        return new DocutenDocumentDownload(
+            content,
+            contentType,
+            string.IsNullOrWhiteSpace(fileName)
+                ? $"docuten-{shipmentId}.pdf"
+                : fileName);
+    }
+
+
 
     // --- DTOs JSON internos de respuesta (snake_case del contrato real) ---
 

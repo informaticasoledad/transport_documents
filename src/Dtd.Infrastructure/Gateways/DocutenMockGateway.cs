@@ -32,4 +32,9 @@ internal sealed class DocutenMockGateway : IDocutenGateway
     // siguiente sondeo reflejará el estado que devuelva ObtenerEstadoAsync (Completed en el mock).
     public Task CancelarAsync(string lotId, string reason, CancellationToken cancellationToken = default) =>
         Task.CompletedTask;
+
+    public Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

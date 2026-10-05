@@ -1,5 +1,6 @@
 using Dtd.Application.Documentos.CcsDocumento;
 using Dtd.Application.Documentos.ConductoresDocumento;
+using Dtd.Application.Documentos.DescargarPdfEnvio;
 using Dtd.Application.Documentos.EliminarDocumento;
 using Dtd.Application.Documentos.EliminarEnvio;
 using Dtd.Application.Documentos.EliminarExpedicion;
@@ -254,6 +255,27 @@ public static class DocumentosModule
                     _ => Results.NoContent());
             });
 
+
+        documentos.MapGet(
+    "/{documentoId:guid}/envios/{envioId:guid}/pdf",
+    async (
+        Guid documentoId,
+        Guid envioId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new DescargarPdfEnvioQuery(
+                documentoId,
+                envioId),
+            ct);
+
+        return result.ToHttpResult(
+            pdf => Results.File(
+                pdf.Content,
+                pdf.ContentType,
+                pdf.FileName));
+    });
         return app;
     }
 }

@@ -1,3 +1,4 @@
+using Dtd.Application.Ccs;
 using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
@@ -242,6 +243,7 @@ internal sealed class AlmacenRepository : IAlmacenRepository
         _dbContext.AlmacenAgencias.Remove(relacion);
     }
 
+    /*
     public async Task<IReadOnlyList<Cc>> ListarCcsPorAlmacenAgenciaAsync(
     Guid almacenId,
     Guid agenciaId,
@@ -256,6 +258,22 @@ internal sealed class AlmacenRepository : IAlmacenRepository
                 vinculo.AgenciaId == agenciaId
             orderby cc.Nombre
             select cc)
+            .ToListAsync(cancellationToken);
+    }*/
+
+
+    public async Task<IReadOnlyList<AlmacenAgenciaCc>> ListarCcsPorAlmacenAgenciaAsync(
+        Guid almacenId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.AlmacenAgenciaCcs
+            .AsNoTracking()
+            .Include(x => x.Cc)
+            .Where(x =>
+                x.AlmacenId == almacenId &&
+                x.AgenciaId == agenciaId)
+            .OrderBy(x => x.Cc.Nombre)
             .ToListAsync(cancellationToken);
     }
 }

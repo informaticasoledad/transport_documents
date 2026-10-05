@@ -2,12 +2,10 @@
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Almacenes.ListarCcsPorAlmacenAgencia
-{
+namespace Dtd.Application.Almacenes.ListarCcsPorAlmacenAgencia;
 
-    public sealed record ListarCcsPorAlmacenAgenciaQuery(
-        string Empresa,
-        Guid AlmacenId,
-        Guid AgenciaId)
-        : IRequest<ErrorOr<IReadOnlyList<CcCatalogoDto>>>;
-}
+public sealed record ListarCcsPorAlmacenAgenciaQuery(
+    string Empresa,
+    Guid AlmacenId,
+    Guid AgenciaId)
+    : IRequest<ErrorOr<IReadOnlyList<CcAlmacenAgenciaDto>>>;

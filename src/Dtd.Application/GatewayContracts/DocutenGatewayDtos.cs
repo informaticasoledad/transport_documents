@@ -187,3 +187,8 @@ public sealed record DocutenShipmentEstadoDto
 
     public Dictionary<string, string> Values { get; init; } = [];
 }
+
+public sealed record DocutenDocumentDownload(
+    byte[] Content,
+    string ContentType,
+    string? FileName);
