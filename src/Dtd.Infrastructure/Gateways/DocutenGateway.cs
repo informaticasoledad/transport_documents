@@ -53,6 +53,7 @@ internal sealed class DocutenGateway : IDocutenGateway
                 "Docuten:UseMock=false.");
         }
         _httpClient.DefaultRequestHeaders.Add("X-Api-Key", _options.TokenId);
+
     }
 
     public async Task<DocutenLoteEnvioResult> EnviarAsync(DocutenLoteDto lote, CancellationToken cancellationToken = default)
