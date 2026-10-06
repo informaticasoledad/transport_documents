@@ -73,6 +73,7 @@ internal sealed class ObtenerAlmacenQueryHandler
             almacen.Ciudad,
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
-            almacen.Telefono);
+            almacen.Telefono,
+            almacen.Activo);
     }
 }

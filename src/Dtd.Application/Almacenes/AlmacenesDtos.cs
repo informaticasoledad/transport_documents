@@ -11,7 +11,8 @@ public sealed record AlmacenDto(
     string? Municipio,
     string? Pais,
     string? Email,
-    string? Telefono);
+    string? Telefono,
+    bool Activo);
 public sealed record AgenciaDto(Guid Id, string Codigo, string Nombre, bool EntregaEnDestino, bool RequierePrecinto);
 
 

@@ -62,21 +62,12 @@ public interface ICcRepository
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Persiste un CC del catálogo y sus vínculos iniciales
-    /// con relaciones almacén-agencia.
+    /// Persiste un CC del catálogo 
     /// </summary>
     Task AddAsync(
         Cc cc,
-        IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
         CancellationToken cancellationToken = default);
 
-    /// <summary>
-    /// Actualiza los vínculos de un CC con relaciones almacén-agencia.
-    /// </summary>
-    Task ActualizarAsync(
-        Cc cc,
-        IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
-        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Marca como por defecto los CCs indicados

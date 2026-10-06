@@ -29,8 +29,8 @@ public static class CcsModule
                 req.Codigo,
                 req.Nombre,
                 req.Email,
-                req.Language,
-                req.Vinculos);
+                req.Language
+                );
 
             var result = await mediator.Send(command, ct);
             return result.ToHttpResult(dto => Results.Created($"/api/empresas/{empresa}/ccs/{dto.Id}", dto));
@@ -48,8 +48,7 @@ public static class CcsModule
                 id,
                 req.Nombre,
                 req.Email,
-                req.Language,
-                req.Vinculos);
+                req.Language);
 
             var result = await mediator.Send(command, ct);
             return result.ToHttpResult(dto => Results.Ok(dto));
@@ -102,11 +101,10 @@ public sealed record CrearCcRequest(
     string Codigo,
     string Nombre,
     string Email,
-    string Language,
-    IReadOnlyList<CcVinculoAlmacenAgenciaDto> Vinculos);
+    string Language
+    );
 
 public sealed record ActualizarCcRequest(
     string Nombre,
     string Email,
-    string Language,
-    IReadOnlyList<CcVinculoAlmacenAgenciaDto> Vinculos);
+    string Language);

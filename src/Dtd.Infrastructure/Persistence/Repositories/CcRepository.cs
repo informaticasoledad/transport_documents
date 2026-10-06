@@ -144,51 +144,14 @@ namespace Dtd.Infrastructure.Persistence.Repositories
 
         public async Task AddAsync(
             Cc cc,
-            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
             CancellationToken cancellationToken = default)
         {
             await _dbContext.Ccs.AddAsync(
                 cc,
                 cancellationToken);
 
-            foreach (var vinculo in Deduplicar(vinculos))
-            {
-                await _dbContext.AlmacenAgenciaCcs.AddAsync(
-                    AlmacenAgenciaCc.Crear(
-                        vinculo.AlmacenId,
-                        vinculo.AgenciaId,
-                        cc.Id,
-                        vinculo.PorDefecto),
-                    cancellationToken);
-            }
         }
 
-        public async Task ActualizarAsync(
-            Cc cc,
-            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos,
-            CancellationToken cancellationToken = default)
-        {
-            var actuales =
-                await _dbContext.AlmacenAgenciaCcs
-                    .Where(x => x.CcId == cc.Id)
-                    .ToListAsync(cancellationToken);
-
-            if (actuales.Count > 0)
-            {
-                _dbContext.AlmacenAgenciaCcs.RemoveRange(actuales);
-            }
-
-            foreach (var vinculo in Deduplicar(vinculos))
-            {
-                await _dbContext.AlmacenAgenciaCcs.AddAsync(
-                    AlmacenAgenciaCc.Crear(
-                        vinculo.AlmacenId,
-                        vinculo.AgenciaId,
-                        cc.Id,
-                        vinculo.PorDefecto),
-                    cancellationToken);
-            }
-        }
 
         public async Task SetDefectosAsync(
             Guid almacenId,
@@ -214,7 +177,8 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                     idsDefecto.Contains(relacion.CcId));
             }
         }
-
+        /*
+         *  ojazo borrar
         private static IReadOnlyList<CcVinculoAlmacenAgencia> Deduplicar(
             IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos) =>
             vinculos
@@ -228,7 +192,7 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                         g.Key.AlmacenId,
                         g.Key.AgenciaId,
                         g.Any(x => x.PorDefecto)))
-                .ToList();
+                .ToList();*/
 
         public async Task AgregarDefectoAsync(
             Guid almacenId,

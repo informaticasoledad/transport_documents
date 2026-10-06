@@ -80,7 +80,8 @@ internal sealed class ListarAlmacenesPermitidosQueryHandler
                 a.Ciudad,
                 a.CodigoPaisIso,
                 a.Email.ToString(),
-                a.Telefono))
+                a.Telefono,
+                a.Activo))
             .ToList();
 
         return resultado;
