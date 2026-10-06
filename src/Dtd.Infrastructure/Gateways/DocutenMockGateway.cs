@@ -37,4 +37,14 @@ internal sealed class DocutenMockGateway : IDocutenGateway
     {
         throw new NotImplementedException();
     }
+
+    public Task<DocutenShipmentResult?> ObtenerShipmentConPartiesAsync(string shipmentId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task ReenviarNotificacionAsync(string partyId, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
 }

@@ -78,6 +78,7 @@ internal sealed class CrearAlmacenCommandHandler
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
             almacen.Telefono,
+            almacen.TipoFirmaConsignor,
             almacen.Activo);
     }
 }

@@ -74,6 +74,10 @@ internal sealed class ObtenerAlmacenQueryHandler
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
             almacen.Telefono,
-            almacen.Activo);
+            almacen.TipoFirmaConsignor,
+            almacen.Activo)
+        {
+
+        };
     }
 }

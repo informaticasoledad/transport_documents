@@ -1,3 +1,5 @@
+using ErrorOr;
+
 namespace Dtd.Application.GatewayContracts;
 
 /// <summary>
@@ -29,4 +31,12 @@ public interface IDocutenGateway
     Task<DocutenDocumentDownload> DescargarDocumentosEnvioAsync(
         string shipmentId,
         CancellationToken cancellationToken = default);
+
+    Task<DocutenShipmentResult?> ObtenerShipmentConPartiesAsync(
+     string shipmentId,
+     CancellationToken cancellationToken = default);
+
+    Task ReenviarNotificacionAsync(
+    string partyId,
+    CancellationToken cancellationToken = default);
 }

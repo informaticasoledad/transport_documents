@@ -12,6 +12,7 @@ using Dtd.Application.Documentos.ListarExpedicionesDisponibles;
 using Dtd.Application.Documentos.ModificarMatriculaDocumento;
 using Dtd.Application.Documentos.ModificarPrecintoDocumento;
 using Dtd.Application.Documentos.ObtenerDocumento;
+using Dtd.Application.Documentos.ReenviarNotificacion;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -275,6 +276,26 @@ public static class DocumentosModule
                 pdf.Content,
                 pdf.ContentType,
                 pdf.FileName));
+    });
+
+        documentos.MapPost(
+    "/{documentoId:guid}/envios/{envioId:guid}/reenviar-notificacion",
+    async (
+        Guid documentoId,
+        Guid envioId,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var command = new ReenviarNotificacionCommand(
+            documentoId,
+            envioId);
+
+        var result = await mediator.Send(
+            command,
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
     });
         return app;
     }

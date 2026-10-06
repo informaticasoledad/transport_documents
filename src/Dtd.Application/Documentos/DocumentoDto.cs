@@ -77,6 +77,8 @@ public sealed record EnvioDto
     public bool EsDirecto { get; init; }
     public DestinoEnvioDto? Destino { get; init; }
     public IReadOnlyList<ExpedicionDto> Expediciones { get; init; } = [];
+    public int NumeroReenviosNotificacion { get; init; }
+    public DateTimeOffset? FechaUltimoReenvioNotificacion { get; init; }
 }
 
 public sealed record DestinoEnvioDto
@@ -88,6 +90,8 @@ public sealed record DestinoEnvioDto
     public string? Ciudad { get; init; }
     public string? CodigoPais { get; init; }
     public string? Telefono { get; init; }
+
+
 }
 
 public sealed record OrigenDto

@@ -71,7 +71,9 @@ internal static class DocumentoDtoFactory
             Destino = envio.Destino is null ? null : ToDto(envio.Destino),
             Expediciones = expediciones
                 .Where(e => e.EnvioId == envio.Id)
-                .ToList()
+                .ToList(),
+            NumeroReenviosNotificacion= envio.NumeroReenviosNotificacion,
+            FechaUltimoReenvioNotificacion = envio.FechaUltimoReenvioNotificacion
         };
     }
 

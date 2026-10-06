@@ -1,5 +1,6 @@
 using Dtd.Domain.Common;
 using Dtd.Domain.Documentos.ValueObjects;
+using ErrorOr;
 
 namespace Dtd.Domain.Documentos;
 
@@ -12,9 +13,16 @@ public sealed class Envio : Entity<Guid>
     public int Bultos { get; private set; }
 
     public decimal PesoTotal { get; private set; }
+
     public DestinoEnvio? Destino { get; private set; }
+
     public string? PlataformaEnvioId { get; private set; }
+
     public string? PlataformaEnvioEstado { get; private set; }
+
+    public int NumeroReenviosNotificacion { get; private set; }
+
+    public DateTimeOffset? FechaUltimoReenvioNotificacion { get; private set; }
 
     private Envio()
     {
@@ -83,18 +91,25 @@ public sealed class Envio : Entity<Guid>
 
     public bool TieneDestinoValido => Destino is not null;
 
-    public void ConfirmarEnvioPlataforma(string? shipmentId, string? estado)
+    public void ConfirmarEnvioPlataforma(
+        string? shipmentId,
+        string? estado)
     {
         PlataformaEnvioId = NormalizarOpcional(shipmentId);
         PlataformaEnvioEstado = NormalizarOpcional(estado);
     }
 
-    public void RegistrarCallbackDocuten(string? shipmentId, string? estadoDocuten)
+    public void RegistrarCallbackDocuten(
+        string? shipmentId,
+        string? estadoDocuten)
     {
         if (!string.IsNullOrWhiteSpace(shipmentId))
         {
             if (!string.IsNullOrWhiteSpace(PlataformaEnvioId) &&
-                !string.Equals(PlataformaEnvioId, shipmentId.Trim(), StringComparison.OrdinalIgnoreCase))
+                !string.Equals(
+                    PlataformaEnvioId,
+                    shipmentId.Trim(),
+                    StringComparison.OrdinalIgnoreCase))
             {
                 return;
             }
@@ -108,9 +123,6 @@ public sealed class Envio : Entity<Guid>
         }
     }
 
-    private static string? NormalizarOpcional(string? valor) =>
-        string.IsNullOrWhiteSpace(valor) ? null : valor.Trim();
-
     public void ActualizarTotales(
         int bultos,
         decimal pesoTotal)
@@ -118,4 +130,36 @@ public sealed class Envio : Entity<Guid>
         Bultos = bultos;
         PesoTotal = pesoTotal;
     }
+
+    internal ErrorOr<Success> ValidarPuedeReenviarNotificacion(
+        int maximoReenvios)
+    {
+        if (string.IsNullOrWhiteSpace(PlataformaEnvioId))
+        {
+            return Error.Conflict(
+                "Documento.Envio.SinIdPlataforma",
+                "El envío no dispone de identificador en Docuten.");
+        }
+
+        if (NumeroReenviosNotificacion >= maximoReenvios)
+        {
+            return Error.Conflict(
+                "Documento.Envio.LimiteReenviosNotificacion",
+                $"Se ha alcanzado el límite de {maximoReenvios} reenvíos de notificación.");
+        }
+
+        return Result.Success;
+    }
+
+    internal void RegistrarReenvioNotificacion(
+        DateTimeOffset fecha)
+    {
+        NumeroReenviosNotificacion++;
+        FechaUltimoReenvioNotificacion = fecha;
+    }
+
+    private static string? NormalizarOpcional(string? valor) =>
+        string.IsNullOrWhiteSpace(valor)
+            ? null
+            : valor.Trim();
 }

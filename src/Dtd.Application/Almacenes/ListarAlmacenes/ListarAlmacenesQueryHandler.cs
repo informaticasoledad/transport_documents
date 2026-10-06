@@ -72,6 +72,7 @@ internal sealed class ListarAlmacenesQueryHandler
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
             almacen.Telefono,
+            almacen.TipoFirmaConsignor,
             almacen.Activo);
     }
 }

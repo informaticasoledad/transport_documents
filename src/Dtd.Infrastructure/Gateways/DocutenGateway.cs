@@ -449,7 +449,95 @@ internal sealed class DocutenGateway : IDocutenGateway
                 : fileName);
     }
 
+    public async Task<DocutenShipmentResult> ObtenerShipmentConPartiesAsync(
+    string shipmentId,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(shipmentId))
+        {
+            throw new ArgumentException(
+                "El shipmentId de Docuten es obligatorio.",
+                nameof(shipmentId));
+        }
 
+        var path =
+            $"api/v1/shipments/{Uri.EscapeDataString(shipmentId)}?include=parties";
+
+        using var response = await _httpClient.GetAsync(
+            path,
+            cancellationToken);
+
+        var rawResponse = await ReadResponseAsync(
+            response,
+            $"GET /api/v1/shipments/{shipmentId}?include=parties",
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new DocutenGatewayException(
+                (int)response.StatusCode,
+                rawResponse);
+        }
+
+        var json = JsonSerializer.Deserialize<DocutenShipmentDetailJson>(
+            rawResponse,
+            JsonOptions)
+            ?? throw new InvalidOperationException(
+                $"Docuten devolvió una respuesta vacía para el shipment '{shipmentId}'.");
+
+        if (string.IsNullOrWhiteSpace(json.ShipmentId))
+        {
+            throw new InvalidOperationException(
+                $"Docuten no devolvió shipment_id para el shipment '{shipmentId}'.");
+        }
+
+        return new DocutenShipmentResult(
+            json.ShipmentId,
+            json.ShipmentStatus ?? string.Empty,
+            json.SignaturesDone,
+            json.SignaturesTotal,
+            (json.Parties ?? [])
+                .Select(p => new DocutenPartyResult(
+                    p.PartyId ?? string.Empty,
+                    p.PartyType ?? string.Empty,
+                    p.SigningRole ?? string.Empty,
+                    p.SignOrder,
+                    p.Status ?? string.Empty,
+                    p.NotificationDate))
+                .ToList());
+    }
+
+    public async Task ReenviarNotificacionAsync(
+    string partyId,
+    CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(partyId))
+        {
+            throw new ArgumentException(
+                "El partyId de Docuten es obligatorio.",
+                nameof(partyId));
+        }
+
+        var path =
+            $"api/v1/parties/{Uri.EscapeDataString(partyId)}/resend-notification";
+
+        using var response = await _httpClient.PostAsync(
+            path,
+            content: null,
+            cancellationToken);
+
+        var rawResponse = await ReadResponseAsync(
+            response,
+            $"POST /api/v1/parties/{partyId}/resend-notification",
+            cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new DocutenGatewayException(
+                (int)response.StatusCode,
+                rawResponse);
+        }
+    }
 
     // --- DTOs JSON internos de respuesta (snake_case del contrato real) ---
 
@@ -485,5 +573,44 @@ internal sealed class DocutenGateway : IDocutenGateway
         [JsonPropertyName("shipment_status")] public string? ShipmentStatus { get; init; }
         [JsonPropertyName("shipment_signature_status")] public string? SignatureStatus { get; init; }
         [JsonPropertyName("proof_of_delivery")] public string? ProofOfDelivery { get; init; }
+    }
+
+    private sealed record DocutenShipmentDetailJson
+    {
+        [JsonPropertyName("shipment_id")]
+        public string? ShipmentId { get; init; }
+
+        [JsonPropertyName("shipment_status")]
+        public string? ShipmentStatus { get; init; }
+
+        [JsonPropertyName("signatures_done")]
+        public int SignaturesDone { get; init; }
+
+        [JsonPropertyName("signatures_total")]
+        public int SignaturesTotal { get; init; }
+
+        [JsonPropertyName("parties")]
+        public List<DocutenPartyJson>? Parties { get; init; }
+    }
+
+    private sealed record DocutenPartyJson
+    {
+        [JsonPropertyName("party_id")]
+        public string? PartyId { get; init; }
+
+        [JsonPropertyName("party_type")]
+        public string? PartyType { get; init; }
+
+        [JsonPropertyName("signing_role")]
+        public string? SigningRole { get; init; }
+
+        [JsonPropertyName("sign_order")]
+        public int SignOrder { get; init; }
+
+        [JsonPropertyName("status")]
+        public string? Status { get; init; }
+
+        [JsonPropertyName("notification_date")]
+        public DateTimeOffset? NotificationDate { get; init; }
     }
 }

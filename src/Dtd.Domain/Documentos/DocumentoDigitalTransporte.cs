@@ -887,4 +887,40 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             ? null
             : precinto.Trim();
     }
+
+    public ErrorOr<Success> ValidarPuedeReenviarNotificacion(
+        Guid envioId,
+        int maximoReenvios)
+    {
+        if (Estado is not EstadoDocumento.PendienteFirmas
+            and not EstadoDocumento.EnProgreso)
+        {
+            return Error.Conflict(
+                "Documento.ReenvioNotificacion.EstadoNoPermitido",
+                $"El documento en estado '{Estado}' no permite reenviar notificaciones.");
+        }
+
+        var envio = _envios.FirstOrDefault(x => x.Id == envioId);
+
+        if (envio is null)
+        {
+            return Error.NotFound(
+                "Documento.Envio.NoEncontrado",
+                $"El envío '{envioId}' no pertenece al documento.");
+        }
+
+        return envio.ValidarPuedeReenviarNotificacion(
+            maximoReenvios);
+    }
+
+    public void RegistrarReenvioNotificacion(
+        Guid envioId,
+        DateTimeOffset fecha)
+    {
+        var envio = _envios.FirstOrDefault(x => x.Id == envioId)
+            ?? throw new InvalidOperationException(
+                $"El envío '{envioId}' no pertenece al documento.");
+
+        envio.RegistrarReenvioNotificacion(fecha);
+    }
 }

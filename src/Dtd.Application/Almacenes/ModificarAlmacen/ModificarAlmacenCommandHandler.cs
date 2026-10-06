@@ -105,6 +105,7 @@ internal sealed class ModificarAlmacenCommandHandler
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
             almacen.Telefono,
+            almacen.TipoFirmaConsignor,
             almacen.Activo);
     }
 }
