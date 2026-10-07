@@ -342,6 +342,9 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
                 "no está asignado al documento.");
 
         _conductores.Remove(conductor);
+
+        Matricula = null;
+        MatriculaRemolque = null;
     }
 
     public void AsignarCc(

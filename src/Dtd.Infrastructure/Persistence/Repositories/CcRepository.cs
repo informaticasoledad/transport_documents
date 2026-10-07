@@ -48,7 +48,7 @@ namespace Dtd.Infrastructure.Persistence.Repositories
            )
            .Distinct()
            .ToListAsync(cancellationToken);
-               
+
 
         public async Task<IReadOnlyList<Cc>> ListarPorEmpresaAsync(
             string empresa,
@@ -245,7 +245,67 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                     porDefecto),
                 cancellationToken);
         }
-    }  
+
+        public async Task EliminarVinculoAsync(
+        Guid ccId,
+        Guid almacenId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default)
+        {
+            var relacion = await _dbContext.AlmacenAgenciaCcs
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.CcId == ccId &&
+                        x.AlmacenId == almacenId &&
+                        x.AgenciaId == agenciaId,
+                    cancellationToken);
+
+            if (relacion is not null)
+            {
+                _dbContext.AlmacenAgenciaCcs.Remove(relacion);
+            }
+        }
 
 
+
+        public async Task<(IReadOnlyList<Cc> Items, int Total)> BuscarAsync(
+        string empresa,
+        string? texto,
+        bool? activo,
+        int skip,
+        int take,
+        CancellationToken cancellationToken = default)
+        {
+            var query = _dbContext.Ccs
+                .AsNoTracking()
+                .Where(c => c.Empresa == empresa);
+
+            if (!string.IsNullOrWhiteSpace(texto))
+            {
+                var filtro = texto.Trim();
+
+                query = query.Where(c =>
+                    c.Codigo.Contains(filtro) ||
+                    c.Nombre.Contains(filtro));
+            }
+
+            if (activo.HasValue)
+            {
+                query = query.Where(c =>
+                    c.Activo == activo.Value);
+            }
+
+            var total = await query.CountAsync(
+                cancellationToken);
+
+            var items = await query
+                .OrderBy(c => c.Nombre)
+                .ThenBy(c => c.Codigo)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync(cancellationToken);
+
+            return (items, total);
+        }
+    }
 }

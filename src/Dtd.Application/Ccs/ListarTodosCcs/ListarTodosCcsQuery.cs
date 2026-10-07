@@ -1,28 +1,27 @@
 using Dtd.Application.Almacenes;
 using Dtd.Domain.Ccs;
-using Dtd.Domain.Documentos.ValueObjects;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Ccs.ListarTodosCcs;
+namespace Dtd.Application.Ccs.ListarCcsCatalogo;
 
-/// <summary>
-/// Lista TODOS los CCs de una empresa (vista de gestión: activos e inactivos).
-/// Espejo de <c>ListarTodasAgenciaBasesQuery</c>.
-/// </summary>
-public sealed record ListarTodosCcsQuery(
-    string Empresa)
-    : IRequest<ErrorOr<IReadOnlyList<CcCatalogoDto>>>;
+public sealed record ListarCcsCatalogoQuery(
+    string Empresa,
+    int Page = 1,
+    int PageSize = 20,
+    string? Texto = null,
+    bool? Activo = null)
+    : IRequest<ErrorOr<CcsPaginadosDto>>;
 
-internal sealed class ListarTodosCcsQueryHandler
+internal sealed class ListarCcsCatalogoQueryHandler
     : IRequestHandler<
-        ListarTodosCcsQuery,
-        ErrorOr<IReadOnlyList<CcCatalogoDto>>>
+        ListarCcsCatalogoQuery,
+        ErrorOr<CcsPaginadosDto>>
 {
     private readonly ICcRepository _ccRepository;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
 
-    public ListarTodosCcsQueryHandler(
+    public ListarCcsCatalogoQueryHandler(
         ICcRepository ccRepository,
         IAccesoAlmacenService accesoAlmacenService)
     {
@@ -30,8 +29,8 @@ internal sealed class ListarTodosCcsQueryHandler
         _accesoAlmacenService = accesoAlmacenService;
     }
 
-    public async Task<ErrorOr<IReadOnlyList<CcCatalogoDto>>> Handle(
-        ListarTodosCcsQuery request,
+    public async Task<ErrorOr<CcsPaginadosDto>> Handle(
+        ListarCcsCatalogoQuery request,
         CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
@@ -46,13 +45,28 @@ internal sealed class ListarTodosCcsQueryHandler
             return accesoEmpresa.Errors;
         }
 
-        var ccs =
-            await _ccRepository.ListarPorEmpresaAsync(
+        var page = Math.Max(request.Page, 1);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+
+        var skip = (page - 1) * pageSize;
+
+        var (ccs, total) =
+            await _ccRepository.BuscarAsync(
                 empresa,
+                request.Texto,
+                request.Activo,
+                skip,
+                pageSize,
                 cancellationToken);
 
-        return ccs
+        var items = ccs
             .Select(CrearCcCommandHandler.ToDto)
             .ToList();
+
+        return new CcsPaginadosDto(
+            items,
+            page,
+            pageSize,
+            total);
     }
 }

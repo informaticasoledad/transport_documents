@@ -1,17 +1,15 @@
-﻿using Dtd.Application.Almacenes;
-using Dtd.Application.Almacenes.EliminarCcDefecto;
-using Dtd.Domain.Agencias;
+﻿using Dtd.Domain.Agencias;
 using Dtd.Domain.Almacenes;
 using Dtd.Domain.Ccs;
 using Dtd.Domain.Common;
 using ErrorOr;
 using MediatR;
 
-namespace Dtd.Application.Ccs.EliminarCcDefecto;
+namespace Dtd.Application.Almacenes.DesvincularAlmacenAgenciaCc;
 
-internal sealed class EliminarCcDefectoCommandHandler
+internal sealed class DesvincularAlmacenAgenciaCcCommandHandler
     : IRequestHandler<
-        EliminarCcDefectoCommand,
+        DesvincularAlmacenAgenciaCcCommand,
         ErrorOr<Success>>
 {
     private readonly IAlmacenRepository _almacenRepository;
@@ -20,7 +18,7 @@ internal sealed class EliminarCcDefectoCommandHandler
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAccesoAlmacenService _accesoAlmacenService;
 
-    public EliminarCcDefectoCommandHandler(
+    public DesvincularAlmacenAgenciaCcCommandHandler(
         IAlmacenRepository almacenRepository,
         IAgenciaRepository agenciaRepository,
         ICcRepository ccRepository,
@@ -35,7 +33,7 @@ internal sealed class EliminarCcDefectoCommandHandler
     }
 
     public async Task<ErrorOr<Success>> Handle(
-        EliminarCcDefectoCommand request,
+        DesvincularAlmacenAgenciaCcCommand request,
         CancellationToken cancellationToken)
     {
         var empresa = request.Empresa.Trim();
@@ -74,23 +72,49 @@ internal sealed class EliminarCcDefectoCommandHandler
                 $"No existe la agencia '{request.AgenciaId}'.");
         }
 
+        var agenciaDisponible =
+            await _almacenRepository.EsAgenciaDisponibleAsync(
+                almacen.Id,
+                agencia.Id,
+                cancellationToken);
+
+        if (!agenciaDisponible)
+        {
+            return Error.NotFound(
+                "Almacen.AgenciaNoDisponible",
+                $"La agencia '{agencia.Id}' no está disponible " +
+                $"para el almacén '{almacen.Id}'.");
+        }
+
+        var cc = await _ccRepository.GetByIdAsync(
+            request.CcId,
+            cancellationToken);
+
+        if (cc is null || cc.Empresa != empresa)
+        {
+            return Error.NotFound(
+                "Cc.NoEncontrado",
+                $"El CC '{request.CcId}' no existe " +
+                $"para la empresa '{empresa}'.");
+        }
+
         var ccVinculado =
             await _ccRepository.GetByAlmacenYAgenciaEIdAsync(
                 almacen.Id,
                 agencia.Id,
-                request.CcId,
+                cc.Id,
                 cancellationToken);
 
         if (ccVinculado is null)
         {
             return Error.NotFound(
                 "Cc.NoVinculado",
-                $"El CC '{request.CcId}' no está vinculado al almacén " +
+                $"El CC '{cc.Id}' no está vinculado al almacén " +
                 $"'{almacen.Id}' y la agencia '{agencia.Id}'.");
         }
 
         await _ccRepository.EliminarVinculoAsync(
-            ccVinculado.Id,
+            cc.Id,
             almacen.Id,
             agencia.Id,
             cancellationToken);

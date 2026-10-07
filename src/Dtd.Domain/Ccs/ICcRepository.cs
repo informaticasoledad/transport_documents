@@ -106,5 +106,17 @@ public interface ICcRepository
         bool porDefecto,
         CancellationToken cancellationToken = default);
 
+    Task EliminarVinculoAsync(
+        Guid ccId,
+        Guid almacenId,
+        Guid agenciaId,
+        CancellationToken cancellationToken = default);
 
+    Task<(IReadOnlyList<Cc> Items, int Total)> BuscarAsync(
+    string empresa,
+    string? texto,
+    bool? activo,
+    int skip,
+    int take,
+    CancellationToken cancellationToken = default);
 }

@@ -1,12 +1,11 @@
 using Dtd.Application.Ccs;
-using Dtd.Application.Ccs.ListarTodosCcs;
 using Dtd.Application.Ccs.ObtenerCcsDefecto;
 using MediatR;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.DependencyInjection;
-
+using Dtd.Application.Ccs.ListarCcsCatalogo;
 namespace Dtd.Api.Modules;
 
 public static class CcsModule
@@ -68,11 +67,36 @@ public static class CcsModule
             return result.ToHttpResult(dto => Results.Ok(dto));
         });
 
+        /*
         empresas.MapGet("/{empresa}/ccs", async (string empresa, IMediator mediator, CancellationToken ct) =>
         {
             var result = await mediator.Send(new ListarTodosCcsQuery(empresa), ct);
             return result.ToHttpResult(list => Results.Ok(list));
-        });
+        });*/
+
+        empresas.MapGet(
+      "/{empresa}/ccs",
+      async (
+          string empresa,
+          int? page,
+          int? pageSize,
+          string? texto,
+          bool? activo,
+          IMediator mediator,
+          CancellationToken ct) =>
+      {
+          var result = await mediator.Send(
+              new ListarCcsCatalogoQuery(
+                  empresa,
+                  page ?? 1,
+                  pageSize ?? 20,
+                  texto,
+                  activo),
+              ct);
+
+          return result.ToHttpResult(
+              response => Results.Ok(response));
+      });
 
         empresas.MapGet(
     "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs/por-defecto",

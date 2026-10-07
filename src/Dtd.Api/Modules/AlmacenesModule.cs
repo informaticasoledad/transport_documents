@@ -1,5 +1,6 @@
 using Dtd.Application.Almacenes.AgregarConductorDefecto;
 using Dtd.Application.Almacenes.CrearAlmacen;
+using Dtd.Application.Almacenes.DesvincularAlmacenAgenciaCc;
 using Dtd.Application.Almacenes.EliminarAlmacen;
 using Dtd.Application.Almacenes.EliminarAlmacenAgencia;
 using Dtd.Application.Almacenes.EliminarCcDefecto;
@@ -310,6 +311,27 @@ public static class AlmacenesModule
             dto => Results.Ok(dto));
     });
 
+        empresas.MapDelete(
+            "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs/{ccId:guid}",
+            async (
+                string empresa,
+                Guid almacenId,
+                Guid agenciaId,
+                Guid ccId,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var result = await mediator.Send(
+                    new DesvincularAlmacenAgenciaCcCommand(
+                        empresa,
+                        almacenId,
+                        agenciaId,
+                        ccId),
+                    ct);
+
+                return result.ToHttpResult(
+                    _ => Results.NoContent());
+            });
 
         empresas.MapGet(
     "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs",
