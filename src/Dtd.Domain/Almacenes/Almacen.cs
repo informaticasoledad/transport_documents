@@ -1,5 +1,6 @@
 using Dtd.Domain.Common;
 using Dtd.Domain.Documentos.ValueObjects;
+using ErrorOr;
 
 namespace Dtd.Domain.Almacenes;
 
@@ -141,4 +142,5 @@ public sealed class Almacen : AggregateRoot<Guid>
 
         Nombre = nombre.Trim();
     }
+
 }

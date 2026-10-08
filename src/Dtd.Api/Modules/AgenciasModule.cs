@@ -90,7 +90,12 @@ public static class AgenciasModule
                     request.Nombre,
                     request.IdentificadorFiscal,
                     request.AgenciaQs,
-                    request.EntregaEnDestino);
+                    request.EntregaEnDestino,
+                    request.RequierePrecinto,
+                    request.Direccion,
+                    request.CodigoPostal,
+                    request.Municipio,
+                    request.CodigoPaisIso);
 
                 var result = await mediator.Send(command, ct);
 
@@ -314,13 +319,18 @@ public static class AgenciasModule
 }
 
 
-
 public sealed record CrearAgenciaRequest(
     string Codigo,
     string Nombre,
     string IdentificadorFiscal,
     string? AgenciaQs,
-    bool EntregaEnDestino);
+    bool EntregaEnDestino,
+    bool RequierePrecinto,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso);
+
 
 public sealed record ModificarAgenciaRequest(
     string Codigo,

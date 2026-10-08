@@ -1,3 +1,4 @@
+using Dtd.Application.Almacenes.ActualizarAlmacenAgenciaCc;
 using Dtd.Application.Almacenes.AgregarConductorDefecto;
 using Dtd.Application.Almacenes.CrearAlmacen;
 using Dtd.Application.Almacenes.DesvincularAlmacenAgenciaCc;
@@ -17,7 +18,6 @@ using Dtd.Application.Almacenes.ObtenerAlmacen;
 using Dtd.Application.Almacenes.VincularAlmacenAgencia;
 using Dtd.Application.Almacenes.VincularAlmacenAgenciaCc;
 using Dtd.Application.Ccs.AgregarCcDefecto;
-using Dtd.Application.Ccs.ListarCcsPorAlmacen;
 using Dtd.Application.Conductores.ListarConductoresDefault;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
@@ -58,6 +58,9 @@ public sealed record ModificarAlmacenRequest(
 
 public sealed record VincularAlmacenAgenciaCcRequest(
     Guid CcId,
+    bool PorDefecto);
+
+public sealed record ActualizarAlmacenAgenciaCcRequest(
     bool PorDefecto);
 
 public sealed record VincularAlmacenAgenciaRequest(
@@ -309,6 +312,30 @@ public static class AlmacenesModule
 
         return result.ToHttpResult(
             dto => Results.Ok(dto));
+    });
+
+        empresas.MapPut(
+    "/{empresa}/almacenes/{almacenId:guid}/agencias/{agenciaId:guid}/ccs/{ccId:guid}",
+    async (
+        string empresa,
+        Guid almacenId,
+        Guid agenciaId,
+        Guid ccId,
+        [FromBody] ActualizarAlmacenAgenciaCcRequest req,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var result = await mediator.Send(
+            new ActualizarAlmacenAgenciaCcCommand(
+                empresa,
+                almacenId,
+                agenciaId,
+                ccId,
+                req.PorDefecto),
+            ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
     });
 
         empresas.MapDelete(

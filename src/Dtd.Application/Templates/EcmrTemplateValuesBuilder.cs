@@ -9,12 +9,16 @@ namespace Dtd.Application.Templates;
 
 public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 {
+    private const string DefaultPackaging = "colis";
+
     private readonly DocutenMappingOptions _options;
 
-    public EcmrTemplateValuesBuilder(DocutenMappingOptions options)
+    public EcmrTemplateValuesBuilder(
+        DocutenMappingOptions options)
     {
         _options = options;
     }
+
     public string DocumentType => "ecmr";
 
     public Dictionary<string, string> Build(
@@ -45,19 +49,24 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["Lugar de carga"] = BuildLugarCarga(
                 documento),
 
-            // De momento Agencia solo contiene nombre/código.
-            // Faltan NIF y domicilio del transportista.
-            ["Porteador"] = agencia.Nombre,
+            ["Porteador"] = BuildPorteador(
+                agencia),
 
-            ["Porteadores sucesivos"] = string.Empty,
+            ["Porteadores sucesivos"] =
+                string.Empty,
 
-            ["Reservas y observaciones porteador"] = string.Empty,
+            ["Reservas y observaciones porteador"] =
+                BuildReservasPorteador(
+                    documento),
 
-            ["Instrucciones remitente"] = string.Empty,
+            ["Instrucciones remitente"] =
+                BuildInstruccionesRemitente(documento),
 
-            ["Total 1"] = string.Empty,
+            ["Total 1"] =
+                string.Empty,
 
-            ["Total 2"] = string.Empty,
+            ["Total 2"] =
+                string.Empty,
 
             ["Formalizado en"] = BuildFormalizadoEn(
                 documento)
@@ -66,6 +75,7 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
         AddMercancias(
             values,
             envio,
+            agencia,
             _options.DefaultGoodsDescription);
 
         return values;
@@ -79,7 +89,9 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             empresa.Nombre,
             empresa.TaxId,
             almacen.Direccion,
-            $"{almacen.CodigoPostal} {almacen.Ciudad}",
+            BuildCodigoPostalCiudad(
+                almacen.CodigoPostal,
+                almacen.Ciudad),
             almacen.CodigoPaisIso);
     }
 
@@ -89,7 +101,9 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
         return JoinLines(
             destino.Nombre,
             destino.Direccion,
-            $"{destino.CodigoPostal} {destino.Ciudad}",
+            BuildCodigoPostalCiudad(
+                destino.CodigoPostal,
+                destino.Ciudad),
             destino.CodigoPais);
     }
 
@@ -98,7 +112,9 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     {
         return JoinLines(
             destino.Direccion,
-            $"{destino.CodigoPostal} {destino.Ciudad}",
+            BuildCodigoPostalCiudad(
+                destino.CodigoPostal,
+                destino.Ciudad),
             destino.CodigoPais);
     }
 
@@ -107,24 +123,58 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     {
         return JoinLines(
             documento.Origen.AddressStreet,
-            BuildLocalidadOrigen(documento.Origen),
+            BuildLocalidadOrigen(
+                documento.Origen),
             documento.Origen.CountryName,
-            documento.FechaGeneracion.ToString("dd/MM/yyyy"));
+            documento.FechaGeneracion.ToString(
+                "dd/MM/yyyy",
+                CultureInfo.InvariantCulture));
+    }
+
+    private static string BuildPorteador(
+        Agencia agencia)
+    {
+        return JoinLines(
+            agencia.Nombre,
+            agencia.IdentificadorFiscal,
+            agencia.Direccion,
+            BuildCodigoPostalCiudad(
+                agencia.CodigoPostal,
+                agencia.Municipio),
+            agencia.CodigoPaisIso);
+    }
+
+    private static string BuildReservasPorteador(
+        DocumentoDigitalTransporte documento)
+    {
+        return JoinInline(
+            " - ",
+            documento.Matricula,
+            documento.MatriculaRemolque);
+    }
+
+    private static string BuildInstruccionesRemitente(
+        DocumentoDigitalTransporte documento)
+    {
+        if (string.IsNullOrWhiteSpace(documento.Precinto))
+        {
+            return string.Empty;
+        }
+
+        return $"Precinto: {documento.Precinto.Trim()}";
     }
 
     private static string BuildFormalizadoEn(
         DocumentoDigitalTransporte documento)
     {
-        var lugar = string.Join(
+        var lugar = JoinInline(
             ", ",
-            new[]
-            {
-                documento.Origen.City,
-                documento.Origen.ProvinceName
-            }
-            .Where(x => !string.IsNullOrWhiteSpace(x)));
+            documento.Origen.City,
+            documento.Origen.ProvinceName);
 
-        var fecha = documento.FechaGeneracion.ToString("dd/MM/yyyy");
+        var fecha = documento.FechaGeneracion.ToString(
+            "dd/MM/yyyy",
+            CultureInfo.InvariantCulture);
 
         return string.IsNullOrWhiteSpace(lugar)
             ? fecha
@@ -134,64 +184,118 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
     private static string BuildLocalidadOrigen(
         OrigenDocumento origen)
     {
-        var localidad = string.Join(
-            " ",
-            new[]
-            {
-                origen.Zipcode,
-                origen.City
-            }
-            .Where(x => !string.IsNullOrWhiteSpace(x)));
+        var localidad = BuildCodigoPostalCiudad(
+            origen.Zipcode,
+            origen.City);
 
-        if (!string.IsNullOrWhiteSpace(origen.ProvinceName))
+        if (!string.IsNullOrWhiteSpace(
+                origen.ProvinceName))
         {
-            localidad = string.IsNullOrWhiteSpace(localidad)
-                ? origen.ProvinceName
-                : $"{localidad} ({origen.ProvinceName})";
+            localidad = string.IsNullOrWhiteSpace(
+                localidad)
+                ? origen.ProvinceName.Trim()
+                : $"{localidad} ({origen.ProvinceName.Trim()})";
         }
 
         return localidad;
     }
 
     private static void AddMercancias(
-    Dictionary<string, string> values,
-    Envio envio,
-    string goodsDescription)
+        Dictionary<string, string> values,
+        Envio envio,
+        Agencia agencia,
+        string goodsDescription)
     {
-        values["Marcas y numeros"] = string.Empty;
+        values["Marcas y numeros"] =
+            agencia.Codigo;
 
         values["Numero bultos"] =
-            envio.Bultos.ToString();
+            envio.Bultos.ToString(
+                CultureInfo.InvariantCulture);
 
-        values["Embalaje"] = string.Empty;
+        values["Embalaje"] =
+            DefaultPackaging;
 
-        values["Mercancia"] = goodsDescription;
+        values["Mercancia"] =
+            goodsDescription;
 
-        values["Stats"] = string.Empty;
+        values["Stats"] =
+            string.Empty;
 
         values["Peso bruto"] =
-            $"{envio.PesoTotal.ToString("0.##", CultureInfo.InvariantCulture)} kg";
+            $"{envio.PesoTotal.ToString(
+                "0.##",
+                CultureInfo.InvariantCulture)} kg";
 
-        values["Volumen"] = string.Empty;
+        values["Volumen"] =
+            string.Empty;
 
+        AddLineasMercanciaVacias(
+            values);
+    }
+
+    private static void AddLineasMercanciaVacias(
+        Dictionary<string, string> values)
+    {
         for (var i = 2; i <= 6; i++)
         {
-            values[$"Marcas y numeros{i}"] = string.Empty;
-            values[$"Numero bultos{i}"] = string.Empty;
-            values[$"Embalaje{i}"] = string.Empty;
-            values[$"Mercancia{i}"] = string.Empty;
-            values[$"Stats{i}"] = string.Empty;
-            values[$"Peso bruto{i}"] = string.Empty;
-            values[$"Volumen{i}"] = string.Empty;
+            values[$"Marcas y numeros{i}"] =
+                string.Empty;
+
+            values[$"Numero bultos{i}"] =
+                string.Empty;
+
+            values[$"Embalaje{i}"] =
+                string.Empty;
+
+            values[$"Mercancia{i}"] =
+                string.Empty;
+
+            values[$"Stats{i}"] =
+                string.Empty;
+
+            values[$"Peso bruto{i}"] =
+                string.Empty;
+
+            values[$"Volumen{i}"] =
+                string.Empty;
         }
     }
 
-    private static string JoinLines(params string?[] values)
+    private static string BuildCodigoPostalCiudad(
+        string? codigoPostal,
+        string? ciudad)
+    {
+        return JoinInline(
+            " ",
+            codigoPostal,
+            ciudad);
+    }
+
+    private static string JoinLines(
+        params string?[] values)
     {
         return string.Join(
             Environment.NewLine,
             values
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Select(x => x!.Trim()));
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x))
+                .Select(x =>
+                    x!.Trim()));
     }
+
+    private static string JoinInline(
+        string separator,
+        params string?[] values)
+    {
+        return string.Join(
+            separator,
+            values
+                .Where(x =>
+                    !string.IsNullOrWhiteSpace(x))
+                .Select(x =>
+                    x!.Trim()));
+    }
+
+
 }

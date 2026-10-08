@@ -13,4 +13,8 @@ public sealed record AgenciaDto(
     bool Activa,
     string? AgenciaQs,
     bool EntregaEnDestino,
-    bool RequierePrecinto);
+    bool RequierePrecinto,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso);

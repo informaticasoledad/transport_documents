@@ -45,7 +45,12 @@ internal sealed class CrearAgenciaCommandHandler
                 request.Nombre,
                 request.IdentificadorFiscal,
                 request.AgenciaQs,
-                request.EntregaEnDestino);
+                request.EntregaEnDestino,
+                request.RequierePrecinto,
+                request.Direccion,
+                request.CodigoPostal,
+                request.Municipio,
+                request.CodigoPaisIso);
         }
         catch (ArgumentException ex)
         {
@@ -69,6 +74,10 @@ internal sealed class CrearAgenciaCommandHandler
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,
-            agencia.RequierePrecinto);
+            agencia.RequierePrecinto,
+            agencia.Direccion,
+            agencia.CodigoPostal,
+            agencia.Municipio,
+            agencia.CodigoPaisIso);
     }
 }

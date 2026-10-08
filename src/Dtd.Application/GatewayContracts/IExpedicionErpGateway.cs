@@ -15,7 +15,7 @@ public interface IExpedicionErpGateway
     Task<IReadOnlyList<ExpedicionErpDto>> GetExpedicionesAsync(
         string empresa,
         string almacenCodigo,
-        string agenciaCodigo,
+        string agenciaCodigoERP,
         RangoFechas rangoFechas,
         CancellationToken cancellationToken = default);
 }

@@ -1,10 +1,11 @@
-using System.Net.Http.Headers;
-using System.Text.Json;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.Documentos.ValueObjects;
 using Dtd.Infrastructure.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Headers;
+using System.Text.Json;
+using static System.Net.WebRequestMethods;
 
 namespace Dtd.Infrastructure.Gateways;
 
@@ -38,7 +39,7 @@ internal sealed class ErpGateway : IExpedicionErpGateway
     public async Task<IReadOnlyList<ExpedicionErpDto>> GetExpedicionesAsync(
         string empresa,
         string almacenCodigo,
-        string agenciaCodigo,
+        string agenciaCodigoERP,
         RangoFechas rangoFechas,
         CancellationToken cancellationToken = default)
     {
@@ -53,12 +54,12 @@ internal sealed class ErpGateway : IExpedicionErpGateway
             cancellationToken);
 
         var client = CreateErpClient(token);
-
+        
         var url =
             $"{config.BaseAddress.TrimEnd('/')}" +
             $"/api/enterprises/{Uri.EscapeDataString(empresa)}/expeditions" +
             $"?warehouseId={Uri.EscapeDataString(almacenCodigo)}" +
-            $"&carrierId={Uri.EscapeDataString(agenciaCodigo)}" +
+            $"&carrierId={Uri.EscapeDataString(agenciaCodigoERP)}" +
             $"&dateFrom={rangoFechas.FechaDesde:yyyy-MM-dd}" +
             $"&dateTo={rangoFechas.FechaHasta:yyyy-MM-dd}";
 
@@ -94,7 +95,7 @@ internal sealed class ErpGateway : IExpedicionErpGateway
         await ThrowErpErrorAsync(
             response,
             empresa,
-            $"warehouse={almacenCodigo} carrier={agenciaCodigo}",
+            $"warehouse={almacenCodigo} carrier={agenciaCodigoERP}",
             cancellationToken);
 
         return [];

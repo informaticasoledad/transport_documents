@@ -257,18 +257,20 @@ internal sealed class EnviosPdfGenerator : IEnviosPdfGenerator
     }
 
     private static void AddExpediciones(
-    Section section,
-    IReadOnlyCollection<DocumentoExpedicionPdfDto> expediciones)
+     Section section,
+     IReadOnlyCollection<DocumentoExpedicionPdfDto> expediciones)
     {
         var table = section.AddTable();
 
         table.Borders.Width = 0.5;
 
-        table.AddColumn(Unit.FromCentimeter(4.2)); // Id ERP
-        table.AddColumn(Unit.FromCentimeter(3.8)); // Nº documento
-        table.AddColumn(Unit.FromCentimeter(3));   // Fecha
-        table.AddColumn(Unit.FromCentimeter(2));   // Bultos
-        table.AddColumn(Unit.FromCentimeter(3.5)); // Peso
+        // Total: 16,5 cm
+        table.AddColumn(Unit.FromCentimeter(3.2)); // Id ERP
+        table.AddColumn(Unit.FromCentimeter(3.0)); // Nº documento
+        table.AddColumn(Unit.FromCentimeter(2.5)); // Fecha
+        table.AddColumn(Unit.FromCentimeter(1.6)); // Bultos
+        table.AddColumn(Unit.FromCentimeter(2.7)); // Peso
+        table.AddColumn(Unit.FromCentimeter(3.5)); // País destino
 
         var header = table.AddRow();
 
@@ -289,6 +291,9 @@ internal sealed class EnviosPdfGenerator : IEnviosPdfGenerator
 
         header.Cells[4]
             .AddParagraph("Peso");
+
+        header.Cells[5]
+            .AddParagraph("País destino");
 
         foreach (var expedicion in expediciones)
         {
@@ -312,6 +317,10 @@ internal sealed class EnviosPdfGenerator : IEnviosPdfGenerator
             row.Cells[4]
                 .AddParagraph(
                     $"{expedicion.Peso:N2} kg");
+
+            row.Cells[5]
+                .AddParagraph(
+                    expedicion.CodigoPais ?? string.Empty);
         }
     }
     private static void AddPiePagina(

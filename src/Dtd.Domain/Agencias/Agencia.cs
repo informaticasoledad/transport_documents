@@ -17,8 +17,13 @@ public sealed class Agencia : AggregateRoot<Guid>
     public string Nombre { get; private set; }
     public string IdentificadorFiscal { get; private set; }
 
+    public string? Direccion { get; private set; }
+    public string? CodigoPostal { get; private set; }
+    public string? Municipio { get; private set; }
+    public string? CodigoPaisIso { get; private set; }
+
     public bool Activa { get; private set; }
-    public string? AgenciaQs { get; private set; }
+    public string AgenciaQs { get; private set; }
 
     public bool EntregaEnDestino { get; private set; }
 
@@ -45,13 +50,23 @@ public sealed class Agencia : AggregateRoot<Guid>
         bool activa,
         string? agenciaQs,
         bool entregaEnDestino,
-        bool requierePrecinto)
+        bool requierePrecinto,
+        string? direccion,
+        string? codigoPostal,
+        string? municipio,
+        string? codigoPaisIso)
     {
         Id = Guid.NewGuid();
 
         Codigo = codigo;
         Nombre = nombre;
         IdentificadorFiscal = identificadorFiscal;
+
+        Direccion = direccion;
+        CodigoPostal = codigoPostal;
+        Municipio = municipio;
+        CodigoPaisIso = codigoPaisIso;
+
         Activa = activa;
         AgenciaQs = agenciaQs;
         EntregaEnDestino = entregaEnDestino;
@@ -64,7 +79,11 @@ public sealed class Agencia : AggregateRoot<Guid>
         string identificadorFiscal,
         string? agenciaQs = null,
         bool entregaEnDestino = false,
-        bool requierePrecinto = false)
+        bool requierePrecinto = false,
+        string? direccion = null,
+        string? codigoPostal = null,
+        string? municipio = null,
+        string? codigoPaisIso = null)
     {
         ValidarDatos(
             codigo,
@@ -78,7 +97,11 @@ public sealed class Agencia : AggregateRoot<Guid>
             activa: true,
             agenciaQs?.Trim(),
             entregaEnDestino,
-            requierePrecinto);
+            requierePrecinto,
+            NormalizarOpcional(direccion),
+            NormalizarOpcional(codigoPostal),
+            NormalizarOpcional(municipio),
+            NormalizarOpcional(codigoPaisIso));
     }
 
     public void Desactivar() => Activa = false;
@@ -93,7 +116,11 @@ public sealed class Agencia : AggregateRoot<Guid>
         string nombre,
         string identificadorFiscal,
         string? agenciaQs,
-        bool entregaEnDestino)
+        bool entregaEnDestino,
+        string? direccion = null,
+        string? codigoPostal = null,
+        string? municipio = null,
+        string? codigoPaisIso = null)
     {
         ValidarDatos(
             codigo,
@@ -103,6 +130,12 @@ public sealed class Agencia : AggregateRoot<Guid>
         Codigo = codigo.Trim();
         Nombre = nombre.Trim();
         IdentificadorFiscal = identificadorFiscal.Trim();
+
+        Direccion = NormalizarOpcional(direccion);
+        CodigoPostal = NormalizarOpcional(codigoPostal);
+        Municipio = NormalizarOpcional(municipio);
+        CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
+
         AgenciaQs = agenciaQs?.Trim();
         EntregaEnDestino = entregaEnDestino;
     }
@@ -224,5 +257,12 @@ public sealed class Agencia : AggregateRoot<Guid>
                 "El identificador fiscal de la agencia es obligatorio.",
                 nameof(identificadorFiscal));
         }
+    }
+
+    private static string? NormalizarOpcional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value)
+            ? null
+            : value.Trim();
     }
 }

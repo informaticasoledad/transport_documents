@@ -8,5 +8,10 @@ public sealed record CrearAgenciaCommand(
     string Nombre,
     string IdentificadorFiscal,
     string? AgenciaQs,
-    bool EntregaEnDestino)
+    bool EntregaEnDestino,
+    bool RequierePrecinto,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso)
     : IRequest<ErrorOr<AgenciaDto>>;

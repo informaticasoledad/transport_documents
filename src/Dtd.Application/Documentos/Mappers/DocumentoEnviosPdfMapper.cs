@@ -56,6 +56,7 @@ public static class DocumentoEnviosPdfMapper
             DocumentNumber: expedicion.DocumentNumber,
             Fecha: expedicion.Fecha.ToDateTime(TimeOnly.MinValue),
             Bultos: expedicion.Bultos,
-            Peso: expedicion.PesoTotal);
+            Peso: expedicion.PesoTotal,
+            CodigoPais: expedicion.Destino.Pais);
     }
 }

@@ -177,23 +177,7 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                     idsDefecto.Contains(relacion.CcId));
             }
         }
-        /*
-         *  ojazo borrar
-        private static IReadOnlyList<CcVinculoAlmacenAgencia> Deduplicar(
-            IReadOnlyCollection<CcVinculoAlmacenAgencia> vinculos) =>
-            vinculos
-                .GroupBy(x => new
-                {
-                    x.AlmacenId,
-                    x.AgenciaId
-                })
-                .Select(g =>
-                    new CcVinculoAlmacenAgencia(
-                        g.Key.AlmacenId,
-                        g.Key.AgenciaId,
-                        g.Any(x => x.PorDefecto)))
-                .ToList();*/
-
+        
         public async Task AgregarDefectoAsync(
             Guid almacenId,
             Guid agenciaId,
@@ -306,6 +290,31 @@ namespace Dtd.Infrastructure.Persistence.Repositories
                 .ToListAsync(cancellationToken);
 
             return (items, total);
+        }
+
+        public async Task<bool> ActualizarVinculoAsync(
+    Guid ccId,
+    Guid almacenId,
+    Guid agenciaId,
+    bool porDefecto,
+    CancellationToken cancellationToken = default)
+        {
+            var relacion = await _dbContext.AlmacenAgenciaCcs
+                .FirstOrDefaultAsync(
+                    x =>
+                        x.CcId == ccId &&
+                        x.AlmacenId == almacenId &&
+                        x.AgenciaId == agenciaId,
+                    cancellationToken);
+
+            if (relacion is null)
+            {
+                return false;
+            }
+
+            relacion.ConfigurarPorDefecto(porDefecto);
+
+            return true;
         }
     }
 }

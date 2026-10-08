@@ -22,5 +22,6 @@ public sealed record DocumentoExpedicionPdfDto(
     string Id,
     string? DocumentNumber,
     DateTime Fecha,
-    int Bultos,
-    decimal Peso);
+    decimal Bultos,
+    decimal Peso,
+    string? CodigoPais);

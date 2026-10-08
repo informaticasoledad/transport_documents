@@ -40,6 +40,6 @@ internal sealed class ObtenerAgenciaQueryHandler
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,
-            agencia.RequierePrecinto);
+            agencia.RequierePrecinto, agencia.Direccion, agencia.CodigoPostal, agencia.Municipio, agencia.CodigoPaisIso);
     }
 }

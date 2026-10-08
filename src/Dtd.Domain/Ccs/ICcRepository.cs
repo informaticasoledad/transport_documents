@@ -119,4 +119,11 @@ public interface ICcRepository
     int skip,
     int take,
     CancellationToken cancellationToken = default);
+
+    Task<bool> ActualizarVinculoAsync(
+    Guid ccId,
+    Guid almacenId,
+    Guid agenciaId,
+    bool porDefecto,
+    CancellationToken cancellationToken = default);
 }

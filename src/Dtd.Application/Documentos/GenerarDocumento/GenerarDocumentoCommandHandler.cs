@@ -277,7 +277,7 @@ internal sealed class GenerarDocumentoCommandHandler
                 await _erpGateway.GetExpedicionesAsync(
                     empresa,
                     almacen.Codigo,
-                    agencia.Codigo,
+                    agencia.AgenciaQs,
                     rango,
                     cancellationToken);
 
