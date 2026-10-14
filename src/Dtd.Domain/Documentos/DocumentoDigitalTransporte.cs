@@ -293,9 +293,15 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         return Result.Success;
     }
 
+    /*
     private string GenerarReferenciaEnvio(int orden)
     {
         return $"{Id}#{orden}";
+    }*/
+
+    private string GenerarReferenciaEnvio(int orden)
+    {
+        return $"{Referencia}#{orden}";
     }
 
     public void AsignarConductor(
