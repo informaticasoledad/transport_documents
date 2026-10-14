@@ -79,8 +79,8 @@ internal sealed class ListarAlmacenesPermitidosQueryHandler
                 a.CodigoPostal,
                 a.Ciudad,
                 a.CodigoPaisIso,
-                a.Email.ToString(),
-                a.Telefono,
+                a.Email?.ToString(),
+                a.Telefono?.ToString(),
                 a.TipoFirmaConsignor,
                 a.Activo))
             .ToList();

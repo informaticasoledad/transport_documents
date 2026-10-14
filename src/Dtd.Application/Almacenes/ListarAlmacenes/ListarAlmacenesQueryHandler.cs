@@ -71,7 +71,7 @@ internal sealed class ListarAlmacenesQueryHandler
             almacen.Ciudad,
             almacen.CodigoPaisIso,
             almacen.Email?.Valor,
-            almacen.Telefono,
+            almacen.Telefono?.ToString(),
             almacen.TipoFirmaConsignor,
             almacen.Activo);
     }
