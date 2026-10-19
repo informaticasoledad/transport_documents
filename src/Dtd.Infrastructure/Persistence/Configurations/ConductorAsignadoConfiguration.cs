@@ -20,8 +20,12 @@ internal sealed class ConductorAsignadoConfiguration
 
         // Snapshot del catálogo:
         // Id del conductor como clave de idempotencia + datos utilizados por Docuten.
+        //builder.Property(x => x.ConductorCatalogId)
+        //    .IsRequired();
+
+        // Permito no requerido por creación dinámica conductores
         builder.Property(x => x.ConductorCatalogId)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(x => x.Nombre)
             .HasMaxLength(200)

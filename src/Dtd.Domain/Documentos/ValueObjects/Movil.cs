@@ -1,10 +1,11 @@
 using Dtd.Domain.Common;
+using System.Text.RegularExpressions;
 
 namespace Dtd.Domain.Documentos.ValueObjects;
 
 /// <summary>
-/// A transportista's mobile phone number. Required by Docuten to notify the carrier.
-/// Normalised to digits so the default lookup and the ERP value can be compared reliably.
+/// Número de móvil utilizado para las notificaciones de Docuten.
+/// Debe incluir el prefijo internacional.
 /// </summary>
 public sealed class Movil : ValueObject
 {
@@ -20,9 +21,14 @@ public sealed class Movil : ValueObject
         }
 
         var digits = new string(raw.Where(char.IsDigit).ToArray());
-        if (digits.Length is < 6 or > 15)
+
+        if (!Regex.IsMatch(digits, @"^[1-9]\d{9,14}$"))
         {
-            throw new ArgumentException("El número de móvil no es válido.", nameof(raw));
+            throw new ArgumentException(
+                "El móvil debe incluir el prefijo internacional " +
+                "y contener entre 10 y 15 dígitos. " +
+                "Ejemplo: 34600123123.",
+                nameof(raw));
         }
 
         return new Movil(digits);

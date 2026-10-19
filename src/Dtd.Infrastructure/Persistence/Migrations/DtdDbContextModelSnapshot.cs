@@ -475,7 +475,7 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("ConductorCatalogId")
+                    b.Property<Guid?>("ConductorCatalogId")
                         .HasColumnType("uuid")
                         .HasColumnName("conductor_catalog_id");
 

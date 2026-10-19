@@ -5,19 +5,17 @@ using Dtd.Domain.Documentos.ValueObjects;
 namespace Dtd.Domain.Documentos;
 
 /// <summary>
-/// Conductor asignado a un <see cref="DocumentoDigitalTransporte"/> (driver del lote Docuten).
-/// Es una entidad hija del agregado y representa un snapshot inmutable del catálogo
-/// <see cref="Conductor"/> en el momento de la asignación.
-///
-/// La idempotencia se controla mediante <see cref="ConductorCatalogId"/>.
+/// Conductor asignado a un documento de transporte.
+/// Conserva los datos del conductor en el momento de su asignación,
+/// tanto si procede del catálogo como si se introduce manualmente.
 /// </summary>
 public sealed class ConductorAsignado : Entity<Guid>
 {
     /// <summary>
-    /// Id del conductor del catálogo en el momento de la asignación.
-    /// Se utiliza como clave de idempotencia.
+    /// Identificador del catálogo, si el conductor procede de él.
+    /// Se utiliza como clave de idempotencia para conductores de catálogo.
     /// </summary>
-    public Guid ConductorCatalogId { get; private set; }
+    public Guid? ConductorCatalogId { get; private set; }
 
     public string Nombre { get; private set; }
     public string? TaxId { get; private set; }
@@ -30,9 +28,8 @@ public sealed class ConductorAsignado : Entity<Guid>
     public Canal Canal { get; private set; }
     public string Language { get; private set; }
 
-    /// <summary>
-    /// Usado por el ORM para materializar la entidad.
-    /// </summary>
+    public bool EsManual => ConductorCatalogId is null;
+
     private ConductorAsignado()
     {
         Nombre = string.Empty;
@@ -41,7 +38,7 @@ public sealed class ConductorAsignado : Entity<Guid>
     }
 
     private ConductorAsignado(
-        Guid conductorCatalogId,
+        Guid? conductorCatalogId,
         string nombre,
         string? taxId,
         string? licensePlate,
@@ -83,6 +80,39 @@ public sealed class ConductorAsignado : Entity<Guid>
             conductor.Language);
     }
 
+    /// <summary>
+    /// Crea un conductor manual, sin incorporarlo al catálogo.
+    /// La notificación se realiza siempre mediante SMS.
+    /// Las matrículas se gestionan directamente en el documento.
+    /// </summary>
+    public static ConductorAsignado CrearManual(
+        string nombre,
+        string taxId,
+        Movil movil)
+    {
+        if (string.IsNullOrWhiteSpace(nombre))
+            throw new ArgumentException(
+                "El nombre del conductor es obligatorio.",
+                nameof(nombre));
+
+        if (string.IsNullOrWhiteSpace(taxId))
+            throw new ArgumentException(
+                "El identificador fiscal es obligatorio.",
+                nameof(taxId));
+
+        ArgumentNullException.ThrowIfNull(movil);
+
+        return new ConductorAsignado(
+            conductorCatalogId: null,
+            nombre: nombre.Trim(),
+            taxId: taxId.Trim(),
+            licensePlate: null,
+            trailerLicensePlate: null,
+            movil: movil,
+            email: null,
+            canal: Canal.Create(Canal.Sms)!,
+            language: "es");
+    }
     /// <summary>
     /// Indica si los datos de contacto son coherentes con el canal.
     /// </summary>

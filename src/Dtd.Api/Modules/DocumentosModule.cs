@@ -63,6 +63,23 @@ public static class DocumentosModule
             return result.ToHttpResult(dto => Results.Ok(dto));
         });
 
+        documentos.MapPost("/{id:guid}/conductores/manual", async (
+    Guid id,
+    [FromBody] AgregarConductorManualDocumentoRequest req,
+    IMediator mediator,
+    CancellationToken ct) =>
+        {
+            var command = new AgregarConductorManualDocumentoCommand(
+                id,
+                req.Nombre,
+                req.TaxId,
+                req.Movil);
+
+            var result = await mediator.Send(command, ct);
+
+            return result.ToHttpResult(dto => Results.Ok(dto));
+        });
+
         documentos.MapDelete("/{id:guid}/conductores/{conductorId:guid}", async (
             Guid id,
             Guid conductorId,
@@ -318,4 +335,9 @@ public sealed record ModificarMatriculaDocumentoRequest(
     string? MatriculaRemolque);
 
 public sealed record ModificarPrecintoDocumentoRequest(string? Precinto);
+
+public sealed record AgregarConductorManualDocumentoRequest(
+    string Nombre,
+    string TaxId,
+    string Movil);
 

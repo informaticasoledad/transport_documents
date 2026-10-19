@@ -196,8 +196,9 @@ internal sealed class AsignarConductoresDocumentoCommandHandler
         var pedidosIds = idsUnicos.ToHashSet();
 
         return documento.Conductores
-            .Where(c =>
-                pedidosIds.Contains(c.ConductorCatalogId))
+        .Where(c =>
+        c.ConductorCatalogId.HasValue &&
+        pedidosIds.Contains(c.ConductorCatalogId.Value))
             .Select(c => new ConductorDto
             {
                 Id = c.Id,
