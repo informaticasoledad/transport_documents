@@ -35,14 +35,14 @@ internal sealed class ListarAgenciasPorConductorQueryHandler
                 a.Activa,
                 a.AgenciaQs,
                 a.EntregaEnDestino,
-                a.RequierePrecinto, 
-                a.Direccion, 
-                a.CodigoPostal, 
-                a.Municipio, 
-                a.CodigoPaisIso )) 
+                a.RequierePrecinto,
+                a.Direccion,
+                a.CodigoPostal,
+                a.Municipio,
+                a.CodigoPaisIso,
+                a.RequiereDatosPorteador))
             .ToList();
 
         return result;
-
     }
 }

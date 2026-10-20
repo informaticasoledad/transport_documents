@@ -47,6 +47,8 @@ public interface IDocumentoRepository
     CancellationToken cancellationToken = default);
 
     void Remove(DocumentoDigitalTransporte documento);
+
+    Task<DocumentoDigitalTransporte?> GetByReferenciaEnvioAsync(string referenciaEnvio, CancellationToken cancellationToken = default);
 }
 
 

@@ -95,7 +95,8 @@ public static class AgenciasModule
                     request.Direccion,
                     request.CodigoPostal,
                     request.Municipio,
-                    request.CodigoPaisIso);
+                    request.CodigoPaisIso,
+                    request.RequiereDatosPorteador);
 
                 var result = await mediator.Send(command, ct);
 
@@ -121,7 +122,13 @@ public static class AgenciasModule
                     request.IdentificadorFiscal,
                     request.AgenciaQs,
                     request.Activa,
-                    request.EntregaEnDestino);
+                    request.EntregaEnDestino,
+                    request.RequierePrecinto,
+                    request.Direccion,
+                    request.CodigoPostal,
+                    request.Municipio,
+                    request.CodigoPaisIso,
+                    request.RequiereDatosPorteador);
 
                 var result = await mediator.Send(command, ct);
 
@@ -322,23 +329,30 @@ public static class AgenciasModule
 public sealed record CrearAgenciaRequest(
     string Codigo,
     string Nombre,
-    string IdentificadorFiscal,
+    string? IdentificadorFiscal,
     string? AgenciaQs,
     bool EntregaEnDestino,
     bool RequierePrecinto,
     string? Direccion,
     string? CodigoPostal,
     string? Municipio,
-    string? CodigoPaisIso);
+    string? CodigoPaisIso,
+    bool RequiereDatosPorteador = false);
 
 
 public sealed record ModificarAgenciaRequest(
     string Codigo,
     string Nombre,
-    string IdentificadorFiscal,
+    string? IdentificadorFiscal,
     string? AgenciaQs,
     bool Activa,
-    bool EntregaEnDestino);
+    bool EntregaEnDestino,
+    bool RequierePrecinto,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso,
+    bool RequiereDatosPorteador = false);
 
 public sealed record CrearBaseAgenciaRequest(
     string Codigo,

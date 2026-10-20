@@ -12,6 +12,8 @@ public sealed record DocumentoDto
     public Guid AgenciaId { get; init; }
     public string AgenciaCodigo { get; init; } = string.Empty;
     public string AgenciaNombre { get; init; } = string.Empty;
+
+    public PorteadorDto? Porteador { get; init; }
     public OrigenDto Origen { get; init; } = new();
     public DateOnly FechaDesde { get; init; }
     public DateOnly FechaHasta { get; init; }
@@ -36,7 +38,7 @@ public sealed record DocumentoDto
 
     public IReadOnlyList<DocumentoEventoDto> Eventos { get; init; } = [];
 
-    public string Referencia { get; private set; } = string.Empty;
+    public string? Referencia { get; init; } 
 
     public string? Matricula { get; init; }
     public string? MatriculaRemolque { get; init; }
@@ -149,3 +151,11 @@ public sealed record CcDto
     public string? Email { get; init; }
     public string Language { get; init; } = "es";
 }
+
+public sealed record PorteadorDto(
+    string Nombre,
+    string IdentificadorFiscal,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso);

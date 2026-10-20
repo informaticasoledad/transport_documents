@@ -4,12 +4,15 @@ namespace Dtd.Application.Agencias;
 /// Read model de una agencia de transporte.
 /// Las agencias forman un catálogo global y se relacionan con los almacenes
 /// mediante la configuración correspondiente.
+/// 
+/// Cuando RequiereDatosPorteador es true, los datos del porteador real
+/// deben informarse en el documento antes de enviarlo a Docuten.
 /// </summary>
 public sealed record AgenciaDto(
     Guid Id,
     string Codigo,
     string Nombre,
-    string IdentificadorFiscal,
+    string? IdentificadorFiscal,
     bool Activa,
     string? AgenciaQs,
     bool EntregaEnDestino,
@@ -17,4 +20,5 @@ public sealed record AgenciaDto(
     string? Direccion,
     string? CodigoPostal,
     string? Municipio,
-    string? CodigoPaisIso);
+    string? CodigoPaisIso,
+    bool RequiereDatosPorteador);

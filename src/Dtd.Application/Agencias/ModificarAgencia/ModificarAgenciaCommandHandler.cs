@@ -25,6 +25,13 @@ internal sealed class ModificarAgenciaCommandHandler
         ModificarAgenciaCommand request,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Codigo))
+        {
+            return Error.Validation(
+                "Agencia.DatosInvalidos",
+                "El código de agencia es obligatorio.");
+        }
+
         var agencia = await _agenciaRepository.GetByIdAsync(
             request.AgenciaId,
             cancellationToken);
@@ -59,11 +66,17 @@ internal sealed class ModificarAgenciaCommandHandler
         try
         {
             agencia.Modificar(
-                codigo,
-                request.Nombre,
-                request.IdentificadorFiscal,
-                request.AgenciaQs,
-                request.EntregaEnDestino);
+                codigo: codigo,
+                nombre: request.Nombre,
+                identificadorFiscal: request.IdentificadorFiscal,
+                agenciaQs: request.AgenciaQs,
+                entregaEnDestino: request.EntregaEnDestino,
+                requierePrecinto: request.RequierePrecinto,
+                direccion: request.Direccion,
+                codigoPostal: request.CodigoPostal,
+                municipio: request.Municipio,
+                codigoPaisIso: request.CodigoPaisIso,
+                requiereDatosPorteador: request.RequiereDatosPorteador);
 
             if (request.Activa)
             {
@@ -91,10 +104,11 @@ internal sealed class ModificarAgenciaCommandHandler
             agencia.Activa,
             agencia.AgenciaQs,
             agencia.EntregaEnDestino,
-            agencia.RequierePrecinto, 
-            agencia.Direccion, 
-            agencia.CodigoPostal, 
-            agencia.Municipio, 
-            agencia.CodigoPaisIso); 
+            agencia.RequierePrecinto,
+            agencia.Direccion,
+            agencia.CodigoPostal,
+            agencia.Municipio,
+            agencia.CodigoPaisIso,
+            agencia.RequiereDatosPorteador);
     }
 }

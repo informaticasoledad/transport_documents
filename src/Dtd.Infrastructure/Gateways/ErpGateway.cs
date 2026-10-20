@@ -56,7 +56,7 @@ internal sealed class ErpGateway : IExpedicionErpGateway
         var client = CreateErpClient(token);
         
         var url =
-            $"{config.BaseAddress.TrimEnd('/')}" +
+            $"{config.BaseAddress.TrimEnd('/')}" + //ojaso
             $"/api/enterprises/{Uri.EscapeDataString(empresa)}/expeditions" +
             $"?warehouseId={Uri.EscapeDataString(almacenCodigo)}" +
             $"&carrierId={Uri.EscapeDataString(agenciaCodigoERP)}" +

@@ -75,6 +75,19 @@ internal sealed class GenerarDocumentoCommandHandler
 
         var (almacen, agencia) = configuracion.Value;
 
+        Porteador? porteador = null;
+
+        if (!agencia.RequiereDatosPorteador)
+        {
+            porteador = Porteador.Crear(
+                nombre: agencia.Nombre,
+                identificadorFiscal: agencia.IdentificadorFiscal!,
+                direccion: agencia.Direccion,
+                codigoPostal: agencia.CodigoPostal,
+                municipio: agencia.Municipio,
+                codigoPaisIso: agencia.CodigoPaisIso);
+        }
+
         var resultadoExpedicionesErp =
             await ObtenerExpedicionesErpAsync(
                 request.Empresa,
@@ -177,7 +190,7 @@ internal sealed class GenerarDocumentoCommandHandler
         var resultadoDocumento =
             DocumentoDigitalTransporte.Generar(
                 empresa: request.Empresa,
-                referencia,
+                referencia: referencia,
                 almacenId: almacen.Id,
                 agenciaId: agencia.Id,
                 origen: origen,
@@ -186,10 +199,11 @@ internal sealed class GenerarDocumentoCommandHandler
                 tipoAgrupacion: tipoAgrupacion,
                 destinoAgencia: destinoAgencia,
                 destinos: destinos,
-                requierePrecinto: agencia.RequierePrecinto == true,
+                requierePrecinto: agencia.RequierePrecinto,
                 precinto: request.Precinto,
                 usuarioGeneracionId: _usuarioContexto.Current?.Id,
-                fechaGeneracion: DateTimeOffset.UtcNow);
+                fechaGeneracion: DateTimeOffset.UtcNow,
+                porteador: porteador);
 
         if (resultadoDocumento.IsError)
         {

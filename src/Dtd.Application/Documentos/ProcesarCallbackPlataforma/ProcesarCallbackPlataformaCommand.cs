@@ -7,7 +7,8 @@ namespace Dtd.Application.Documentos.ProcesarCallbackPlataforma;
 public sealed record ProcesarCallbackPlataformaCommand(
     JsonElement Payload,
     string RawPayload,
-    string? Headers)
+    string? Headers,
+    Guid? CallbackLogId = null)
     : IRequest<ErrorOr<ProcesarCallbackPlataformaResult>>;
 
 public sealed record ProcesarCallbackPlataformaResult(

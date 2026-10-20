@@ -21,12 +21,19 @@ internal static class DocumentoDtoFactory
         {
             Id = documento.Id,
             Empresa = documento.Empresa,
+
+            Referencia = documento.Referencia,
+            Finalizado = documento.Finalizado,
+
             AlmacenId = documento.AlmacenId,
             AlmacenCodigo = almacen?.Codigo ?? string.Empty,
             AlmacenNombre = almacen?.Nombre ?? string.Empty,
             AgenciaId = documento.AgenciaId,
             AgenciaCodigo = agencia?.Codigo ?? string.Empty,
             AgenciaNombre = agencia?.Nombre ?? string.Empty,
+            Porteador = documento.Porteador is null
+            ? null
+            : ToDto(documento.Porteador),
             Origen = ToDto(documento.Origen),
             FechaDesde = documento.RangoFechas.FechaDesde,
             FechaHasta = documento.RangoFechas.FechaHasta,
@@ -156,5 +163,16 @@ internal static class DocumentoDtoFactory
             Email = cc.Email?.Valor,
             Language = cc.Language
         };
+    }
+
+    private static PorteadorDto ToDto(Porteador porteador)
+    {
+        return new PorteadorDto(
+            porteador.Nombre,
+            porteador.IdentificadorFiscal,
+            porteador.Direccion,
+            porteador.CodigoPostal,
+            porteador.Municipio,
+            porteador.CodigoPaisIso);
     }
 }

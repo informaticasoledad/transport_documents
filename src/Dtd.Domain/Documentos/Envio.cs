@@ -99,30 +99,98 @@ public sealed class Envio : Entity<Guid>
         PlataformaEnvioEstado = NormalizarOpcional(estado);
     }
 
-    public void RegistrarCallbackDocuten(
-        string? shipmentId,
-        string? estadoDocuten)
+    public ResultadoCallbackEnvio RegistrarCallbackDocuten(
+    string? shipmentId,
+    string? estadoDocuten)
     {
+        var modificado = false;
+
         if (!string.IsNullOrWhiteSpace(shipmentId))
         {
+            shipmentId = shipmentId.Trim();
+
             if (!string.IsNullOrWhiteSpace(PlataformaEnvioId) &&
                 !string.Equals(
                     PlataformaEnvioId,
-                    shipmentId.Trim(),
+                    shipmentId,
                     StringComparison.OrdinalIgnoreCase))
             {
-                return;
+                return ResultadoCallbackEnvio.IdentificadorIncompatible;
             }
-
-            PlataformaEnvioId = shipmentId.Trim();
         }
 
-        if (!string.IsNullOrWhiteSpace(estadoDocuten))
+        if (string.IsNullOrWhiteSpace(estadoDocuten))
         {
-            PlataformaEnvioEstado = estadoDocuten.Trim();
+            return ResultadoCallbackEnvio.EstadoNoReconocido;
         }
-    }
 
+        var nuevoEstado = estadoDocuten.Trim();
+
+        // Para callbacks SIGNATURE admitimos estos estados.
+        var nuevoOrden = ObtenerOrdenEstado(nuevoEstado);
+
+        if (nuevoOrden < 0)
+        {
+            return ResultadoCallbackEnvio.EstadoNoReconocido;
+        }
+
+        var ordenActual = ObtenerOrdenEstado(PlataformaEnvioEstado);
+
+        if (string.Equals(
+            PlataformaEnvioEstado,
+            nuevoEstado,
+            StringComparison.OrdinalIgnoreCase))
+        {
+            return ResultadoCallbackEnvio.YaAplicado;
+        }
+
+        if (EsEstadoFinal(PlataformaEnvioEstado))
+        {
+            return ResultadoCallbackEnvio.Obsoleto;
+        }
+
+        if (ordenActual >= 0 && nuevoOrden < ordenActual)
+        {
+            return ResultadoCallbackEnvio.Obsoleto;
+        }
+
+        if (!string.IsNullOrWhiteSpace(shipmentId) &&
+            string.IsNullOrWhiteSpace(PlataformaEnvioId))
+        {
+            PlataformaEnvioId = shipmentId;
+            modificado = true;
+        }
+
+        PlataformaEnvioEstado = nuevoEstado;
+
+        return ResultadoCallbackEnvio.Aplicado;
+    }
+    private static bool EsEstadoFinal(string? estado) =>
+        string.Equals(estado, EstadoDocuten.Delivered,
+            StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(estado, EstadoDocuten.Completed,
+            StringComparison.OrdinalIgnoreCase);
+
+    private static int ObtenerOrdenEstado(string? estado)
+    {
+        if (string.Equals(estado, EstadoDocuten.Created,
+            StringComparison.OrdinalIgnoreCase))
+            return 0;
+
+        if (string.Equals(estado, EstadoDocuten.ReadyForPickup,
+            StringComparison.OrdinalIgnoreCase))
+            return 1;
+
+        if (string.Equals(estado, EstadoDocuten.PendingDelivery,
+            StringComparison.OrdinalIgnoreCase))
+            return 2;
+
+        if (EsEstadoFinal(estado))
+            return 3;
+
+        // Los estados desconocidos no deben tratarse como progreso.
+        return -1;
+    }
     public void ActualizarTotales(
         int bultos,
         decimal pesoTotal)

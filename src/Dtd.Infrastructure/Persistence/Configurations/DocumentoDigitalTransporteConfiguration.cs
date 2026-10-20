@@ -156,6 +156,37 @@ internal sealed class DocumentoDigitalTransporteConfiguration
                     .FindNavigation(nameof(DocumentoDigitalTransporte.Eventos))!
                     .SetPropertyAccessMode(PropertyAccessMode.Field);
 
+        builder.OwnsOne(x => x.Porteador, porteador =>
+        {
+            porteador.Property(x => x.Nombre)
+                .HasColumnName("porteador_nombre")
+                .HasMaxLength(200)
+                .IsRequired();
+
+            porteador.Property(x => x.IdentificadorFiscal)
+                .HasColumnName("porteador_identificador_fiscal")
+                .HasMaxLength(30)
+                .IsRequired();
+
+            porteador.Property(x => x.Direccion)
+                .HasColumnName("porteador_direccion")
+                .HasMaxLength(250);
+
+            porteador.Property(x => x.CodigoPostal)
+                .HasColumnName("porteador_codigo_postal")
+                .HasMaxLength(20);
+
+            porteador.Property(x => x.Municipio)
+                .HasColumnName("porteador_municipio")
+                .HasMaxLength(100);
+
+            porteador.Property(x => x.CodigoPaisIso)
+                .HasColumnName("porteador_codigo_pais_iso")
+                .HasMaxLength(2);
+        });
+
+        builder.Navigation(x => x.Porteador)
+            .IsRequired(false);
         builder.HasIndex(x => new
         {
             x.Empresa,

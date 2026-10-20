@@ -23,6 +23,16 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
             .HasMaxLength(200)
             .IsRequired();
 
+        builder.Property(x => x.IdentificadorFiscal)
+            .HasColumnName("identificador_fiscal")
+            .HasMaxLength(20)
+            .IsRequired(false);
+
+        builder.Property(x => x.RequiereDatosPorteador)
+            .HasColumnName("requiere_datos_porteador")
+            .HasDefaultValue(false)
+            .IsRequired();
+
         builder.Property(x => x.Activa)
             .IsRequired();
 
@@ -31,6 +41,22 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
 
         builder.Property(x => x.EntregaEnDestino)
             .IsRequired();
+
+        builder.Property(x => x.RequierePrecinto)
+            .IsRequired();
+
+        // Datos de dirección.
+        builder.Property(x => x.Direccion)
+            .HasMaxLength(250);
+
+        builder.Property(x => x.CodigoPostal)
+            .HasMaxLength(20);
+
+        builder.Property(x => x.Municipio)
+            .HasMaxLength(100);
+
+        builder.Property(x => x.CodigoPaisIso)
+            .HasMaxLength(2);
 
         // El código de agencia es global.
         builder.HasIndex(x => x.Codigo)
@@ -41,11 +67,6 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
             .HasForeignKey(x => x.AgenciaId)
             .IsRequired()
             .OnDelete(DeleteBehavior.ClientCascade);
-
-        builder.Property(x => x.IdentificadorFiscal)
-            .HasColumnName("identificador_fiscal")
-            .HasMaxLength(20)
-            .IsRequired();
 
         builder.Ignore(x => x.DomainEvents);
     }

@@ -70,4 +70,88 @@ internal sealed class DocutenCallbackLogRepository : IDocutenCallbackLogReposito
                 x.Mensaje))
             .ToListAsync(cancellationToken);
     }
+
+    public async Task<DocutenCallbackLogEntry?> GetByIdAsync(
+    Guid id,
+    CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.DocutenCallbackLogs
+            .AsNoTracking()
+            .Where(x => x.Id == id)
+            .Select(x => new DocutenCallbackLogEntry(
+                x.Id,
+                x.RecibidoEn,
+                x.Tipo,
+                x.DocumentoId,
+                x.LotId,
+                x.LotReference,
+                x.ShipmentId,
+                x.ShipmentReference,
+                x.Event,
+                x.Estado,
+                x.Procesado,
+                x.Payload,
+                x.Headers,
+                x.Mensaje))
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    public async Task ActualizarResultadoAsync(
+    Guid id,
+    Guid? documentoId,
+    bool procesado,
+    string? mensaje,
+    CancellationToken cancellationToken = default)
+    {
+        var log = await _dbContext.DocutenCallbackLogs
+            .FirstOrDefaultAsync(
+                x => x.Id == id,
+                cancellationToken);
+
+        if (log is null)
+        {
+            throw new InvalidOperationException(
+                $"No se encontró el callback '{id}'.");
+        }
+
+        log.DocumentoId = documentoId;
+        log.Procesado = procesado;
+        log.Mensaje = mensaje;
+    }
+
+    public async Task<IReadOnlyList<DocutenCallbackLogEntry>> ListarPendientesAsync(
+    int limit,
+    CancellationToken cancellationToken = default)
+    {
+        if (limit < 1 || limit > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(limit));
+        }
+
+        return await _dbContext.DocutenCallbackLogs
+            .AsNoTracking()
+            .Where(x =>
+                !x.Procesado &&
+                x.Tipo == "signature" &&
+                x.Event == "SIGNATURE")
+            .OrderBy(x => x.RecibidoEn)
+            .ThenBy(x => x.Id)
+            .Take(limit)
+            .Select(x => new DocutenCallbackLogEntry(
+                x.Id,
+                x.RecibidoEn,
+                x.Tipo,
+                x.DocumentoId,
+                x.LotId,
+                x.LotReference,
+                x.ShipmentId,
+                x.ShipmentReference,
+                x.Event,
+                x.Estado,
+                x.Procesado,
+                x.Payload,
+                x.Headers,
+                x.Mensaje))
+            .ToListAsync(cancellationToken);
+    }
 }

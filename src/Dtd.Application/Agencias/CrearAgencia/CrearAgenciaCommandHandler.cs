@@ -25,6 +25,13 @@ internal sealed class CrearAgenciaCommandHandler
         CrearAgenciaCommand request,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Codigo))
+        {
+            return Error.Validation(
+                "Agencia.DatosInvalidos",
+                "El código de agencia es obligatorio.");
+        }
+
         var existente = await _agenciaRepository.GetByCodigoAsync(
             request.Codigo.Trim(),
             cancellationToken);
@@ -41,16 +48,17 @@ internal sealed class CrearAgenciaCommandHandler
         try
         {
             agencia = Agencia.Crear(
-                request.Codigo,
-                request.Nombre,
-                request.IdentificadorFiscal,
-                request.AgenciaQs,
-                request.EntregaEnDestino,
-                request.RequierePrecinto,
-                request.Direccion,
-                request.CodigoPostal,
-                request.Municipio,
-                request.CodigoPaisIso);
+                codigo: request.Codigo,
+                nombre: request.Nombre,
+                identificadorFiscal: request.IdentificadorFiscal,
+                agenciaQs: request.AgenciaQs,
+                entregaEnDestino: request.EntregaEnDestino,
+                requierePrecinto: request.RequierePrecinto,
+                direccion: request.Direccion,
+                codigoPostal: request.CodigoPostal,
+                municipio: request.Municipio,
+                codigoPaisIso: request.CodigoPaisIso,
+                requiereDatosPorteador: request.RequiereDatosPorteador);
         }
         catch (ArgumentException ex)
         {
@@ -78,6 +86,7 @@ internal sealed class CrearAgenciaCommandHandler
             agencia.Direccion,
             agencia.CodigoPostal,
             agencia.Municipio,
-            agencia.CodigoPaisIso);
+            agencia.CodigoPaisIso,
+            agencia.RequiereDatosPorteador);
     }
 }

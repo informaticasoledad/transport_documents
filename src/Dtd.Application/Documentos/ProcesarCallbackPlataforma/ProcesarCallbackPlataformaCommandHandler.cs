@@ -28,47 +28,70 @@ internal sealed class ProcesarCallbackPlataformaCommandHandler
     }
 
     public async Task<ErrorOr<ProcesarCallbackPlataformaResult>> Handle(
-        ProcesarCallbackPlataformaCommand request,
-        CancellationToken cancellationToken)
+    ProcesarCallbackPlataformaCommand request,
+    CancellationToken cancellationToken)
     {
         if (request.Payload.ValueKind != JsonValueKind.Object)
         {
             return await FinalizarAsync(
                 request,
-                new ProcesarCallbackPlataformaResult(null, "unknown", Procesado: false),
+                new ProcesarCallbackPlataformaResult(
+                    null,
+                    "unknown",
+                    Procesado: false),
                 estado: null,
                 mensaje: "Payload no objeto.",
                 cancellationToken);
         }
 
+        // Callback de firma (SIGNATURE)
         if (TryGetString(request.Payload, "event") is { } evento &&
             string.Equals(evento, EventoFirma, StringComparison.OrdinalIgnoreCase))
         {
-            var resultadoFirma = await ProcesarFirmaAsync(request.Payload, cancellationToken);
+            var resultadoFirma = await ProcesarFirmaAsync(
+                request.Payload,
+                cancellationToken);
+
             if (resultadoFirma.IsError)
             {
                 return resultadoFirma.Errors;
             }
 
+            var resultado = resultadoFirma.Value;
+
             return await FinalizarAsync(
                 request,
-                resultadoFirma.Value,
+                resultado,
                 TryGetString(request.Payload, "shipment_status"),
-                mensaje: null,
+                mensaje: resultado.Procesado
+                    ? null
+                    : $"Callback de firma no procesado. " +
+                      $"ShipmentReference: {TryGetString(request.Payload, "shipment_reference")}, " +
+                      $"ShipmentId: {TryGetString(request.Payload, "shipment_id")}",
                 cancellationToken);
         }
 
-        var resultadoDocumento = await ProcesarDocumentoAsync(request.Payload, cancellationToken);
+        // Callback de documento (LOT)
+        var resultadoDocumento = await ProcesarDocumentoAsync(
+            request.Payload,
+            cancellationToken);
+
         if (resultadoDocumento.IsError)
         {
             return resultadoDocumento.Errors;
         }
 
+        var resultadoDoc = resultadoDocumento.Value;
+
         return await FinalizarAsync(
             request,
-            resultadoDocumento.Value,
+            resultadoDoc,
             TryGetString(request.Payload, "lot_status"),
-            mensaje: null,
+            mensaje: resultadoDoc.Procesado
+                ? null
+                : $"Callback de documento no procesado. " +
+                  $"LotReference: {TryGetString(request.Payload, "lot_reference")}, " +
+                  $"LotId: {TryGetString(request.Payload, "lot_id")}",
             cancellationToken);
     }
 
@@ -113,7 +136,7 @@ internal sealed class ProcesarCallbackPlataformaCommandHandler
         return new ProcesarCallbackPlataformaResult(documento.Id, "document", Procesado: true);
     }
 
-    private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> ProcesarFirmaAsync(
+    /*private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> ProcesarFirmaAsync(
         JsonElement payload,
         CancellationToken cancellationToken)
     {
@@ -136,37 +159,115 @@ internal sealed class ProcesarCallbackPlataformaCommandHandler
             TryGetString(payload, "shipment_status"));
 
         return new ProcesarCallbackPlataformaResult(documento.Id, "signature", procesado);
+    }*/
+
+    private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> ProcesarFirmaAsync(
+    JsonElement payload,
+    CancellationToken cancellationToken)
+    {
+        var shipmentReference = TryGetString(
+            payload,
+            "shipment_reference");
+
+        if (string.IsNullOrWhiteSpace(shipmentReference))
+        {
+            return new ProcesarCallbackPlataformaResult(
+                null,
+                "signature",
+                Procesado: false);
+        }
+
+        var documentoId = TryParseDocumentoId(shipmentReference);
+
+        DocumentoDigitalTransporte? documento;
+
+        if (documentoId is not null)
+        {
+            documento = await _documentoRepository.GetByIdAsync(
+                documentoId.Value,
+                cancellationToken);
+        }
+        else
+        {
+            documento = await _documentoRepository.GetByReferenciaEnvioAsync(
+                shipmentReference,
+                cancellationToken);
+        }
+
+        if (documento is null)
+        {
+            return new ProcesarCallbackPlataformaResult(
+                documentoId,
+                "signature",
+                Procesado: false);
+        }
+
+        var resultado = documento.RegistrarCallbackEnvioDocuten(
+            shipmentReference,
+            TryGetString(payload, "shipment_id"),
+            TryGetString(payload, "shipment_status"));
+
+        var procesado = resultado is
+            ResultadoCallbackEnvio.Aplicado or
+            ResultadoCallbackEnvio.YaAplicado or
+            ResultadoCallbackEnvio.Obsoleto;
+
+        return new ProcesarCallbackPlataformaResult(
+            documento.Id,
+            "signature",
+            procesado);
     }
 
     private async Task<ErrorOr<ProcesarCallbackPlataformaResult>> FinalizarAsync(
-        ProcesarCallbackPlataformaCommand request,
-        ProcesarCallbackPlataformaResult result,
-        string? estado,
-        string? mensaje,
-        CancellationToken cancellationToken)
+    ProcesarCallbackPlataformaCommand request,
+    ProcesarCallbackPlataformaResult result,
+    string? estado,
+    string? mensaje,
+    CancellationToken cancellationToken)
     {
-        var entry = new DocutenCallbackLogEntry(
-            Guid.NewGuid(),
-            DateTimeOffset.UtcNow,
-            result.Tipo,
-            result.DocumentoId,
-            TryGetString(request.Payload, "lot_id"),
-            TryGetString(request.Payload, "lot_reference"),
-            TryGetString(request.Payload, "shipment_id"),
-            TryGetString(request.Payload, "shipment_reference"),
-            TryGetString(request.Payload, "event"),
-            estado,
-            result.Procesado,
-            request.RawPayload,
-            request.Headers,
-            mensaje);
+        if (request.CallbackLogId is { } callbackLogId)
+        {
+            // Reprocesamiento: actualizar el callback original.
+            await _callbackLogRepository.ActualizarResultadoAsync(
+                callbackLogId,
+                result.DocumentoId,
+                result.Procesado,
+                mensaje,
+                cancellationToken);
+        }
+        else
+        {
+            // Callback nuevo recibido desde Docuten.
+            var entry = new DocutenCallbackLogEntry(
+                Guid.NewGuid(),
+                DateTimeOffset.UtcNow,
+                result.Tipo,
+                result.DocumentoId,
+                TryGetString(request.Payload, "lot_id"),
+                TryGetString(request.Payload, "lot_reference"),
+                TryGetString(request.Payload, "shipment_id"),
+                TryGetString(request.Payload, "shipment_reference"),
+                TryGetString(request.Payload, "event"),
+                estado,
+                result.Procesado,
+                request.RawPayload,
+                request.Headers,
+                mensaje);
 
-        await _callbackLogRepository.AddAsync(entry, cancellationToken);
+            await _callbackLogRepository.AddAsync(
+                entry,
+                cancellationToken);
 
-        var threshold = DateTimeOffset.UtcNow.AddDays(-CallbackLogRetentionDays);
-        await _callbackLogRepository.DeleteOlderThanAsync(threshold, cancellationToken);
+            var threshold = DateTimeOffset.UtcNow
+                .AddDays(-CallbackLogRetentionDays);
+
+            await _callbackLogRepository.DeleteOlderThanAsync(
+                threshold,
+                cancellationToken);
+        }
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
         return result;
     }
 

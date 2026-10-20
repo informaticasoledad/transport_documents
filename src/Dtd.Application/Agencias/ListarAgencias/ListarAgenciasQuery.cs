@@ -12,7 +12,8 @@ public sealed record ListarAgenciasQuery(
     bool? Activa,
     bool? EntregaEnDestino,
     int Page = 1,
-    int PageSize = 20)
+    int PageSize = 20,
+    bool? RequiereDatosPorteador = null)
     : IRequest<ErrorOr<AgenciasPaginadasDto>>;
 
 public sealed record AgenciasPaginadasDto(
@@ -61,7 +62,12 @@ internal sealed class ListarAgenciasQueryHandler
                 a.Activa,
                 a.AgenciaQs,
                 a.EntregaEnDestino,
-                a.RequierePrecinto, a.Direccion, a.CodigoPostal, a.Municipio, a.CodigoPaisIso)) 
+                a.RequierePrecinto,
+                a.Direccion,
+                a.CodigoPostal,
+                a.Municipio,
+                a.CodigoPaisIso,
+                a.RequiereDatosPorteador))
             .ToList();
 
         return new AgenciasPaginadasDto(

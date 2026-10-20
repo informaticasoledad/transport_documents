@@ -5,6 +5,7 @@ using Dtd.Application.Documentos.EliminarDocumento;
 using Dtd.Application.Documentos.EliminarEnvio;
 using Dtd.Application.Documentos.EliminarExpedicion;
 using Dtd.Application.Documentos.EnviarDocumentoADocuten;
+using Dtd.Application.Documentos.EstablecerPorteadorDocumento;
 using Dtd.Application.Documentos.GenerarDocumento;
 using Dtd.Application.Documentos.ListarDocumentos;
 using Dtd.Application.Documentos.ListarEventosDocumento;
@@ -13,6 +14,7 @@ using Dtd.Application.Documentos.ModificarMatriculaDocumento;
 using Dtd.Application.Documentos.ModificarPrecintoDocumento;
 using Dtd.Application.Documentos.ObtenerDocumento;
 using Dtd.Application.Documentos.ReenviarNotificacion;
+using Dtd.Application.Documentos.ReprocesarCallbackPlataforma;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
@@ -314,6 +316,32 @@ public static class DocumentosModule
         return result.ToHttpResult(
             _ => Results.NoContent());
     });
+
+
+        documentos.MapPut(
+    "/{documentoId:guid}/porteador",
+    async (
+        Guid documentoId,
+        EstablecerPorteadorDocumentoRequest request,
+        IMediator mediator,
+        CancellationToken ct) =>
+    {
+        var command = new EstablecerPorteadorDocumentoCommand(
+            documentoId,
+            request.Nombre,
+            request.IdentificadorFiscal,
+            request.Direccion,
+            request.CodigoPostal,
+            request.Municipio,
+            request.CodigoPaisIso);
+
+        var result = await mediator.Send(command, ct);
+
+        return result.ToHttpResult(
+            _ => Results.NoContent());
+    });
+
+
         return app;
     }
 }
@@ -341,3 +369,10 @@ public sealed record AgregarConductorManualDocumentoRequest(
     string TaxId,
     string Movil);
 
+public sealed record EstablecerPorteadorDocumentoRequest(
+    string Nombre,
+    string IdentificadorFiscal,
+    string? Direccion,
+    string? CodigoPostal,
+    string? Municipio,
+    string? CodigoPaisIso);

@@ -47,6 +47,7 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
     public bool Finalizado { get; private set; }
 
+    public Porteador? Porteador { get; private set; }
     private DocumentoDigitalTransporte()
     {
         Empresa = string.Empty;
@@ -132,7 +133,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
     bool requierePrecinto,
     string? precinto,
     string? usuarioGeneracionId,
-    DateTimeOffset fechaGeneracion)
+    DateTimeOffset fechaGeneracion, 
+    Porteador? porteador = null)
     {
         ArgumentNullException.ThrowIfNull(expediciones);
         ArgumentNullException.ThrowIfNull(destinos);
@@ -189,6 +191,11 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         if (resultadoEnvios.IsError)
         {
             return resultadoEnvios.Errors;
+        }
+
+        if (porteador is not null)
+        {
+            documento.EstablecerPorteador(porteador);
         }
 
         documento.RegistrarEvento(
@@ -425,7 +432,16 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
                 $"El envío '{envioSinDestino.Referencia}' no tiene destino.");
         }
 
+        if (Porteador is null)
+        {
+            return Error.Validation(
+                "Documento.PorteadorRequerido",
+                "Debe especificar el nombre y el identificador fiscal " +
+                "del porteador antes de enviar el documento.");
+        }
+
         return Result.Success;
+
     }
 
     public void ConfirmarEnvioADocuten(string lotId, string estadoDocuten)
@@ -581,14 +597,14 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
         return true;
     }
 
-    public bool RegistrarCallbackEnvioDocuten(
-        string shipmentReference,
-        string? shipmentId,
-        string? estadoDocuten)
+    public ResultadoCallbackEnvio RegistrarCallbackEnvioDocuten(
+    string shipmentReference,
+    string? shipmentId,
+    string? estadoDocuten)
     {
         if (string.IsNullOrWhiteSpace(shipmentReference))
         {
-            return false;
+            return ResultadoCallbackEnvio.EnvioNoEncontrado;
         }
 
         var envio = _envios.FirstOrDefault(e =>
@@ -599,14 +615,19 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
 
         if (envio is null)
         {
-            return false;
+            return ResultadoCallbackEnvio.EnvioNoEncontrado;
+        }
+
+        var resultado = envio.RegistrarCallbackDocuten(
+            shipmentId,
+            estadoDocuten);
+
+        if (resultado != ResultadoCallbackEnvio.Aplicado)
+        {
+            return resultado;
         }
 
         var estadoAnterior = Estado;
-
-        envio.RegistrarCallbackDocuten(
-            shipmentId,
-            estadoDocuten);
 
         RecalcularEstadoDesdeEnviosPlataforma();
 
@@ -619,9 +640,8 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
             origen: "Docuten",
             envioId: envio.Id);
 
-        return true;
+        return resultado;
     }
-
     public void CambiarMatricula(string? matricula)
     {
         AsegurarEstadoNuevo();
@@ -931,5 +951,14 @@ public sealed class DocumentoDigitalTransporte : Entity<Guid>
                 $"El envío '{envioId}' no pertenece al documento.");
 
         envio.RegistrarReenvioNotificacion(fecha);
+    }
+
+    public void EstablecerPorteador(Porteador porteador)
+    {
+        AsegurarEstadoNuevo();
+
+        ArgumentNullException.ThrowIfNull(porteador);
+
+        Porteador = porteador;
     }
 }

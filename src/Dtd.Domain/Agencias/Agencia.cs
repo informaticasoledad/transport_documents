@@ -15,7 +15,9 @@ public sealed class Agencia : AggregateRoot<Guid>
 {
     public string Codigo { get; private set; }
     public string Nombre { get; private set; }
-    public string IdentificadorFiscal { get; private set; }
+
+    public bool RequiereDatosPorteador { get; private set; }
+    public string? IdentificadorFiscal { get; private set; }
 
     public string? Direccion { get; private set; }
     public string? CodigoPostal { get; private set; }
@@ -41,12 +43,14 @@ public sealed class Agencia : AggregateRoot<Guid>
         Codigo = string.Empty;
         Nombre = string.Empty;
         IdentificadorFiscal = string.Empty;
+        RequiereDatosPorteador = false;
     }
 
     private Agencia(
         string codigo,
         string nombre,
-        string identificadorFiscal,
+        string? identificadorFiscal,
+        bool requiereDatosPorteador,
         bool activa,
         string? agenciaQs,
         bool entregaEnDestino,
@@ -83,17 +87,20 @@ public sealed class Agencia : AggregateRoot<Guid>
         string? direccion = null,
         string? codigoPostal = null,
         string? municipio = null,
-        string? codigoPaisIso = null)
+        string? codigoPaisIso = null,
+        bool requiereDatosPorteador = false)
     {
         ValidarDatos(
             codigo,
             nombre,
-            identificadorFiscal);
+            identificadorFiscal,
+            requiereDatosPorteador);
 
         return new Agencia(
             codigo.Trim(),
             nombre.Trim(),
             identificadorFiscal.Trim(),
+            requiereDatosPorteador,
             activa: true,
             agenciaQs?.Trim(),
             entregaEnDestino,
@@ -112,32 +119,37 @@ public sealed class Agencia : AggregateRoot<Guid>
         EntregaEnDestino = entregaEnDestino;
 
     public void Modificar(
-        string codigo,
-        string nombre,
-        string identificadorFiscal,
-        string? agenciaQs,
-        bool entregaEnDestino,
-        string? direccion = null,
-        string? codigoPostal = null,
-        string? municipio = null,
-        string? codigoPaisIso = null)
+      string codigo,
+      string nombre,
+      string? identificadorFiscal,
+      string? agenciaQs,
+      bool entregaEnDestino,
+      bool requierePrecinto,
+      string? direccion = null,
+      string? codigoPostal = null,
+      string? municipio = null,
+      string? codigoPaisIso = null,
+      bool requiereDatosPorteador = false)
     {
         ValidarDatos(
             codigo,
             nombre,
-            identificadorFiscal);
+            identificadorFiscal,
+            requiereDatosPorteador);
 
         Codigo = codigo.Trim();
         Nombre = nombre.Trim();
-        IdentificadorFiscal = identificadorFiscal.Trim();
+        IdentificadorFiscal = NormalizarOpcional(identificadorFiscal);
+        RequiereDatosPorteador = requiereDatosPorteador;
 
         Direccion = NormalizarOpcional(direccion);
         CodigoPostal = NormalizarOpcional(codigoPostal);
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
 
-        AgenciaQs = agenciaQs?.Trim();
+        AgenciaQs = agenciaQs?.Trim() ?? string.Empty;
         EntregaEnDestino = entregaEnDestino;
+        RequierePrecinto = requierePrecinto;
     }
 
     public AgenciaBase AgregarBase(
@@ -233,9 +245,10 @@ public sealed class Agencia : AggregateRoot<Guid>
     }
 
     private static void ValidarDatos(
-        string codigo,
-        string nombre,
-        string identificadorFiscal)
+     string codigo,
+     string nombre,
+     string? identificadorFiscal,
+     bool requiereDatosPorteador)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -251,11 +264,24 @@ public sealed class Agencia : AggregateRoot<Guid>
                 nameof(nombre));
         }
 
-        if (string.IsNullOrWhiteSpace(identificadorFiscal))
+        if (requiereDatosPorteador)
         {
-            throw new ArgumentException(
-                "El identificador fiscal de la agencia es obligatorio.",
-                nameof(identificadorFiscal));
+            if (!string.IsNullOrWhiteSpace(identificadorFiscal))
+            {
+                throw new ArgumentException(
+                    "No se puede especificar un identificador fiscal " +
+                    "cuando la agencia requiere los datos del porteador.",
+                    nameof(identificadorFiscal));
+            }
+        }
+        else
+        {
+            if (string.IsNullOrWhiteSpace(identificadorFiscal))
+            {
+                throw new ArgumentException(
+                    "El identificador fiscal de la agencia es obligatorio.",
+                    nameof(identificadorFiscal));
+            }
         }
     }
 

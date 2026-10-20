@@ -1,13 +1,15 @@
-using Dtd.Application.Documentos.ProcesarCallbackPlataforma;
 using Dtd.Application.Documentos.ListarCallbacksPlataforma;
+using Dtd.Application.Documentos.ProcesarCallbackPlataforma;
+using Dtd.Application.Documentos.ReprocesarCallbackPlataforma;
+using Dtd.Application.Docuten.ReprocesarCallbacksPendientes;
 using Dtd.Application.GatewayContracts;
 using Dtd.Domain.Common;
 using MediatR;
-using System.Text.Json;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using System.Text.Json;
 
 namespace Dtd.Api.Modules;
 
@@ -174,6 +176,44 @@ public static class DocutenModule
 
             return result.ToHttpResult(callbacks => Results.Ok(callbacks));
         });
+
+        docuten.MapPost("/callbacks/{callbackId:guid}/reprocesar", async (
+                Guid callbackId,
+                bool? dryRun,
+                IMediator mediator,
+                CancellationToken ct) =>
+        {
+            var result = await mediator.Send(
+                new ReprocesarCallbackPlataformaCommand(
+                    callbackId,
+                    dryRun ?? true),
+                ct);
+
+            return result.ToHttpResult(
+                response => Results.Ok(response));
+        })
+
+    //.RequireAuthorization("DocutenCallbackAdmin");
+    .RequireAuthorization();
+        docuten.MapPost(
+            "/callbacks/reprocesar-pendientes",
+            async (
+                bool? dryRun,
+                int? limit,
+                IMediator mediator,
+                CancellationToken ct) =>
+            {
+                var command = new ReprocesarCallbacksPendientesCommand(
+                    DryRun: dryRun ?? true,
+                    Limit: limit ?? 10);
+
+                var result = await mediator.Send(command, ct);
+
+                return result.ToHttpResult(value => Results.Ok(value));
+            })
+            .RequireAuthorization()
+            .WithName("ReprocesarCallbacksPendientes")
+            .WithTags("Docuten");
 
         return app;
     }

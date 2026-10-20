@@ -168,5 +168,15 @@ internal sealed class DocumentoRepository : IDocumentoRepository
     {
         _dbContext.Documentos.Remove(documento);
     }
-
+    public async Task<DocumentoDigitalTransporte?> GetByReferenciaEnvioAsync(
+        string referenciaEnvio,
+        CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.Documentos
+            .Include(d => d.Envios)
+            .FirstOrDefaultAsync(
+                d => d.Envios.Any(
+                    e => e.Referencia == referenciaEnvio),
+                cancellationToken);
+    }
 }

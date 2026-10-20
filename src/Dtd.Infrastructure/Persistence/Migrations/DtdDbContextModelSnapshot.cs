@@ -47,15 +47,18 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasColumnName("codigo");
 
                     b.Property<string>("CodigoPaisIso")
-                        .HasColumnType("text")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
                         .HasColumnName("codigo_pais_iso");
 
                     b.Property<string>("CodigoPostal")
-                        .HasColumnType("text")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("codigo_postal");
 
                     b.Property<string>("Direccion")
-                        .HasColumnType("text")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
                         .HasColumnName("direccion");
 
                     b.Property<bool>("EntregaEnDestino")
@@ -63,13 +66,13 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasColumnName("entrega_en_destino");
 
                     b.Property<string>("IdentificadorFiscal")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("identificador_fiscal");
 
                     b.Property<string>("Municipio")
-                        .HasColumnType("text")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("municipio");
 
                     b.Property<string>("Nombre")
@@ -77,6 +80,12 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("nombre");
+
+                    b.Property<bool>("RequiereDatosPorteador")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("requiere_datos_porteador");
 
                     b.Property<bool>("RequierePrecinto")
                         .HasColumnType("boolean")
@@ -1440,6 +1449,53 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                                 .HasConstraintName("fk_documentos_documentos_id");
                         });
 
+                    b.OwnsOne("Dtd.Domain.Documentos.ValueObjects.Porteador", "Porteador", b1 =>
+                        {
+                            b1.Property<Guid>("DocumentoDigitalTransporteId")
+                                .HasColumnType("uuid")
+                                .HasColumnName("id");
+
+                            b1.Property<string>("CodigoPaisIso")
+                                .HasMaxLength(2)
+                                .HasColumnType("character varying(2)")
+                                .HasColumnName("porteador_codigo_pais_iso");
+
+                            b1.Property<string>("CodigoPostal")
+                                .HasMaxLength(20)
+                                .HasColumnType("character varying(20)")
+                                .HasColumnName("porteador_codigo_postal");
+
+                            b1.Property<string>("Direccion")
+                                .HasMaxLength(250)
+                                .HasColumnType("character varying(250)")
+                                .HasColumnName("porteador_direccion");
+
+                            b1.Property<string>("IdentificadorFiscal")
+                                .IsRequired()
+                                .HasMaxLength(30)
+                                .HasColumnType("character varying(30)")
+                                .HasColumnName("porteador_identificador_fiscal");
+
+                            b1.Property<string>("Municipio")
+                                .HasMaxLength(100)
+                                .HasColumnType("character varying(100)")
+                                .HasColumnName("porteador_municipio");
+
+                            b1.Property<string>("Nombre")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)")
+                                .HasColumnName("porteador_nombre");
+
+                            b1.HasKey("DocumentoDigitalTransporteId");
+
+                            b1.ToTable("documentos");
+
+                            b1.WithOwner()
+                                .HasForeignKey("DocumentoDigitalTransporteId")
+                                .HasConstraintName("fk_documentos_documentos_id");
+                        });
+
                     b.OwnsOne("Dtd.Domain.Documentos.ValueObjects.RangoFechas", "RangoFechas", b1 =>
                         {
                             b1.Property<Guid>("DocumentoDigitalTransporteId")
@@ -1465,6 +1521,8 @@ namespace Dtd.Infrastructure.Persistence.Migrations
 
                     b.Navigation("Origen")
                         .IsRequired();
+
+                    b.Navigation("Porteador");
 
                     b.Navigation("RangoFechas")
                         .IsRequired();
