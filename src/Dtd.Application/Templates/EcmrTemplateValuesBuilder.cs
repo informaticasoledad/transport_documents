@@ -49,8 +49,10 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
             ["Lugar de carga"] = BuildLugarCarga(
                 documento),
 
+            //["Porteador"] = BuildPorteador(
+            //    agencia),
             ["Porteador"] = BuildPorteador(
-                agencia),
+                documento),
 
             ["Porteadores sucesivos"] =
                 string.Empty,
@@ -131,6 +133,7 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
                 CultureInfo.InvariantCulture));
     }
 
+    /*
     private static string BuildPorteador(
         Agencia agencia)
     {
@@ -142,6 +145,23 @@ public sealed class EcmrTemplateValuesBuilder : IDocumentTemplateValuesBuilder
                 agencia.CodigoPostal,
                 agencia.Municipio),
             agencia.CodigoPaisIso);
+    }*/
+
+    private static string BuildPorteador(
+    DocumentoDigitalTransporte documento)
+    {
+        var porteador = documento.Porteador
+            ?? throw new InvalidOperationException(
+                $"El documento '{documento.Referencia}' no tiene porteador.");
+
+        return JoinLines(
+            porteador.Nombre,
+            porteador.IdentificadorFiscal,
+            porteador.Direccion,
+            BuildCodigoPostalCiudad(
+                porteador.CodigoPostal,
+                porteador.Municipio),
+            porteador.CodigoPaisIso);
     }
 
     private static string BuildReservasPorteador(

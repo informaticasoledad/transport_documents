@@ -36,8 +36,10 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
 
             ["Observaciones_cargador"] = string.Empty,
 
+            //["Nombre_NIF_Domicilio_TransportistaEfectivo"] =
+            //    BuildTransportistaEfectivo(agencia),
             ["Nombre_NIF_Domicilio_TransportistaEfectivo"] =
-                BuildTransportistaEfectivo(agencia),
+                BuildTransportistaEfectivo(documento),
 
             ["AutorizaciónCirculacion"] = string.Empty,
 
@@ -149,13 +151,16 @@ public sealed class DecaTemplateValuesBuilder : IDocumentTemplateValuesBuilder
                 .Where(x => !string.IsNullOrWhiteSpace(x))
                 .Select(x => x!.Trim()));
     }
-
     private static string BuildTransportistaEfectivo(
-    Agencia agencia)
+        DocumentoDigitalTransporte documento)
     {
+        var porteador = documento.Porteador
+            ?? throw new InvalidOperationException(
+                $"El documento '{documento.Referencia}' no tiene porteador.");
+
         return JoinLines(
-            agencia.Nombre,
-            agencia.IdentificadorFiscal);
+            porteador.Nombre,
+            porteador.IdentificadorFiscal);
     }
 
     private string BuildNaturalezaMercancia(
