@@ -66,7 +66,6 @@ namespace Dtd.Infrastructure.Persistence.Migrations
                         .HasColumnName("entrega_en_destino");
 
                     b.Property<string>("IdentificadorFiscal")
-                        .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("identificador_fiscal");

@@ -26,7 +26,7 @@ internal sealed class AgenciaConfiguration : IEntityTypeConfiguration<Agencia>
         builder.Property(x => x.IdentificadorFiscal)
             .HasColumnName("identificador_fiscal")
             .HasMaxLength(20)
-            .IsRequired();
+            .IsRequired(false);
 
         builder.Property(x => x.RequiereDatosPorteador)
             .HasColumnName("requiere_datos_porteador")
