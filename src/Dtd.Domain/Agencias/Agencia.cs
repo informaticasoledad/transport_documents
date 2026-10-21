@@ -52,7 +52,7 @@ public sealed class Agencia : AggregateRoot<Guid>
         string? identificadorFiscal,
         bool requiereDatosPorteador,
         bool activa,
-        string? agenciaQs,
+        string agenciaQs,
         bool entregaEnDestino,
         bool requierePrecinto,
         string? direccion,
@@ -75,13 +75,15 @@ public sealed class Agencia : AggregateRoot<Guid>
         AgenciaQs = agenciaQs;
         EntregaEnDestino = entregaEnDestino;
         RequierePrecinto = requierePrecinto;
+
+        RequiereDatosPorteador = requiereDatosPorteador;
     }
 
     public static Agencia Crear(
         string codigo,
         string nombre,
         string identificadorFiscal,
-        string? agenciaQs = null,
+        string agenciaQs,
         bool entregaEnDestino = false,
         bool requierePrecinto = false,
         string? direccion = null,
@@ -94,15 +96,16 @@ public sealed class Agencia : AggregateRoot<Guid>
             codigo,
             nombre,
             identificadorFiscal,
+            agenciaQs,
             requiereDatosPorteador);
 
         return new Agencia(
             codigo.Trim(),
             nombre.Trim(),
-            identificadorFiscal.Trim(),
+            identificadorFiscal?.Trim(),
             requiereDatosPorteador,
             activa: true,
-            agenciaQs?.Trim(),
+            agenciaQs.Trim(),
             entregaEnDestino,
             requierePrecinto,
             NormalizarOpcional(direccion),
@@ -122,7 +125,7 @@ public sealed class Agencia : AggregateRoot<Guid>
       string codigo,
       string nombre,
       string? identificadorFiscal,
-      string? agenciaQs,
+      string agenciaQs,
       bool entregaEnDestino,
       bool requierePrecinto,
       string? direccion = null,
@@ -135,6 +138,7 @@ public sealed class Agencia : AggregateRoot<Guid>
             codigo,
             nombre,
             identificadorFiscal,
+            agenciaQs,
             requiereDatosPorteador);
 
         Codigo = codigo.Trim();
@@ -147,9 +151,10 @@ public sealed class Agencia : AggregateRoot<Guid>
         Municipio = NormalizarOpcional(municipio);
         CodigoPaisIso = NormalizarOpcional(codigoPaisIso);
 
-        AgenciaQs = agenciaQs?.Trim() ?? string.Empty;
+        AgenciaQs = agenciaQs.Trim();
         EntregaEnDestino = entregaEnDestino;
         RequierePrecinto = requierePrecinto;
+
     }
 
     public AgenciaBase AgregarBase(
@@ -245,10 +250,11 @@ public sealed class Agencia : AggregateRoot<Guid>
     }
 
     private static void ValidarDatos(
-     string codigo,
-     string nombre,
-     string? identificadorFiscal,
-     bool requiereDatosPorteador)
+    string codigo,
+    string nombre,
+    string? identificadorFiscal,
+    string agenciaQs,
+    bool requiereDatosPorteador)
     {
         if (string.IsNullOrWhiteSpace(codigo))
         {
@@ -264,6 +270,13 @@ public sealed class Agencia : AggregateRoot<Guid>
                 nameof(nombre));
         }
 
+        if (string.IsNullOrWhiteSpace(agenciaQs))
+        {
+            throw new ArgumentException(
+                "El código QS de la agencia es obligatorio.",
+                nameof(agenciaQs));
+        }
+
         if (requiereDatosPorteador)
         {
             if (!string.IsNullOrWhiteSpace(identificadorFiscal))
@@ -274,14 +287,11 @@ public sealed class Agencia : AggregateRoot<Guid>
                     nameof(identificadorFiscal));
             }
         }
-        else
+        else if (string.IsNullOrWhiteSpace(identificadorFiscal))
         {
-            if (string.IsNullOrWhiteSpace(identificadorFiscal))
-            {
-                throw new ArgumentException(
-                    "El identificador fiscal de la agencia es obligatorio.",
-                    nameof(identificadorFiscal));
-            }
+            throw new ArgumentException(
+                "El identificador fiscal de la agencia es obligatorio.",
+                nameof(identificadorFiscal));
         }
     }
 
