@@ -9,7 +9,7 @@ certificate:
   dnsName: "transport-documents.gruposoledad.com" #cambiame 
 image:
   repository: "gruposoledad/transport_documents" #cambiame 
-  tag: "v2026.10.21.12.17"
+  tag: "v2026.10.21.13.32"
   pullPolicy: IfNotPresent
 imagePullSecrets:
   - name: regcred
